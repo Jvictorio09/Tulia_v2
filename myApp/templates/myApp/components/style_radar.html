@@ -1,0 +1,110 @@
+<div id="styleRadarTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl sm:text-2xl font-heading font-bold">Style Radar</h2>
+            <button onclick="closeStyleRadar()" class="text-gray-400 hover:text-white">✕</button>
+        </div>
+        
+        <div class="space-y-6">
+            <p class="text-gray-400 text-sm">Rate your communication style across these dimensions:</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Clarity (1-10)</label>
+                    <input type="range" id="styleClarity" min="1" max="10" value="5" class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Unclear</span>
+                        <span id="clarityValue" class="text-electric-violet font-semibold">5</span>
+                        <span>Very Clear</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Energy (1-10)</label>
+                    <input type="range" id="styleEnergy" min="1" max="10" value="5" class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Calm</span>
+                        <span id="energyValue" class="text-electric-violet font-semibold">5</span>
+                        <span>High Energy</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Formality (1-10)</label>
+                    <input type="range" id="styleFormality" min="1" max="10" value="5" class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Casual</span>
+                        <span id="formalityValue" class="text-electric-violet font-semibold">5</span>
+                        <span>Formal</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Empathy (1-10)</label>
+                    <input type="range" id="styleEmpathy" min="1" max="10" value="5" class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Logical</span>
+                        <span id="empathyValue" class="text-electric-violet font-semibold">5</span>
+                        <span>Emotional</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="generateStyleRadar()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Generate Radar</button>
+            
+            <div id="styleResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
+                <h3 class="font-semibold mb-4">Your Style Profile:</h3>
+                <div class="space-y-2 text-sm text-gray-300" id="styleOutput"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openStyleRadar() {
+    document.getElementById('styleRadarTool').classList.remove('hidden');
+    updateSliderValues();
+}
+
+function closeStyleRadar() {
+    document.getElementById('styleRadarTool').classList.add('hidden');
+}
+
+function updateSliderValues() {
+    document.getElementById('clarityValue').textContent = document.getElementById('styleClarity').value;
+    document.getElementById('energyValue').textContent = document.getElementById('styleEnergy').value;
+    document.getElementById('formalityValue').textContent = document.getElementById('styleFormality').value;
+    document.getElementById('empathyValue').textContent = document.getElementById('styleEmpathy').value;
+    
+    document.getElementById('styleClarity').addEventListener('input', () => {
+        document.getElementById('clarityValue').textContent = document.getElementById('styleClarity').value;
+    });
+    document.getElementById('styleEnergy').addEventListener('input', () => {
+        document.getElementById('energyValue').textContent = document.getElementById('styleEnergy').value;
+    });
+    document.getElementById('styleFormality').addEventListener('input', () => {
+        document.getElementById('formalityValue').textContent = document.getElementById('styleFormality').value;
+    });
+    document.getElementById('styleEmpathy').addEventListener('input', () => {
+        document.getElementById('empathyValue').textContent = document.getElementById('styleEmpathy').value;
+    });
+}
+
+function generateStyleRadar() {
+    const clarity = document.getElementById('styleClarity').value;
+    const energy = document.getElementById('styleEnergy').value;
+    const formality = document.getElementById('styleFormality').value;
+    const empathy = document.getElementById('styleEmpathy').value;
+    
+    const output = `
+        <div>Clarity: ${clarity}/10</div>
+        <div>Energy: ${energy}/10</div>
+        <div>Formality: ${formality}/10</div>
+        <div>Empathy: ${empathy}/10</div>
+    `;
+    
+    document.getElementById('styleOutput').innerHTML = output;
+    document.getElementById('styleResult').classList.remove('hidden');
+}
+</script>
+

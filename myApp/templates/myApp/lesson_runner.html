@@ -1,0 +1,923 @@
+{% extends 'myApp/base.html' %}
+{% load app_filters %}
+
+{% block title %}Lesson - Module {{ module.code }} - Tulia{% endblock %}
+
+{% block content %}
+<!-- Data attributes for JS -->
+<div id="lessonData" 
+     data-block-id="{% if current_block %}{{ current_block.id }}{% else %}0{% endif %}"
+     data-module-code="{{ module.code }}"
+     data-total-blocks="{{ knowledge_blocks|length }}"
+     style="display: none;"></div>
+
+<!-- Sticky Progress Header -->
+<header id="lessonHeader" class="sticky top-0 z-50 bg-ink-bg/95 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+        <div class="flex items-center justify-between gap-3">
+            <!-- Left: Back Button -->
+            <a href="{% url 'home' %}" class="flex-shrink-0 w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            
+            <!-- Center: Skill • Outcome • Time -->
+            <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
+                {% if current_block and current_block.exercise_seeds %}
+                    {% for seed in current_block.exercise_seeds %}
+                        {% if seed.type == "metadata" %}
+                            <div class="text-xs sm:text-sm text-gray-300 text-center">
+                                <span class="font-semibold text-white">Skill:</span> {{ seed.skill|default:"Learning" }}
+                            </div>
+                            <div class="text-xs sm:text-sm text-gray-300 text-center">
+                                <span class="font-semibold text-white">Outcome:</span> {{ seed.outcome|default:"Master the concept" }}
+                            </div>
+                            <div class="text-xs text-gray-400 text-center">
+                                {{ seed.time_estimate|default:"2 cards • ~2 mins" }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <h1 class="text-sm sm:text-base font-heading font-bold text-white truncate w-full text-center">
+                        Module {{ module.code }} · {{ module.name }}
+                    </h1>
+                {% endif %}
+                <!-- Labeled Progress Rail -->
+                <div class="flex items-center gap-2 mt-2" id="progressRail">
+                    <div class="flex items-center gap-1" data-stage="teach">
+                        <div class="w-1.5 h-1.5 rounded-full bg-electric-violet transition-all"></div>
+                        <span class="text-[10px] sm:text-xs text-electric-violet font-medium">Teach</span>
+                    </div>
+                    <span class="text-gray-500">•</span>
+                    <div class="flex items-center gap-1" data-stage="drill">
+                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Drill</span>
+                    </div>
+                    <span class="text-gray-500">•</span>
+                    <div class="flex items-center gap-1" data-stage="review">
+                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Review</span>
+                    </div>
+                    <span class="text-gray-500">•</span>
+                    <div class="flex items-center gap-1" data-stage="checkpoint">
+                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">✓ Checkpoint</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right: Streak + XP -->
+            <div class="flex-shrink-0 flex items-center gap-2">
+                {% if user.profile.current_streak > 0 %}
+                <div class="hidden sm:flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs">
+                    <span>🔥</span>
+                    <span class="font-semibold">{{ user.profile.current_streak }}</span>
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs">
+                    <span>⚡</span>
+                    <span class="font-semibold">{{ user.profile.total_xp }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Compressed Progress Bar (on scroll) -->
+    <div id="compressedProgress" class="hidden h-1 bg-white/5">
+        <div id="progressFill" class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" style="width: 0%"></div>
+    </div>
+</header>
+
+<!-- Content Stage: Card Carousel -->
+<main class="relative min-h-[calc(100vh-64px-64px)] pb-20" id="contentStage">
+    <!-- Card Container -->
+    <div id="cardCarousel" class="relative w-full min-h-[calc(100vh-200px)]">
+        <!-- Teach Card -->
+        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8" data-card="teach" data-block-id="{% if current_block %}{{ current_block.id }}{% else %}0{% endif %}">
+            <div class="w-full max-w-2xl mx-auto py-8">
+                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <div class="mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-gray-400">Module {{ module.code }}</span>
+                            {% if current_block and current_block.exercise_seeds %}
+                                {% for seed in current_block.exercise_seeds %}
+                                    {% if seed.type == "drill" and seed.scenario %}
+                                    <span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-xs text-cyan font-medium">{{ seed.scenario }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-2 text-white" id="teachTitle">
+                            {% if current_block %}{{ current_block.title }}{% else %}Welcome{% endif %}
+                        </h2>
+                        <p class="text-sm text-gray-400 mb-4">Try it in 30s</p>
+                        <div class="text-base sm:text-lg text-gray-300 leading-relaxed whitespace-pre-wrap" id="teachContent">
+                            {% if current_block %}{{ current_block.summary }}{% else %}Let's begin your learning journey.{% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Source Chips -->
+                    <div class="flex flex-wrap gap-2" id="teachCitations">
+                        {% if current_block and current_block.citations %}
+                            {% for citation in current_block.citations %}
+                            <span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm text-gray-400">{{ citation }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Drill Card -->
+        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="drill">
+            <div class="w-full max-w-2xl mx-auto py-8">
+                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <div class="mb-4">
+                        <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-2 text-white">Practice</h2>
+                        <p class="text-sm text-gray-400 mb-3">Try it in 30 seconds</p>
+                        <div id="drillScenario" class="mb-4">
+                            <!-- Scenario pill will be inserted here -->
+                        </div>
+                    </div>
+                    <div id="drillContent" class="space-y-4">
+                        <div>
+                            <p class="text-base sm:text-lg text-gray-300 mb-3" id="drillPrompt">Write one Signal Sentence for this scenario.</p>
+                            <div id="drillTemplateChips" class="flex flex-wrap gap-2 mb-4">
+                                <!-- Template chips will be inserted here -->
+                            </div>
+                            <div id="drillConstraint" class="mb-3">
+                                <!-- Constraint will be shown here -->
+                            </div>
+                            <textarea 
+                                id="drillInput" 
+                                placeholder="One sentence. 140 chars. Make it count."
+                                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30 resize-none"
+                                rows="4"
+                                maxlength="140"
+                            ></textarea>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-xs text-gray-400" id="charCount">0/140</span>
+                                <button id="toggleHint" class="text-xs text-cyan hover:text-cyan-400 transition">Show hint</button>
+                            </div>
+                            <div id="drillHint" class="hidden mt-3 p-3 bg-cyan/10 border border-cyan/30 rounded-lg">
+                                <p class="text-sm text-cyan" id="hintText"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+                        <span>✓</span>
+                        <span id="drillCriteria">1 sentence · ≤140 chars</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review Card -->
+        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="review">
+            <div class="w-full max-w-2xl mx-auto">
+                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-6 text-white">Review</h2>
+                    <div id="reviewContent" class="space-y-6">
+                        <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                            <p class="text-sm font-semibold text-green-400 mb-2">Keep this:</p>
+                            <p class="text-gray-300" id="reviewStrength">Loading...</p>
+                        </div>
+                        <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                            <p class="text-sm font-semibold text-amber-400 mb-2">Tweak this:</p>
+                            <p class="text-gray-300" id="reviewFix">Loading...</p>
+                        </div>
+                        <div class="p-4 bg-cyan/10 border border-cyan/30 rounded-xl">
+                            <p class="text-sm font-semibold text-cyan mb-2">Next tiny step:</p>
+                            <p class="text-gray-300" id="reviewNext">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Checkpoint Card -->
+        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="checkpoint">
+            <div class="w-full max-w-2xl mx-auto">
+                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-4 text-white">Checkpoint</h2>
+                    <p class="text-base sm:text-lg text-gray-300 mb-6">Quick check to see how you're doing.</p>
+                    <div id="checkpointContent" class="space-y-4">
+                        <!-- Checkpoint questions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Primary CTA Button (Morphing) -->
+    <div class="fixed bottom-20 left-0 right-0 z-40 px-4 pb-4 pointer-events-none">
+        <div class="max-w-2xl mx-auto">
+            <button id="primaryCTA" class="w-full px-6 py-4 bg-gradient-to-r from-electric-violet to-cyan text-white font-semibold rounded-xl shadow-2xl shadow-electric-violet/50 hover:shadow-electric-violet/70 transition-all duration-300 hover:scale-105 active:scale-95 pointer-events-auto">
+                Start
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Bottom Sheet: Coach -->
+<div id="coachSheet" class="fixed inset-x-0 bottom-0 z-50 bg-ink-surface/95 backdrop-blur-xl border-t border-white/20 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out" style="height: 55vh; max-height: 600px;">
+    <div class="h-full flex flex-col">
+        <!-- Sheet Handle -->
+        <div class="flex-shrink-0 pt-3 pb-2">
+            <div class="w-12 h-1 bg-white/30 rounded-full mx-auto"></div>
+        </div>
+        
+        <!-- Sheet Header -->
+        <div class="flex-shrink-0 px-4 pb-3 border-b border-white/10">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-heading font-bold text-white">AI Coach</h3>
+                <button id="closeCoachSheet" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Coach Tabs -->
+            <div class="flex gap-2 mt-3">
+                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold border-b-2 border-electric-violet text-electric-violet" data-tab="teach">Teach</button>
+                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white transition" data-tab="drill">Drill</button>
+                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white transition" data-tab="review">Review</button>
+            </div>
+        </div>
+        
+        <!-- Sheet Content -->
+        <div class="flex-1 overflow-y-auto px-4 py-4">
+            <div id="coachSheetContent" class="space-y-4">
+                <div id="coachTeachTab">
+                    <p class="text-sm text-gray-300" id="coachTeachContent">
+                        {% if current_block %}{{ current_block.summary }}{% else %}Learn the core concepts here.{% endif %}
+                    </p>
+                </div>
+                
+                <div id="coachDrillTab" class="hidden">
+                    <p class="text-sm text-gray-300">Practice with a quick exercise.</p>
+                </div>
+                
+                <div id="coachReviewTab" class="hidden">
+                    <p class="text-sm text-gray-300">Get feedback on your progress.</p>
+                </div>
+            </div>
+            
+            <!-- Quick Tools Rail -->
+            <div class="mt-6 pt-6 border-t border-white/10">
+                <h4 class="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Quick Tools</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="openSignalSentence()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
+                        <span class="font-semibold text-white">Signal</span>
+                        <p class="text-xs text-gray-400 mt-1">Build your signal sentence</p>
+                    </button>
+                    <button onclick="openMessageBuilder()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
+                        <span class="font-semibold text-white">3×3</span>
+                        <p class="text-xs text-gray-400 mt-1">Message builder</p>
+                    </button>
+                    <button onclick="openAudienceMap()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
+                        <span class="font-semibold text-white">MAP</span>
+                        <p class="text-xs text-gray-400 mt-1">Audience mapping</p>
+                    </button>
+                    <button onclick="openStyleRadar()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
+                        <span class="font-semibold text-white">Radar</span>
+                        <p class="text-xs text-gray-400 mt-1">Style awareness</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Module Outline Modal -->
+<div id="outlineModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-heading font-bold text-white">Module {{ module.code }} Outline</h3>
+            <button id="closeOutlineModal" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-2">
+            {% for block in knowledge_blocks %}
+            <div class="p-3 rounded-lg {% if block == current_block %}bg-electric-violet/20 border border-electric-violet{% else %}bg-white/5 border border-white/10{% endif %}" data-block-id="{{ block.id }}">
+                <div class="text-sm font-semibold text-white">{{ block.title }}</div>
+                <div class="text-xs text-gray-400 mt-1">{{ block.summary|truncatewords:10 }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% include 'myApp/components/signal_sentence_checker.html' %}
+{% include 'myApp/components/message_builder_3x3.html' %}
+{% include 'myApp/components/audience_map.html' %}
+{% include 'myApp/components/style_radar.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // State
+    const lessonData = document.getElementById('lessonData');
+    let currentStage = 'teach'; // teach, drill, review, checkpoint
+    let currentBlockId = lessonData ? parseInt(lessonData.dataset.blockId) : 0;
+    let blockIndex = 0;
+    let isCoachSheetOpen = false;
+    const moduleCode = lessonData ? lessonData.dataset.moduleCode : '';
+    
+    // Elements
+    const primaryCTA = document.getElementById('primaryCTA');
+    const cardCarousel = document.getElementById('cardCarousel');
+    const coachSheet = document.getElementById('coachSheet');
+    const outlineModal = document.getElementById('outlineModal');
+    const progressDots = document.querySelectorAll('#progressDots [data-stage]');
+    const lessonHeader = document.getElementById('lessonHeader');
+    const compressedProgress = document.getElementById('compressedProgress');
+    const progressFill = document.getElementById('progressFill');
+    
+    // Make header title clickable to open outline
+    const headerTitle = document.querySelector('#lessonHeader h1');
+    if (headerTitle) {
+        headerTitle.style.cursor = 'pointer';
+        headerTitle.addEventListener('click', () => {
+            outlineModal.classList.remove('hidden');
+            outlineModal.classList.add('flex');
+        });
+    }
+    
+    // Close outline modal
+    document.getElementById('closeOutlineModal').addEventListener('click', () => {
+        outlineModal.classList.add('hidden');
+        outlineModal.classList.remove('flex');
+    });
+    
+    outlineModal.addEventListener('click', (e) => {
+        if (e.target === outlineModal) {
+            outlineModal.classList.add('hidden');
+            outlineModal.classList.remove('flex');
+        }
+    });
+    
+    // Coach Sheet Management
+    function openCoachSheet() {
+        coachSheet.classList.remove('translate-y-full');
+        isCoachSheetOpen = true;
+        // Update coach content to match current stage
+        updateCoachContent();
+    }
+    
+    function closeCoachSheet() {
+        coachSheet.classList.add('translate-y-full');
+        isCoachSheetOpen = false;
+    }
+    
+    document.getElementById('closeCoachSheet').addEventListener('click', closeCoachSheet);
+    
+    // Coach sheet tabs
+    document.querySelectorAll('.coach-sheet-tab').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            document.querySelectorAll('.coach-sheet-tab').forEach(b => {
+                b.classList.remove('border-b-2', 'border-electric-violet', 'text-electric-violet');
+                b.classList.add('text-gray-400');
+            });
+            this.classList.add('border-b-2', 'border-electric-violet', 'text-electric-violet');
+            this.classList.remove('text-gray-400');
+            
+            document.getElementById('coachTeachTab').classList.toggle('hidden', tab !== 'teach');
+            document.getElementById('coachDrillTab').classList.toggle('hidden', tab !== 'drill');
+            document.getElementById('coachReviewTab').classList.toggle('hidden', tab !== 'review');
+        });
+    });
+    
+    // Update coach content based on current stage
+    function updateCoachContent() {
+        const teachContent = document.getElementById('coachTeachContent');
+        const currentCard = document.querySelector('.card-slide:not(.hidden)');
+        if (currentCard && teachContent) {
+            const cardContent = currentCard.querySelector('[id$="Content"]');
+            if (cardContent) {
+                teachContent.textContent = cardContent.textContent.substring(0, 200) + '...';
+            }
+        }
+    }
+    
+    // Progress Rail (labeled)
+    function updateProgressDots(stage) {
+        const stages = ['teach', 'drill', 'review', 'checkpoint'];
+        const progressRail = document.getElementById('progressRail');
+        if (!progressRail) return;
+        
+        stages.forEach((s) => {
+            const stageEl = progressRail.querySelector(`[data-stage="${s}"]`);
+            if (stageEl) {
+                const dot = stageEl.querySelector('.rounded-full');
+                const label = stageEl.querySelector('span');
+                
+                if (s === stage) {
+                    dot.classList.remove('bg-white/20');
+                    dot.classList.add('bg-electric-violet');
+                    if (label) {
+                        label.classList.remove('text-gray-400');
+                        label.classList.add('text-electric-violet');
+                    }
+                } else {
+                    dot.classList.remove('bg-electric-violet');
+                    dot.classList.add('bg-white/20');
+                    if (label) {
+                        label.classList.remove('text-electric-violet');
+                        label.classList.add('text-gray-400');
+                    }
+                }
+            }
+        });
+    }
+    
+    // Card Navigation
+    function showCard(cardType) {
+        document.querySelectorAll('.card-slide').forEach(card => {
+            card.classList.add('hidden');
+        });
+        const targetCard = document.querySelector(`[data-card="${cardType}"]`);
+        if (targetCard) {
+            targetCard.classList.remove('hidden');
+        }
+    }
+    
+    // Morphing CTA
+    function updateCTA(stage) {
+        const labels = {
+            'teach': 'Try it (30s)',
+            'drill': 'Check',
+            'review': 'Next',
+            'checkpoint': 'Continue'
+        };
+        if (primaryCTA) {
+            primaryCTA.textContent = labels[stage] || 'Continue';
+        }
+    }
+    
+    // Primary CTA Handler
+    primaryCTA.addEventListener('click', async function() {
+        const btn = this;
+        const originalText = btn.textContent;
+        
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        btn.classList.add('opacity-50');
+        
+        try {
+            if (currentStage === 'teach') {
+                // Move to drill
+                currentStage = 'drill';
+                showCard('drill');
+                updateProgressDots('drill');
+                updateCTA('drill');
+                loadDrill();
+            } else if (currentStage === 'drill') {
+                // Submit drill and move to review (optimistic)
+                currentStage = 'review';
+                showCard('review');
+                updateProgressDots('review');
+                updateCTA('review');
+                await submitDrill();
+            } else if (currentStage === 'review') {
+                // Move to next block
+                await advanceToNextBlock();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Something went wrong. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+        }
+    });
+    
+    // Load Drill
+    async function loadDrill() {
+        const teachCard = document.querySelector('[data-card="teach"]');
+        const blockId = teachCard ? teachCard.getAttribute('data-block-id') : null;
+        
+        // Try to get drill data from the last API response or fetch it
+        let drillData = null;
+        if (blockId && blockId !== '0') {
+            try {
+                // Fetch current block data to get exercise_seeds
+                const response = await fetch('/ai/lesson/orchestrate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        module: moduleCode,
+                        last_block: parseInt(blockId),
+                        last_score: 1.0
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.exercise_seeds) {
+                        drillData = data.exercise_seeds.find(s => s.type === 'drill');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading drill data:', error);
+            }
+        }
+        
+        const drillScenario = document.getElementById('drillScenario');
+        const drillTemplateChips = document.getElementById('drillTemplateChips');
+        const drillConstraint = document.getElementById('drillConstraint');
+        const hintText = document.getElementById('hintText');
+        const drillCriteria = document.getElementById('drillCriteria');
+        const drillInput = document.getElementById('drillInput');
+        const charCount = document.getElementById('charCount');
+        const drillPrompt = document.getElementById('drillPrompt');
+        
+        // Default drill structure (matches seed_data.py)
+        const defaultDrill = {
+            scenario: "Board review • Q2 losses",
+            template: ["[Topic]", "[Tension]", "[Takeaway]"],
+            constraint: "Max 140 characters, 1 sentence",
+            hint: "Start with the problem, end with the action",
+            criteria: "1 sentence · ≤140 chars",
+            prompt: "Write one Signal Sentence for this scenario."
+        };
+        
+        // Use drillData if available, otherwise defaults
+        const drill = drillData || defaultDrill;
+        
+        if (drillScenario && drill.scenario) {
+            drillScenario.innerHTML = `<span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-sm text-cyan font-medium">${drill.scenario}</span>`;
+        }
+        
+        if (drillTemplateChips && drill.template && drill.template.length > 0) {
+            drillTemplateChips.innerHTML = drill.template.map(t => 
+                `<button class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-gray-300 hover:border-electric-violet hover:bg-white/10 transition" onclick="insertTemplate('${t.replace(/'/g, "\\'")}')">${t}</button>`
+            ).join('');
+        } else if (drillTemplateChips) {
+            drillTemplateChips.innerHTML = '';
+        }
+        
+        if (drillConstraint && drill.constraint) {
+            drillConstraint.innerHTML = `<p class="text-sm text-gray-400">${drill.constraint}</p>`;
+        }
+        
+        if (hintText && drill.hint) {
+            hintText.textContent = drill.hint;
+        }
+        
+        if (drillCriteria && drill.criteria) {
+            drillCriteria.textContent = drill.criteria;
+        }
+        
+        if (drillPrompt && drill.prompt) {
+            drillPrompt.textContent = drill.prompt;
+        }
+        
+        // Character counter
+        if (drillInput && charCount) {
+            // Remove existing listeners by cloning
+            const newInput = drillInput.cloneNode(true);
+            drillInput.parentNode.replaceChild(newInput, drillInput);
+            
+            newInput.addEventListener('input', function() {
+                const count = this.value.length;
+                const maxLength = parseInt(this.getAttribute('maxlength')) || 140;
+                charCount.textContent = `${count}/${maxLength}`;
+                if (count > maxLength) {
+                    charCount.classList.add('text-red-400');
+                } else {
+                    charCount.classList.remove('text-red-400');
+                }
+            });
+        }
+        
+        // Toggle hint
+        const toggleHint = document.getElementById('toggleHint');
+        const drillHint = document.getElementById('drillHint');
+        if (toggleHint && drillHint) {
+            toggleHint.addEventListener('click', function() {
+                const isHidden = drillHint.classList.contains('hidden');
+                drillHint.classList.toggle('hidden');
+                toggleHint.textContent = isHidden ? 'Hide hint' : 'Show hint';
+            });
+        }
+    }
+    
+    // Insert template into textarea
+    window.insertTemplate = function(template) {
+        const drillInput = document.getElementById('drillInput');
+        if (drillInput) {
+            const cursorPos = drillInput.selectionStart;
+            const textBefore = drillInput.value.substring(0, cursorPos);
+            const textAfter = drillInput.value.substring(cursorPos);
+            drillInput.value = textBefore + template + ' ' + textAfter;
+            drillInput.focus();
+            drillInput.setSelectionRange(cursorPos + template.length + 1, cursorPos + template.length + 1);
+            // Trigger input event to update char count
+            drillInput.dispatchEvent(new Event('input'));
+        }
+    };
+    
+    // Submit Drill (optimistic)
+    async function submitDrill() {
+        const drillInput = document.getElementById('drillInput');
+        const response = drillInput ? drillInput.value.trim() : '';
+        
+        // Validation
+        if (!response) {
+            alert('Try a rough first draft. Perfect comes later.');
+            return;
+        }
+        
+        if (response.length > 140) {
+            alert('Too long. Can you cut to the action in one line?');
+            return;
+        }
+        
+        // Optimistically show review with contextual feedback
+        const reviewContent = {
+            strength: "You named the tension clearly: 'Q2 losses'.",
+            fix: "Add a concrete action (what happens next).",
+            next: "Rewrite with a specific fix or timeframe."
+        };
+        
+        // Check if response is good (simple heuristic)
+        const hasTopic = response.length > 20;
+        const hasAction = /\b(will|ship|fix|launch|approve|implement)\b/i.test(response);
+        
+        if (hasTopic && hasAction) {
+            reviewContent.strength = "Locked in. Ready for a tougher example?";
+            reviewContent.fix = "Two pillars are crisp; the third is vague. Make it measurable.";
+            reviewContent.next = "Try a harder scenario or move to the next concept.";
+        }
+        
+        document.getElementById('reviewStrength').textContent = reviewContent.strength;
+        document.getElementById('reviewFix').textContent = reviewContent.fix;
+        document.getElementById('reviewNext').textContent = reviewContent.next;
+        
+        // Submit in background
+        try {
+            // TODO: Call actual API
+            console.log('Drill submitted:', response);
+        } catch (error) {
+            console.error('Error submitting drill:', error);
+        }
+    }
+    
+    // Advance to Next Block
+    async function advanceToNextBlock() {
+        try {
+            const response = await fetch('/ai/lesson/orchestrate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    module: moduleCode,
+                    last_block: currentBlockId,
+                    last_score: 1.0
+                })
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (data.block_id) {
+                // Update teach card
+                document.getElementById('teachTitle').textContent = data.title || 'Welcome';
+                document.getElementById('teachContent').textContent = data.summary || '';
+                
+                // Update citations
+                const citationsContainer = document.getElementById('teachCitations');
+                if (citationsContainer && data.citations && data.citations.length > 0) {
+                    citationsContainer.innerHTML = data.citations.map(c => 
+                        `<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm text-gray-400">${c}</span>`
+                    ).join('');
+                } else if (citationsContainer) {
+                    citationsContainer.innerHTML = '';
+                }
+                
+                // Update scenario pill if drill data exists
+                const scenarioContainer = document.querySelector('[data-card="teach"] .flex.items-center.gap-2');
+                if (scenarioContainer && data.exercise_seeds) {
+                    const drillSeed = data.exercise_seeds.find(s => s.type === 'drill');
+                    if (drillSeed && drillSeed.scenario) {
+                        const existingScenario = scenarioContainer.querySelector('.bg-cyan\\/10');
+                        if (existingScenario) {
+                            existingScenario.textContent = drillSeed.scenario;
+                        } else {
+                            scenarioContainer.innerHTML += `<span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-xs text-cyan font-medium">${drillSeed.scenario}</span>`;
+                        }
+                    }
+                }
+                
+                // Update header with skill/outcome/time if metadata exists
+                if (data.exercise_seeds) {
+                    const metadata = data.exercise_seeds.find(s => s.type === 'metadata');
+                    if (metadata) {
+                        const headerCenter = document.querySelector('#lessonHeader .flex-1.flex-col');
+                        if (headerCenter) {
+                            headerCenter.innerHTML = `
+                                <div class="text-xs sm:text-sm text-gray-300 text-center">
+                                    <span class="font-semibold text-white">Skill:</span> ${metadata.skill || 'Learning'}
+                                </div>
+                                <div class="text-xs sm:text-sm text-gray-300 text-center">
+                                    <span class="font-semibold text-white">Outcome:</span> ${metadata.outcome || 'Master the concept'}
+                                </div>
+                                <div class="text-xs text-gray-400 text-center">
+                                    ${metadata.time_estimate || '2 cards • ~2 mins'}
+                                </div>
+                                <div class="flex items-center gap-2 mt-2" id="progressRail">
+                                    <div class="flex items-center gap-1" data-stage="teach">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-electric-violet transition-all"></div>
+                                        <span class="text-[10px] sm:text-xs text-electric-violet font-medium">Teach</span>
+                                    </div>
+                                    <span class="text-gray-500">•</span>
+                                    <div class="flex items-center gap-1" data-stage="drill">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Drill</span>
+                                    </div>
+                                    <span class="text-gray-500">•</span>
+                                    <div class="flex items-center gap-1" data-stage="review">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Review</span>
+                                    </div>
+                                    <span class="text-gray-500">•</span>
+                                    <div class="flex items-center gap-1" data-stage="checkpoint">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
+                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">✓ Checkpoint</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+                
+                // Update block ID
+                const teachCard = document.querySelector('[data-card="teach"]');
+                if (teachCard) {
+                    teachCard.setAttribute('data-block-id', data.block_id);
+                    currentBlockId = data.block_id;
+                }
+                
+                // Reset to teach stage
+                currentStage = 'teach';
+                showCard('teach');
+                updateProgressDots('teach');
+                updateCTA('teach');
+                
+                // Update progress
+                updateProgress();
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Module complete
+                showCard('teach');
+                document.getElementById('teachTitle').textContent = 'Module Complete!';
+                document.getElementById('teachContent').textContent = 'Congratulations! You\'ve completed all knowledge blocks.';
+                primaryCTA.textContent = 'Back to Home';
+                primaryCTA.onclick = () => window.location.href = '{% url "home" %}';
+            }
+        } catch (error) {
+            console.error('Error advancing block:', error);
+            throw error;
+        }
+    }
+    
+    // Update Progress
+    function updateProgress() {
+        // Calculate progress based on blocks completed
+        const totalBlocks = lessonData ? parseInt(lessonData.dataset.totalBlocks) : 1;
+        const progress = ((blockIndex + 1) / totalBlocks) * 100;
+        if (progressFill) {
+            progressFill.style.width = Math.min(progress, 100) + '%';
+        }
+    }
+    
+    // Swipe Gestures
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    cardCarousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+    
+    cardCarousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && currentStage !== 'teach') {
+                // Swipe left - go back
+                if (currentStage === 'drill') {
+                    currentStage = 'teach';
+                    showCard('teach');
+                    updateProgressDots('teach');
+                    updateCTA('teach');
+                } else if (currentStage === 'review') {
+                    currentStage = 'drill';
+                    showCard('drill');
+                    updateProgressDots('drill');
+                    updateCTA('drill');
+                }
+            } else if (diff < 0 && currentStage === 'teach') {
+                // Swipe right - advance (only from teach)
+                primaryCTA.click();
+            }
+        }
+    }
+    
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' && currentStage !== 'teach') {
+            if (currentStage === 'drill') {
+                currentStage = 'teach';
+                showCard('teach');
+                updateProgressDots('teach');
+                updateCTA('teach');
+            } else if (currentStage === 'review') {
+                currentStage = 'drill';
+                showCard('drill');
+                updateProgressDots('drill');
+                updateCTA('drill');
+            }
+        } else if (e.key === 'ArrowRight' && currentStage === 'teach') {
+            primaryCTA.click();
+        } else if (e.key === 'Enter' && currentStage === 'drill') {
+            primaryCTA.click();
+        }
+    });
+    
+    // Scroll Header Compression
+    let lastScroll = 0;
+    window.addEventListener('scroll', () => {
+        const scroll = window.scrollY;
+        if (scroll > 100 && scroll > lastScroll) {
+            // Scrolling down - compress
+            lessonHeader.classList.add('h-12');
+            compressedProgress.classList.remove('hidden');
+        } else {
+            // Scrolling up - expand
+            lessonHeader.classList.remove('h-12');
+            compressedProgress.classList.add('hidden');
+        }
+        lastScroll = scroll;
+    });
+    
+    // Double-tap header to scroll to top
+    let lastTap = 0;
+    headerTitle.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        lastTap = now;
+    });
+    
+    // Long-press Coach for quick actions (on footer coach button)
+    // This will be handled by the footer component
+    
+    // Helper: Get CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Initialize
+    updateProgressDots('teach');
+    updateCTA('teach');
+    updateProgress();
+    
+    // Expose openCoachSheet globally for footer
+    window.openCoachSheet = openCoachSheet;
+});
+</script>
+{% endblock %}

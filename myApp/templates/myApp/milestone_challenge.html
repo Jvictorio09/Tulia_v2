@@ -1,0 +1,204 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Milestone - Level {{ level.number }} - Tulia{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <div class="text-center mb-8 sm:mb-12">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold mb-2 sm:mb-4">Level {{ level.number }} Milestone</h1>
+        <p class="text-gray-400 text-base sm:text-lg">Demonstrate your mastery</p>
+    </div>
+    
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8">
+        <h2 class="text-xl sm:text-2xl font-heading font-bold mb-4 sm:mb-6">Record Your Response</h2>
+        <p class="text-gray-300 mb-6 sm:mb-8 text-sm sm:text-base">You'll be assessed on clarity, structure, presence, and influence.</p>
+        
+        <div class="mb-8">
+            <div id="recorder" class="text-center">
+                <button id="recordBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-electric-violet text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition hover:-translate-y-0.5">
+                    🎤 Start Recording
+                </button>
+                <div id="recordingStatus" class="hidden mt-4">
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-gray-300">Recording...</span>
+                    </div>
+                    <button id="stopBtn" class="mt-4 px-6 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">Stop Recording</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="results" class="hidden">
+            <h3 class="text-xl font-heading font-bold mb-6">Your Results</h3>
+            
+            <div class="space-y-4 mb-6">
+                <div class="rubric-item">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-300">Clarity</span>
+                        <span class="text-electric-violet font-semibold" id="clarityScore">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" id="clarityBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="rubric-item">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-300">Structure</span>
+                        <span class="text-electric-violet font-semibold" id="structureScore">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" id="structureBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="rubric-item">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-300">Presence</span>
+                        <span class="text-electric-violet font-semibold" id="presenceScore">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" id="presenceBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="rubric-item">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-300">Influence</span>
+                        <span class="text-electric-violet font-semibold" id="influenceScore">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" id="influenceBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-white/5 border border-white/10 rounded-lg mb-6">
+                <h4 class="font-semibold mb-2">Overall Score</h4>
+                <div class="text-3xl font-heading font-bold text-electric-violet" id="overallScore">0%</div>
+            </div>
+            
+            <div class="p-4 bg-white/5 border border-white/10 rounded-lg mb-6">
+                <h4 class="font-semibold mb-2">Coaching Note</h4>
+                <p class="text-gray-300 text-sm" id="coachingNote"></p>
+            </div>
+            
+            <div id="passStatus" class="hidden">
+                <div class="p-6 bg-gradient-to-r from-green-500/20 to-cyan/20 border border-green-500/30 rounded-xl text-center mb-6">
+                    <h3 class="text-2xl font-heading font-bold mb-2 text-green-400">🎉 Congratulations!</h3>
+                    <p class="text-gray-300 mb-4">You've passed the milestone and unlocked District-1!</p>
+                    <p class="text-cyan font-semibold">+3 Tickets awarded</p>
+                </div>
+                <a href="{% url 'district_map' 1 %}" class="block w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition hover:-translate-y-0.5 text-center">Explore District-1</a>
+            </div>
+            
+            <div id="failStatus" class="hidden">
+                <div class="p-6 bg-red-500/20 border border-red-500/30 rounded-xl text-center">
+                    <p class="text-gray-300 mb-4">Keep practicing! You need {{ level.milestone_threshold }}% to pass.</p>
+                    <a href="{% url 'home' %}" class="inline-block px-6 py-3 bg-white/5 border border-white/10 text-white rounded-lg font-semibold hover:bg-white/10 transition">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if previous_attempts %}
+    <div class="bg-ink-surface border border-white/10 rounded-xl p-6">
+        <h3 class="font-heading font-bold mb-4">Previous Attempts</h3>
+        <div class="space-y-3">
+            {% for attempt in previous_attempts %}
+            <div class="p-4 bg-white/5 border border-white/10 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">{{ attempt.created_at|date:"M d, Y" }}</span>
+                    <span class="font-semibold {% if attempt.pass_bool %}text-green-400{% else %}text-red-400{% endif %}">
+                        {{ attempt.overall_score|floatformat:1 }}%
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+document.getElementById('recordBtn').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            await submitMilestone(audioBlob);
+            audioChunks = [];
+        };
+        
+        mediaRecorder.start();
+        document.getElementById('recorder').classList.add('hidden');
+        document.getElementById('recordingStatus').classList.remove('hidden');
+    } catch (err) {
+        alert('Error accessing microphone: ' + err.message);
+    }
+});
+
+document.getElementById('stopBtn').addEventListener('click', function() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+});
+
+async function submitMilestone(audioBlob) {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+    formData.append('transcript', ''); // Would be filled with ASR in production
+    
+    const response = await fetch('{% url "milestone_submit" level.number %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    });
+    
+    const data = await response.json();
+    displayResults(data);
+}
+
+function displayResults(data) {
+    document.getElementById('recordingStatus').classList.add('hidden');
+    document.getElementById('results').classList.remove('hidden');
+    
+    // Animate bars
+    setTimeout(() => {
+        document.getElementById('clarityBar').style.width = data.rubric_scores.clarity + '%';
+        document.getElementById('structureBar').style.width = data.rubric_scores.structure + '%';
+        document.getElementById('presenceBar').style.width = data.rubric_scores.presence + '%';
+        document.getElementById('influenceBar').style.width = data.rubric_scores.influence + '%';
+        
+        document.getElementById('clarityScore').textContent = data.rubric_scores.clarity + '%';
+        document.getElementById('structureScore').textContent = data.rubric_scores.structure + '%';
+        document.getElementById('presenceScore').textContent = data.rubric_scores.presence + '%';
+        document.getElementById('influenceScore').textContent = data.rubric_scores.influence + '%';
+        
+        document.getElementById('overallScore').textContent = data.overall_score.toFixed(1) + '%';
+        document.getElementById('coachingNote').textContent = data.coaching_note;
+        
+        if (data.pass_bool) {
+            document.getElementById('passStatus').classList.remove('hidden');
+        } else {
+            document.getElementById('failStatus').classList.remove('hidden');
+        }
+    }, 100);
+}
+</script>
+{% endblock %}
+

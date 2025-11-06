@@ -1,0 +1,20 @@
+{% extends 'myApp/base.html' %}
+{% load static %}
+
+{% block title %}Tulia - From Anxiety to Impact | Master High-Stakes Communication{% endblock %}
+
+{% block meta_description %}Master high-stakes communication with micro-lessons, safe simulations, and a supportive AI mentor. From Anxiety to Impact.{% endblock %}
+
+{% block body_class %}landing-page{% endblock %}
+
+{% block main_class %}w-full{% endblock %}
+
+{% block content %}
+    {% include 'landing/_hero.html' %}
+    {% include 'landing/_how_it_works.html' %}
+    {% include 'landing/_testimonials.html' %}
+    {% include 'landing/_pricing.html' %}
+    {% include 'landing/_faq.html' %}
+    {% include 'landing/_footer.html' %}
+{% endblock %}
+

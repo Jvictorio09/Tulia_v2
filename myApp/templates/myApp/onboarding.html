@@ -1,0 +1,202 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Onboarding - Tulia{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8 sm:mt-16 px-4">
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 lg:p-12 text-center">
+        <div class="flex justify-center gap-2 mb-8" id="progressDots">
+            {% for i in "1234567" %}
+            <div class="w-2 h-2 rounded-full border border-white/10 bg-white/5 transition-all duration-200 {% if forloop.counter == 1 %}bg-electric-violet border-electric-violet shadow-lg shadow-electric-violet/50{% endif %}" data-step="{{ forloop.counter }}"></div>
+            {% endfor %}
+        </div>
+        
+        <form method="post" id="onboardingForm">
+            {% csrf_token %}
+            <input type="hidden" name="duration" id="duration" value="0">
+            
+            <!-- Question 1: Role -->
+            <div class="onboarding-question" data-step="1">
+                <h2 class="text-xl sm:text-2xl font-heading font-bold mb-3 sm:mb-4">What's your role?</h2>
+                <p class="text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">Help us understand your professional context</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Executive">Executive</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Manager">Manager</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Entrepreneur">Entrepreneur</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Professional">Professional</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Student">Student</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Other">Other</button>
+                </div>
+                <input type="hidden" name="role" id="role">
+            </div>
+            
+            <!-- Question 2: Typical Audience -->
+            <div class="onboarding-question hidden" data-step="2">
+                <h2 class="text-2xl font-heading font-bold mb-4">Who's your typical audience?</h2>
+                <p class="text-gray-400 mb-8">Who do you usually present to or communicate with?</p>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Board Members">Board Members</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Team Members">Team Members</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Clients">Clients</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Stakeholders">Stakeholders</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="General Public">General Public</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Mixed">Mixed</button>
+                </div>
+                <input type="hidden" name="typical_audience" id="typical_audience">
+            </div>
+            
+            <!-- Question 3: Main Goal -->
+            <div class="onboarding-question hidden" data-step="3">
+                <h2 class="text-2xl font-heading font-bold mb-4">What's your main goal?</h2>
+                <p class="text-gray-400 mb-8">What do you want to improve most?</p>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Build Confidence">Build Confidence</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Improve Clarity">Improve Clarity</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Handle Pressure">Handle Pressure</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Engage Audience">Engage Audience</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Persuade & Influence">Persuade & Influence</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="All of the Above">All of the Above</button>
+                </div>
+                <input type="hidden" name="main_goal" id="main_goal">
+            </div>
+            
+            <!-- Question 4: Comfort Under Pressure -->
+            <div class="onboarding-question hidden" data-step="4">
+                <h2 class="text-2xl font-heading font-bold mb-4">How do you feel under pressure?</h2>
+                <p class="text-gray-400 mb-8">When the stakes are high, what happens?</p>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Thrive">I thrive</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Manage Well">I manage well</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Get Nervous">I get nervous</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Struggle">I struggle</button>
+                </div>
+                <input type="hidden" name="comfort_under_pressure" id="comfort_under_pressure">
+            </div>
+            
+            <!-- Question 5: Time Pressure Profile -->
+            <div class="onboarding-question hidden" data-step="5">
+                <h2 class="text-2xl font-heading font-bold mb-4">How do you handle time pressure?</h2>
+                <p class="text-gray-400 mb-8">When you have limited time to prepare</p>
+                <div class="grid grid-cols-1 gap-4 mb-8 max-w-md mx-auto">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Prefer Plenty of Time">I prefer plenty of time</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Work Well Under Deadline">I work well under deadline</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Thrive on Last Minute">I thrive on last minute</button>
+                </div>
+                <input type="hidden" name="time_pressure_profile" id="time_pressure_profile">
+            </div>
+            
+            <!-- Question 6: Preferred Practice Time -->
+            <div class="onboarding-question hidden" data-step="6">
+                <h2 class="text-2xl font-heading font-bold mb-4">When do you prefer to practice?</h2>
+                <p class="text-gray-400 mb-8">What time of day works best for you?</p>
+                <div class="grid grid-cols-2 gap-4 mb-8 max-w-md mx-auto">
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Morning">Morning</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Afternoon">Afternoon</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Evening">Evening</button>
+                    <button type="button" class="option-btn p-4 text-left bg-white/5 border border-white/10 rounded-lg hover:border-electric-violet hover:bg-ink-surface transition-all duration-200 hover:translate-x-1" data-value="Flexible">Flexible</button>
+                </div>
+                <input type="hidden" name="preferred_practice_time" id="preferred_practice_time">
+            </div>
+            
+            <!-- Question 7: Daily Minutes -->
+            <div class="onboarding-question hidden" data-step="7">
+                <h2 class="text-2xl font-heading font-bold mb-4">How many minutes per day?</h2>
+                <p class="text-gray-400 mb-8">How much time can you commit daily?</p>
+                <div class="max-w-md mx-auto mb-8">
+                    <label class="block text-gray-400 text-sm mb-2">Daily practice time (minutes)</label>
+                    <input type="number" name="daily_goal_minutes" id="daily_goal_minutes" class="w-full p-4 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30" min="5" max="120" value="15" required>
+                </div>
+            </div>
+            
+            <div class="flex justify-between mt-8">
+                <button type="button" class="px-6 py-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition hidden" id="prevBtn">Previous</button>
+                <button type="button" class="px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 hover:shadow-xl hover:shadow-electric-violet/50 transition hover:-translate-y-0.5 ml-auto" id="nextBtn">Next</button>
+                <button type="submit" class="px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 hover:shadow-xl hover:shadow-electric-violet/50 transition hover:-translate-y-0.5 hidden" id="submitBtn">Complete</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+const totalSteps = 7;
+const startTime = Date.now();
+
+function updateProgress() {
+    document.querySelectorAll('[data-step]').forEach((dot, index) => {
+        if (dot.classList.contains('onboarding-question')) return;
+        dot.classList.remove('bg-electric-violet', 'border-electric-violet', 'shadow-lg', 'shadow-electric-violet/50', 'bg-green-500', 'border-green-500');
+        if (index + 1 < currentStep) {
+            dot.classList.add('bg-green-500', 'border-green-500');
+        } else if (index + 1 === currentStep) {
+            dot.classList.add('bg-electric-violet', 'border-electric-violet', 'shadow-lg', 'shadow-electric-violet/50');
+        }
+    });
+}
+
+function showStep(step) {
+    document.querySelectorAll('.onboarding-question').forEach((q, index) => {
+        if (index + 1 === step) {
+            q.classList.remove('hidden');
+        } else {
+            q.classList.add('hidden');
+        }
+    });
+    
+    document.getElementById('prevBtn').classList.toggle('hidden', step === 1);
+    document.getElementById('nextBtn').classList.toggle('hidden', step === totalSteps);
+    document.getElementById('submitBtn').classList.toggle('hidden', step !== totalSteps);
+    
+    updateProgress();
+}
+
+document.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const question = this.closest('.onboarding-question');
+        const inputId = question.querySelector('input[type="hidden"]')?.id || question.querySelector('input[type="number"]')?.id;
+        const value = this.dataset.value;
+        
+        question.querySelectorAll('.option-btn').forEach(b => {
+            b.classList.remove('border-electric-violet', 'bg-electric-violet/10', 'shadow-lg', 'shadow-electric-violet/50');
+        });
+        this.classList.add('border-electric-violet', 'bg-electric-violet/10', 'shadow-lg', 'shadow-electric-violet/50');
+        
+        if (inputId) {
+            const input = document.getElementById(inputId);
+            if (input) input.value = value;
+        }
+    });
+});
+
+document.getElementById('nextBtn').addEventListener('click', function() {
+    const currentQuestion = document.querySelector(`.onboarding-question[data-step="${currentStep}"]`);
+    const input = currentQuestion.querySelector('input[type="hidden"], input[type="number"]');
+    
+    if (input && !input.value && input.type !== 'number') {
+        alert('Please select an option');
+        return;
+    }
+    
+    if (currentStep < totalSteps) {
+        currentStep++;
+        showStep(currentStep);
+    }
+});
+
+document.getElementById('prevBtn').addEventListener('click', function() {
+    if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+    }
+});
+
+document.getElementById('onboardingForm').addEventListener('submit', function(e) {
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    document.getElementById('duration').value = duration;
+});
+
+showStep(1);
+</script>
+{% endblock %}

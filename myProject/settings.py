@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-=9$ygum+yeod5)2q)2j4+xorfh%vm(&!idrg8r622nyzhrnqu#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['tuliav2-production.up.railway.app']
+ALLOWED_HOSTS = ['tuliav2-production.up.railway.app', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -51,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'myApp.context_processors.footer_context',
             ],
         },
     },
@@ -110,3 +111,25 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Static files configuration
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# n8n Webhook URLs (set in environment variables)
+N8N_LESSON_WEBHOOK = None  # Set via env: N8N_LESSON_WEBHOOK
+N8N_COACH_WEBHOOK = None   # Set via env: N8N_COACH_WEBHOOK
+N8N_MILESTONE_WEBHOOK = None  # Set via env: N8N_MILESTONE_WEBHOOK
+
+# Feature Flags
+ENABLE_DISTRICT_MAP = True
+ENABLE_AB_TEST = True
+ENABLE_DAILY_QUESTS = True
+
+# Login URLs
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

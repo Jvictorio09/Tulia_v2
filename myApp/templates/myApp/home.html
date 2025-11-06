@@ -1,0 +1,364 @@
+{% extends 'myApp/base.html' %}
+{% load app_filters %}
+
+{% block title %}Home - Tulia{% endblock %}
+
+{% block content %}
+<div class="space-y-6 sm:space-y-8">
+    <!-- Welcome Header -->
+    <div class="text-center mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold mb-2 sm:mb-4">Welcome back, {{ user.username }}!</h1>
+        <p class="text-gray-400 text-base sm:text-lg">Your learning journey</p>
+    </div>
+    
+    <!-- Game Board Container -->
+    <div class="relative bg-gradient-to-br from-ink-bg via-ink-surface to-ink-bg border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-5">
+            <div class="absolute inset-0" style="background-image: radial-gradient(circle, #8b5cf6 1px, transparent 1px); background-size: 24px 24px;"></div>
+        </div>
+        
+        <!-- Game Board Path -->
+        <div class="relative z-10">
+            <h2 class="text-xl sm:text-2xl font-heading font-bold mb-6 text-center">Level 1 Journey</h2>
+            
+            <!-- Game Path (winding path with modules as spaces) -->
+            <div class="relative min-h-[500px] sm:min-h-[600px]">
+                <!-- Path SVG (connects all modules) -->
+                <svg class="absolute inset-0 w-full h-full" style="z-index: 1;">
+                    <defs>
+                        <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
+                            <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.3" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Path line connecting modules -->
+                    <path id="gamePath" d="M 50 100 Q 200 50, 350 100 T 650 100 Q 800 50, 950 100" 
+                          stroke="url(#pathGradient)" 
+                          stroke-width="4" 
+                          fill="none" 
+                          stroke-dasharray="10,5"
+                          class="path-line"/>
+                </svg>
+                
+                <!-- Module Spaces (Game Board Spaces) -->
+                <div class="relative z-10 flex flex-col sm:flex-row sm:flex-wrap sm:justify-between items-start sm:items-center gap-4 sm:gap-6" style="min-height: 500px;">
+                    {% for module in modules %}
+                    {% with progress=progress_data|get_item:module.code %}
+                    {% with module_index=forloop.counter0 %}
+                    
+                    <!-- Module Space -->
+                    <div class="relative game-space" data-module="{{ module.code }}" data-order="{{ module.order }}" style="position: absolute; {% if forloop.counter0 == 0 %}left: 8%; top: 15%;{% elif forloop.counter0 == 1 %}left: 35%; top: 8%;{% elif forloop.counter0 == 2 %}left: 62%; top: 15%;{% elif forloop.counter0 == 3 %}left: 85%; top: 8%;{% endif %}">
+                        <!-- Space Circle -->
+                        <div class="relative">
+                            <!-- Outer Glow for completed -->
+                            {% if progress.completed %}
+                            <div class="absolute inset-0 rounded-full bg-green-500/30 blur-xl animate-pulse"></div>
+                            {% elif progress.started %}
+                            <div class="absolute inset-0 rounded-full bg-electric-violet/30 blur-xl"></div>
+                            {% endif %}
+                            
+                            <!-- Space Circle -->
+                            <a href="{% url 'lesson_runner' module.code %}" 
+                               class="block w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 transition-all duration-300 hover:scale-110 {% if progress.completed %}bg-green-500/20 border-green-500 shadow-lg shadow-green-500/50{% elif progress.started %}bg-electric-violet/20 border-electric-violet shadow-lg shadow-electric-violet/50{% else %}bg-white/5 border-white/20{% endif %} flex items-center justify-center group relative">
+                                <!-- Module Letter -->
+                                <span class="text-2xl sm:text-3xl font-bold {% if progress.completed %}text-green-400{% elif progress.started %}text-electric-violet{% else %}text-gray-400{% endif %}">{{ module.code }}</span>
+                                
+                                <!-- Checkmark for completed -->
+                                {% if progress.completed %}
+                                <div class="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Progress indicator for in-progress -->
+                                {% if progress.started and not progress.completed %}
+                                <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-electric-violet animate-spin" style="animation-duration: 2s;"></div>
+                                {% endif %}
+                            </a>
+                            
+                            <!-- Module Label Below -->
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-32 sm:w-40 text-center">
+                                <p class="text-xs sm:text-sm font-semibold text-white mb-1">Module {{ module.code }}</p>
+                                <p class="text-[10px] sm:text-xs text-gray-400 line-clamp-2">{{ module.name|truncatewords:4 }}</p>
+                                <p class="text-[10px] text-gray-500 mt-1">
+                                    {% if progress.completed %}✓ Done{% elif progress.started %}In Progress{% else %}Locked{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+                    
+                    <!-- Milestone Space (Final Goal) -->
+                    <div class="relative game-space milestone-space" data-order="5" style="position: absolute; left: 50%; top: 60%; transform: translateX(-50%);">
+                        <div class="relative">
+                            {% if all_modules_complete %}
+                            <div class="absolute inset-0 rounded-full bg-amber-500/30 blur-xl animate-pulse"></div>
+                            {% endif %}
+                            
+                            <a href="{% url 'milestone' 1 %}" 
+                               class="block w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 transition-all duration-300 hover:scale-110 {% if milestone_passed %}bg-amber-500/20 border-amber-500 shadow-lg shadow-amber-500/50{% elif all_modules_complete %}bg-amber-500/20 border-amber-500 shadow-lg shadow-amber-500/50 animate-pulse{% else %}bg-white/5 border-white/20 opacity-50{% endif %} flex items-center justify-center group relative">
+                                <!-- Trophy Icon -->
+                                <svg class="w-10 h-10 sm:w-12 sm:h-12 {% if milestone_passed or all_modules_complete %}text-amber-400{% else %}text-gray-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                                </svg>
+                                
+                                {% if milestone_passed %}
+                                <div class="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </a>
+                            
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-32 sm:w-40 text-center">
+                                <p class="text-xs sm:text-sm font-semibold text-white mb-1">Milestone</p>
+                                <p class="text-[10px] sm:text-xs text-gray-400">Level 1 Assessment</p>
+                                {% if milestone_passed %}
+                                <p class="text-[10px] text-green-400 mt-1">✓ Passed</p>
+                                {% elif all_modules_complete %}
+                                <p class="text-[10px] text-amber-400 mt-1">Ready!</p>
+                                {% else %}
+                                <p class="text-[10px] text-gray-500 mt-1">Locked</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- District-1 Unlock (Bonus Area) -->
+                    {% if milestone_passed %}
+                    <div class="relative game-space district-space" style="position: absolute; left: 50%; top: 85%; transform: translateX(-50%);">
+                        <div class="relative">
+                            <div class="absolute inset-0 rounded-full bg-cyan/30 blur-xl"></div>
+                            <a href="{% url 'district_map' 1 %}" 
+                               class="block w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-cyan bg-cyan/20 shadow-lg shadow-cyan/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group relative">
+                                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </a>
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-32 sm:w-40 text-center">
+                                <p class="text-xs sm:text-sm font-semibold text-white mb-1">District-1</p>
+                                <p class="text-[10px] sm:text-xs text-cyan">Unlocked!</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Player Piece (Avatar) - Shows current position -->
+                <div id="playerPiece" class="absolute z-20 transition-all duration-500 ease-out">
+                    <!-- Player avatar will be positioned by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resume Lesson Card (if in progress) -->
+    {% for module in modules %}
+    {% with progress=progress_data|get_item:module.code %}
+    {% if progress.started and not progress.completed %}
+    <div class="bg-gradient-to-r from-electric-violet/20 to-cyan/20 border border-electric-violet/30 rounded-xl p-4 sm:p-6">
+        <div class="flex items-center justify-between flex-col sm:flex-row gap-4">
+            <div>
+                <h2 class="text-xl font-heading font-bold mb-2">Resume Lesson</h2>
+                <p class="text-gray-300">Continue Module {{ module.code }}: {{ module.name }}</p>
+            </div>
+            <a href="{% url 'lesson_runner' module.code %}" class="px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition hover:-translate-y-0.5 whitespace-nowrap">
+                Resume Module {{ module.code }}
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+    
+    <!-- Daily Quest -->
+    {% if daily_quest and not daily_quest.completed %}
+    <div class="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6">
+        <div class="flex items-center justify-between flex-col sm:flex-row gap-4">
+            <div>
+                <h3 class="font-semibold mb-1 flex items-center gap-2">
+                    <span>📋</span>
+                    <span>Daily Quest</span>
+                </h3>
+                <p class="text-sm text-gray-400">{{ daily_quest.description }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-cyan font-semibold">+{{ daily_quest.xp_reward }} XP</span>
+                <span class="text-amber-400 font-semibold">+{{ daily_quest.coin_reward }} 🪙</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Milestone CTA -->
+    {% if all_modules_complete and not milestone_passed %}
+    <div class="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-xl p-6 text-center">
+        <h3 class="text-xl font-heading font-bold mb-2">🎯 Ready for Milestone?</h3>
+        <p class="text-gray-300 mb-4">Complete your Level 1 assessment to unlock District-1</p>
+        <a href="{% url 'milestone' 1 %}" class="inline-block px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 shadow-lg shadow-amber-500/50 transition hover:-translate-y-0.5">
+            Take Milestone Challenge
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* Game board animations */
+    @keyframes pathGlow {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+    }
+    
+    .path-line {
+        animation: pathGlow 3s ease-in-out infinite;
+    }
+    
+    /* Responsive game board */
+    @media (max-width: 640px) {
+        .game-space {
+            transform: scale(0.8);
+        }
+        
+        #gamePath {
+            display: none; /* Hide path on mobile, too complex */
+        }
+    }
+    
+    @media (min-width: 1024px) {
+        .game-space {
+            transform: scale(1.1);
+        }
+    }
+</style>
+
+<!-- Game Board Data for JS -->
+<div id="gameBoardData" style="display: none;"
+     data-all-complete="{% if all_modules_complete %}true{% else %}false{% endif %}"
+     data-milestone-passed="{% if milestone_passed %}true{% else %}false{% endif %}"
+     data-username="{{ user.username|first|upper }}">
+    {% for module in modules %}
+    {% with progress=progress_data|get_item:module.code %}
+    <div data-module="{{ module.code }}" 
+         data-started="{% if progress.started %}true{% else %}false{% endif %}"
+         data-completed="{% if progress.completed %}true{% else %}false{% endif %}"
+         data-order="{{ forloop.counter0 }}"></div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const playerPiece = document.getElementById('playerPiece');
+    const gameBoardData = document.getElementById('gameBoardData');
+    const gameSpaces = document.querySelectorAll('.game-space');
+    const username = gameBoardData.dataset.username;
+    const allComplete = gameBoardData.dataset.allComplete === 'true';
+    const milestonePassed = gameBoardData.dataset.milestonePassed === 'true';
+    
+    // Module positions (matching the CSS positions)
+    const modulePositions = [
+        { left: '8%', top: '15%' },   // Module A
+        { left: '35%', top: '8%' },   // Module B
+        { left: '62%', top: '15%' },  // Module C
+        { left: '85%', top: '8%' }    // Module D
+    ];
+    
+    // Find current player position
+    let playerPosition = null;
+    let playerLabel = 'Start here';
+    let playerColor = 'from-electric-violet to-cyan';
+    let playerAnimation = '';
+    
+    // Check each module for in-progress status
+    const moduleData = Array.from(gameBoardData.querySelectorAll('[data-module]'));
+    for (let i = 0; i < moduleData.length; i++) {
+        const data = moduleData[i];
+        const started = data.dataset.started === 'true';
+        const completed = data.dataset.completed === 'true';
+        const order = parseInt(data.dataset.order);
+        
+        if (started && !completed) {
+            playerPosition = modulePositions[order];
+            playerLabel = 'You are here';
+            playerColor = 'from-electric-violet to-cyan';
+            playerAnimation = 'animate-bounce';
+            break;
+        }
+    }
+    
+    // If all modules complete but milestone not passed
+    if (!playerPosition && allComplete && !milestonePassed) {
+        playerPosition = { left: '50%', top: '60%', transform: 'translateX(-50%)' };
+        playerLabel = 'Ready for Milestone!';
+        playerColor = 'from-amber-500 to-orange-500';
+        playerAnimation = 'animate-pulse';
+    }
+    // If milestone passed, show at District
+    else if (!playerPosition && milestonePassed) {
+        playerPosition = { left: '50%', top: '85%', transform: 'translateX(-50%)' };
+        playerLabel = 'District Unlocked!';
+        playerColor = 'from-cyan to-blue-500';
+        playerAnimation = '';
+    }
+    // Default to Module A (start)
+    else if (!playerPosition) {
+        playerPosition = modulePositions[0];
+        playerLabel = 'Start here';
+        playerColor = 'from-electric-violet to-cyan';
+        playerAnimation = '';
+    }
+    
+    // Create and position player piece
+    if (playerPosition && playerPiece) {
+        const positionStyle = `left: ${playerPosition.left}; top: ${playerPosition.top};${playerPosition.transform ? ` transform: ${playerPosition.transform};` : ''}`;
+        playerPiece.innerHTML = `
+            <div class="relative player-avatar" style="${positionStyle}">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${playerColor} border-2 border-white shadow-lg flex items-center justify-center ${playerAnimation}" style="animation-duration: 2s;">
+                    <span class="text-white font-bold text-sm sm:text-base">${username}</span>
+                </div>
+                <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                    <div class="px-2 py-1 bg-ink-surface border border-white/20 rounded text-xs text-white shadow-lg">${playerLabel}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add hover effects to game spaces
+    gameSpaces.forEach(space => {
+        space.addEventListener('mouseenter', function() {
+            const circle = this.querySelector('.rounded-full');
+            if (circle) {
+                circle.style.transform = 'scale(1.1)';
+            }
+        });
+        space.addEventListener('mouseleave', function() {
+            const circle = this.querySelector('.rounded-full');
+            if (circle) {
+                circle.style.transform = 'scale(1)';
+            }
+        });
+    });
+    
+    // Animate path on load
+    const path = document.getElementById('gamePath');
+    if (path) {
+        const pathLength = path.getTotalLength();
+        path.style.strokeDasharray = pathLength + ' ' + pathLength;
+        path.style.strokeDashoffset = pathLength;
+        
+        // Animate path drawing
+        setTimeout(() => {
+            path.style.transition = 'stroke-dashoffset 2s ease-in-out';
+            path.style.strokeDashoffset = '0';
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

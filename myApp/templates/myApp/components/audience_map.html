@@ -1,0 +1,59 @@
+<div id="audienceMapTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl sm:text-2xl font-heading font-bold">Audience MAP</h2>
+            <button onclick="closeAudienceMap()" class="text-gray-400 hover:text-white">✕</button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">M - Mindset</label>
+                    <textarea id="audienceMindset" placeholder="What do they think/feel?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">A - Attention</label>
+                    <textarea id="audienceAttention" placeholder="What captures their focus?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">P - Priorities</label>
+                    <textarea id="audiencePriorities" placeholder="What matters most to them?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+            </div>
+            
+            <button onclick="generateAudienceMap()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Generate MAP</button>
+            
+            <div id="audienceResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
+                <h3 class="font-semibold mb-4">Your Audience Profile:</h3>
+                <div class="space-y-3 text-gray-300 text-sm" id="audienceOutput"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAudienceMap() {
+    document.getElementById('audienceMapTool').classList.remove('hidden');
+}
+
+function closeAudienceMap() {
+    document.getElementById('audienceMapTool').classList.add('hidden');
+}
+
+function generateAudienceMap() {
+    const mindset = document.getElementById('audienceMindset').value;
+    const attention = document.getElementById('audienceAttention').value;
+    const priorities = document.getElementById('audiencePriorities').value;
+    
+    let output = '';
+    if (mindset) output += `<div class="mb-2"><span class="font-semibold text-electric-violet">Mindset:</span> ${mindset}</div>`;
+    if (attention) output += `<div class="mb-2"><span class="font-semibold text-electric-violet">Attention:</span> ${attention}</div>`;
+    if (priorities) output += `<div class="mb-2"><span class="font-semibold text-electric-violet">Priorities:</span> ${priorities}</div>`;
+    
+    if (output) {
+        document.getElementById('audienceOutput').innerHTML = output;
+        document.getElementById('audienceResult').classList.remove('hidden');
+    }
+}
+</script>
+

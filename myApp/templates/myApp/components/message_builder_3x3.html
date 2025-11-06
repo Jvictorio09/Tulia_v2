@@ -1,0 +1,77 @@
+<div id="messageBuilderTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl sm:text-2xl font-heading font-bold">3×3 Message Builder</h2>
+            <button onclick="closeMessageBuilder()" class="text-gray-400 hover:text-white">✕</button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm text-gray-400 mb-2">Signal (Core Message)</label>
+                <input type="text" id="msgSignal" placeholder="Your main point" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet">
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Pillar 1</label>
+                    <textarea id="msgPillar1" placeholder="Supporting point 1" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Pillar 2</label>
+                    <textarea id="msgPillar2" placeholder="Supporting point 2" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Pillar 3</label>
+                    <textarea id="msgPillar3" placeholder="Supporting point 3" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm text-gray-400 mb-2">Call to Action</label>
+                <input type="text" id="msgCTA" placeholder="What should they do?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet">
+            </div>
+            
+            <button onclick="buildMessage()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Build Message</button>
+            
+            <div id="messageResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
+                <h3 class="font-semibold mb-4">Your Message Structure:</h3>
+                <div class="space-y-3 text-gray-300" id="messageOutput"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openMessageBuilder() {
+    document.getElementById('messageBuilderTool').classList.remove('hidden');
+}
+
+function closeMessageBuilder() {
+    document.getElementById('messageBuilderTool').classList.add('hidden');
+}
+
+function buildMessage() {
+    const signal = document.getElementById('msgSignal').value;
+    const pillar1 = document.getElementById('msgPillar1').value;
+    const pillar2 = document.getElementById('msgPillar2').value;
+    const pillar3 = document.getElementById('msgPillar3').value;
+    const cta = document.getElementById('msgCTA').value;
+    
+    if (signal) {
+        let output = `<div class="font-semibold text-electric-violet mb-2">Signal: ${signal}</div>`;
+        if (pillar1 || pillar2 || pillar3) {
+            output += '<div class="text-sm mb-2">Pillars:</div><ul class="list-disc list-inside space-y-1 text-sm">';
+            if (pillar1) output += `<li>${pillar1}</li>`;
+            if (pillar2) output += `<li>${pillar2}</li>`;
+            if (pillar3) output += `<li>${pillar3}</li>`;
+            output += '</ul>';
+        }
+        if (cta) {
+            output += `<div class="mt-3 font-semibold text-cyan">CTA: ${cta}</div>`;
+        }
+        document.getElementById('messageOutput').innerHTML = output;
+        document.getElementById('messageResult').classList.remove('hidden');
+    }
+}
+</script>
+

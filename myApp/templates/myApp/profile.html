@@ -1,0 +1,47 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Profile - Tulia{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold">Your Profile</h1>
+    
+    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6">
+        <div>
+            <h2 class="text-lg sm:text-xl font-heading font-bold mb-4">Progress</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div class="p-4 bg-white/5 border border-white/10 rounded-lg">
+                    <div class="text-2xl font-bold text-electric-violet">{{ profile.total_xp }}</div>
+                    <div class="text-sm text-gray-400">Total XP</div>
+                </div>
+                <div class="p-4 bg-white/5 border border-white/10 rounded-lg">
+                    <div class="text-2xl font-bold text-cyan">{{ profile.coins }}</div>
+                    <div class="text-sm text-gray-400">Coins</div>
+                </div>
+                <div class="p-4 bg-white/5 border border-white/10 rounded-lg">
+                    <div class="text-2xl font-bold text-amber-500">{{ profile.tickets }}</div>
+                    <div class="text-sm text-gray-400">Tickets</div>
+                </div>
+                <div class="p-4 bg-white/5 border border-amber-500/30 rounded-lg">
+                    <div class="text-2xl font-bold text-amber-500">{{ profile.current_streak }}</div>
+                    <div class="text-sm text-gray-400">Day Streak</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <h2 class="text-xl font-heading font-bold mb-4">Persona</h2>
+            <div class="space-y-2 text-gray-300">
+                <p><span class="text-gray-400">Role:</span> {{ profile.role|default:"Not set" }}</p>
+                <p><span class="text-gray-400">Audience:</span> {{ profile.typical_audience|default:"Not set" }}</p>
+                <p><span class="text-gray-400">Goal:</span> {{ profile.main_goal|default:"Not set" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center">
+        <a href="{% url 'home' %}" class="text-gray-400 hover:text-white transition">← Back to Home</a>
+    </div>
+</div>
+{% endblock %}
+
