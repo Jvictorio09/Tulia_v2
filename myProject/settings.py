@@ -15,6 +15,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['tuliav2-production.up.railway.app', '127.0.0.1', 'localhost']
 
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://tuliav2-production.up.railway.app',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
 
 # Application definition
 
