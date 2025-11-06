@@ -26,7 +26,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'myApp',
-    'tuliav2-production.up.railway.app',
 ]
 
 MIDDLEWARE = [
