@@ -1,4 +1,4 @@
-# Tulia v2 - Educational Communication Platform
+# Speak Pro v2 - Educational Communication Platform
 
 A Django-based educational platform for teaching communication skills with AI-powered mentorship.
 

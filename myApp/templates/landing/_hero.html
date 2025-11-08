@@ -9,6 +9,38 @@
     <!-- Grid pattern overlay -->
     <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
     
+    <!-- Logo - Top Left -->
+    <div class="absolute top-6 left-4 sm:top-8 sm:left-8 z-20">
+        <a href="{% url 'home' %}" class="block">
+            <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-16 sm:h-20 md:h-24 w-auto drop-shadow-lg">
+                <defs>
+                    <linearGradient id="heroBubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="heroTailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+                    </linearGradient>
+                    <filter id="heroShadow">
+                        <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+                    </filter>
+                </defs>
+                <path d="M10 15 Q10 5 20 5 L100 5 Q110 5 110 15 L110 45 Q110 55 100 55 L35 55 L20 70 L20 55 Q10 55 10 45 Z" 
+                      fill="url(#heroBubbleGradient)" 
+                      filter="url(#heroShadow)"/>
+                <path d="M15 18 Q15 12 20 12 L100 12 Q105 12 105 18 L105 42 Q105 48 100 48 L32 48 L20 60 L20 48 Q15 48 15 42 Z" 
+                      fill="white" 
+                      opacity="0.95"/>
+                <path d="M20 48 L15 55 L25 55 Z" 
+                      fill="url(#heroTailGradient)"/>
+                <text x="60" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FF6B35" text-anchor="middle">Speak</text>
+                <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
+            </svg>
+        </a>
+    </div>
+    
     <!-- Communication & Learning focused floating elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <!-- Floating Microphones (Speaking Practice) -->
@@ -122,12 +154,13 @@
             
             <!-- Main Headline -->
             <h1 class="text-6xl md:text-7xl lg:text-8xl font-extrabold text-white mb-6 leading-[1.1] tracking-tight animate-fade-in-up" style="animation-delay: 0.1s;">
-                <span class="bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
+                <span class="bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">
                     From Anxiety
                 </span>
                 <br>
-                <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    to Impact
+                <span class="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">to </span>
+                <span class="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]">
+                    Impact
                 </span>
             </h1>
             
@@ -228,7 +261,7 @@
                 aria-label="Close modal">
             &times;
         </button>
-        <h2 id="demo-modal-title" class="text-4xl font-bold mb-6 text-white">See Tulia in Action</h2>
+        <h2 id="demo-modal-title" class="text-4xl font-bold mb-6 text-white">See Speak Pro in Action</h2>
         <div class="aspect-video bg-gradient-to-br from-purple-900/50 to-indigo-900/50 rounded-2xl flex items-center justify-center border border-white/10 overflow-hidden">
             <!-- Placeholder for video embed -->
             <div class="text-center">
@@ -357,7 +390,7 @@
         const modal = document.getElementById('demo-modal');
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        window.tuliaTrack('view_demo_modal');
+        window.speakProTrack('view_demo_modal');
     };
     
     window.closeDemoModal = function() {
@@ -376,7 +409,7 @@
     // Track hero view on page load
     window.addEventListener('load', function() {
         if (window.location.pathname === '/' || window.location.pathname === '') {
-            window.tuliaTrack('view_hero');
+            window.speakProTrack('view_hero');
         }
     });
 </script>

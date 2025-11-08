@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Seed initial data for Tulia v2 (Educational Pillar · Level 1 + District 1)
+Seed initial data for Speak Pro v2 (Educational Pillar · Level 1 + District 1)
 Run: python seed_data.py
 Idempotent and safe to rerun.
 """

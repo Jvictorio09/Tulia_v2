@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Tulia{% endblock %}</title>
+    <title>{% block title %}Speak Pro{% endblock %}</title>
     
     <!-- Fonts: Inter and Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,7 +53,40 @@
     <nav class="bg-ink-surface border-b border-white/10 sticky top-0 z-50 backdrop-blur-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div class="flex justify-between items-center">
-                <a href="{% url 'home' %}" class="font-heading text-xl sm:text-2xl font-bold text-electric-violet">Tulia</a>
+                <a href="{% url 'home' %}" class="flex items-center">
+                    <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-10 sm:h-12 w-auto">
+                        <!-- Speech bubble with gradient border -->
+                        <defs>
+                            <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="shadow">
+                                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+                            </filter>
+                        </defs>
+                        <!-- Main speech bubble shape -->
+                        <path d="M10 15 Q10 5 20 5 L100 5 Q110 5 110 15 L110 45 Q110 55 100 55 L35 55 L20 70 L20 55 Q10 55 10 45 Z" 
+                              fill="url(#bubbleGradient)" 
+                              filter="url(#shadow)"/>
+                        <!-- White inner bubble -->
+                        <path d="M15 18 Q15 12 20 12 L100 12 Q105 12 105 18 L105 42 Q105 48 100 48 L32 48 L20 60 L20 48 Q15 48 15 42 Z" 
+                              fill="white" 
+                              opacity="0.95"/>
+                        <!-- Tail of speech bubble -->
+                        <path d="M20 48 L15 55 L25 55 Z" 
+                              fill="url(#tailGradient)"/>
+                        <!-- Text: Speak -->
+                        <text x="60" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FF6B35" text-anchor="middle">Speak</text>
+                        <!-- Text: ProApp -->
+                        <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
+                    </svg>
+                </a>
                 <div class="flex items-center gap-2 sm:gap-4">
                     <!-- Mobile: Compact stats -->
                     <div class="flex gap-1 sm:hidden">

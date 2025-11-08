@@ -1,4 +1,4 @@
-<footer class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white relative overflow-hidden">
+<footer id="footer" class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white relative overflow-hidden">
     <!-- Background decoration -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
@@ -13,13 +13,38 @@
             <!-- Brand Column -->
             <div class="lg:col-span-1">
                 <div class="flex items-center gap-3 mb-6">
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 rounded-xl opacity-50 blur"></div>
-                        <div class="relative w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                            <span class="text-white font-black text-xl">T</span>
-                        </div>
-                    </div>
-                    <span class="text-2xl font-extrabold bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">Tulia</span>
+                    <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-16 sm:h-20 md:h-24 w-auto">
+                        <!-- Speech bubble with gradient border -->
+                        <defs>
+                            <linearGradient id="footerBubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="footerTailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="footerShadow">
+                                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+                            </filter>
+                        </defs>
+                        <!-- Main speech bubble shape -->
+                        <path d="M10 15 Q10 5 20 5 L100 5 Q110 5 110 15 L110 45 Q110 55 100 55 L35 55 L20 70 L20 55 Q10 55 10 45 Z" 
+                              fill="url(#footerBubbleGradient)" 
+                              filter="url(#footerShadow)"/>
+                        <!-- White inner bubble -->
+                        <path d="M15 18 Q15 12 20 12 L100 12 Q105 12 105 18 L105 42 Q105 48 100 48 L32 48 L20 60 L20 48 Q15 48 15 42 Z" 
+                              fill="white" 
+                              opacity="0.95"/>
+                        <!-- Tail of speech bubble -->
+                        <path d="M20 48 L15 55 L25 55 Z" 
+                              fill="url(#footerTailGradient)"/>
+                        <!-- Text: Speak -->
+                        <text x="60" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FF6B35" text-anchor="middle">Speak</text>
+                        <!-- Text: ProApp -->
+                        <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
+                    </svg>
                 </div>
                 <p class="text-gray-400 text-sm leading-relaxed mb-6 max-w-xs">
                     From Anxiety to Impact. Master high-stakes communication with AI-powered micro-lessons.
@@ -133,7 +158,7 @@
         <div class="pt-8 border-t border-white/10">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p class="text-sm text-gray-500">Powered by Katalyst</p>
-                <p class="text-sm text-gray-500">&copy; 2025 Tulia. All rights reserved.</p>
+                <p class="text-sm text-gray-500">&copy; 2025 Speak Pro. All rights reserved.</p>
             </div>
         </div>
     </div>

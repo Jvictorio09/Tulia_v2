@@ -1,7 +1,7 @@
 {% extends 'myApp/base.html' %}
 {% load static %}
 
-{% block title %}Tulia - From Anxiety to Impact | Master High-Stakes Communication{% endblock %}
+{% block title %}Speak Pro - From Anxiety to Impact | Master High-Stakes Communication{% endblock %}
 
 {% block meta_description %}Master high-stakes communication with micro-lessons, safe simulations, and a supportive AI mentor. From Anxiety to Impact.{% endblock %}
 
@@ -17,4 +17,197 @@
     {% include 'landing/_faq.html' %}
     {% include 'landing/_footer.html' %}
 {% endblock %}
+
+<style>
+/* Scroll-driven animations - WordPress style */
+.scroll-animate {
+    will-change: transform, opacity;
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+}
+
+/* Initial states */
+.scroll-animate.fade-up {
+    opacity: 0;
+    transform: translateY(50px);
+}
+
+.scroll-animate.fade-down {
+    opacity: 0;
+    transform: translateY(-50px);
+}
+
+.scroll-animate.fade-left {
+    opacity: 0;
+    transform: translateX(-50px);
+}
+
+.scroll-animate.fade-right {
+    opacity: 0;
+    transform: translateX(50px);
+}
+
+.scroll-animate.fade-scale {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.scroll-animate.fade {
+    opacity: 0;
+}
+</style>
+
+<script>
+(function() {
+    'use strict';
+    
+    let scrollElements = [];
+    let ticking = false;
+    
+    function initScrollAnimations() {
+        // Find all sections
+        const sections = [
+            document.getElementById('how-it-works'),
+            document.getElementById('testimonials'),
+            document.getElementById('pricing'),
+            document.getElementById('faq'),
+            document.getElementById('footer')
+        ].filter(Boolean);
+        
+        if (sections.length === 0) return;
+        
+        // Animation types
+        const animTypes = ['fade-up', 'fade-down', 'fade-left', 'fade-right', 'fade-scale', 'fade'];
+        
+        // Process each section and find animatable elements
+        sections.forEach(section => {
+            // Find major content elements
+            const selectors = [
+                'h2', 'h3', 'h4',
+                '.faq-item',
+                'details',
+                '.grid > div',
+                '.space-y-4 > *',
+                '.space-y-8 > *',
+                'div[class*="card"]',
+                'div[class*="item"]',
+                'ul > li',
+                'p:not(:has(img))'
+            ];
+            
+            selectors.forEach(selector => {
+                const elements = section.querySelectorAll(selector);
+                elements.forEach((el, index) => {
+                    // Skip if too small or already processed
+                    if (el.offsetHeight < 30 || el.classList.contains('scroll-animate')) return;
+                    
+                    // Add scroll-animate class
+                    el.classList.add('scroll-animate');
+                    
+                    // Assign animation type
+                    const animType = animTypes[index % animTypes.length];
+                    el.classList.add(animType);
+                    
+                    // Store element data
+                    scrollElements.push({
+                        element: el,
+                        animType: animType,
+                        offset: el.offsetTop,
+                        delay: index * 50
+                    });
+                });
+            });
+        });
+        
+        // Scroll handler
+        function handleScroll() {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const windowHeight = window.innerHeight;
+                    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                    
+                    scrollElements.forEach((item, index) => {
+                        const el = item.element;
+                        const rect = el.getBoundingClientRect();
+                        const elementTop = rect.top;
+                        const elementHeight = rect.height;
+                        
+                        // Calculate progress (0 to 1) as element enters viewport
+                        let progress = 0;
+                        
+                        if (elementTop < windowHeight && elementTop > -elementHeight) {
+                            // Element is in viewport
+                            progress = 1 - (elementTop / (windowHeight * 0.8));
+                            progress = Math.max(0, Math.min(1, progress));
+                        } else if (elementTop <= -elementHeight) {
+                            // Element has scrolled past
+                            progress = 1;
+                        }
+                        
+                        // Apply animation based on progress
+                        if (progress > 0) {
+                            const easeProgress = easeOutCubic(progress);
+                            
+                            switch(item.animType) {
+                                case 'fade-up':
+                                    el.style.opacity = easeProgress;
+                                    el.style.transform = `translateY(${50 * (1 - easeProgress)}px)`;
+                                    break;
+                                case 'fade-down':
+                                    el.style.opacity = easeProgress;
+                                    el.style.transform = `translateY(${-50 * (1 - easeProgress)}px)`;
+                                    break;
+                                case 'fade-left':
+                                    el.style.opacity = easeProgress;
+                                    el.style.transform = `translateX(${-50 * (1 - easeProgress)}px)`;
+                                    break;
+                                case 'fade-right':
+                                    el.style.opacity = easeProgress;
+                                    el.style.transform = `translateX(${50 * (1 - easeProgress)}px)`;
+                                    break;
+                                case 'fade-scale':
+                                    el.style.opacity = easeProgress;
+                                    el.style.transform = `scale(${0.9 + (0.1 * easeProgress)})`;
+                                    break;
+                                case 'fade':
+                                    el.style.opacity = easeProgress;
+                                    break;
+                            }
+                        } else {
+                            // Reset when out of view
+                            el.style.opacity = '0';
+                            if (item.animType === 'fade-up') el.style.transform = 'translateY(50px)';
+                            else if (item.animType === 'fade-down') el.style.transform = 'translateY(-50px)';
+                            else if (item.animType === 'fade-left') el.style.transform = 'translateX(-50px)';
+                            else if (item.animType === 'fade-right') el.style.transform = 'translateX(50px)';
+                            else if (item.animType === 'fade-scale') el.style.transform = 'scale(0.9)';
+                        }
+                    });
+                    
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+        
+        // Easing function
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+        
+        // Event listeners
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleScroll, { passive: true });
+        
+        // Initial call
+        handleScroll();
+    }
+    
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollAnimations);
+    } else {
+        setTimeout(initScrollAnimations, 100);
+    }
+})();
+</script>
 

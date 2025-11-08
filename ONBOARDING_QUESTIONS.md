@@ -1,4 +1,4 @@
-# Tulia Onboarding Questions Documentation
+# Speak Pro Onboarding Questions Documentation
 
 ## Overview
 After signup, users complete a 7-question onboarding flow that helps personalize their learning experience. The answers are stored in the `UserProfile` model and used to create a personalized persona summary.
