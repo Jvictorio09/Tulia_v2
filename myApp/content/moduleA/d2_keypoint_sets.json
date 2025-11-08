@@ -1,0 +1,21 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "d2-ops",
+      "source": "Ops update to senior leadership.",
+      "options": [
+        {"id": "d2-ops-1", "text": "Clarify the win-state in one line."},
+        {"id": "d2-ops-2", "text": "Flag the pressure point honestly."},
+        {"id": "d2-ops-3", "text": "Add filler context about last quarter."},
+        {"id": "d2-ops-4", "text": "Name the ask and next move."},
+        {"id": "d2-ops-5", "text": "Apologize repeatedly."},
+        {"id": "d2-ops-6", "text": "Share the support you already secured."}
+      ],
+      "correct_ids": ["d2-ops-1", "d2-ops-2", "d2-ops-4"]
+    }
+  ]
+}
+

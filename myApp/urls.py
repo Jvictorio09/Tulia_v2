@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/lessons/perform/voice/submit/', views.lesson_perform_voice_submit, name='lesson_perform_voice_submit'),
     path('api/lessons/review/submit/', views.lesson_review_submit, name='lesson_review_submit'),
     path('api/lessons/transfer/submit/', views.lesson_transfer_submit, name='lesson_transfer_submit'),
+    path('api/lessons/card/submit/', views.lesson_card_submit, name='lesson_card_submit'),
     path('api/lessons/spacing/schedule/', views.lesson_spacing_schedule, name='lesson_spacing_schedule'),
 ]
 

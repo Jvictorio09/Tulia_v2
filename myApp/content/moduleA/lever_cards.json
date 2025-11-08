@@ -1,0 +1,35 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "preparation",
+      "desc": "Plan the structure and data support.",
+      "examples": [
+        "Draft a stakes outline.",
+        "Align with a trusted ally before the meeting.",
+        "Run a 90-second rehearsal."
+      ]
+    },
+    {
+      "id": "presence",
+      "desc": "Regulate pace, voice, and body to anchor calm.",
+      "examples": [
+        "Use the 2-4 breath.",
+        "Pause before each key point.",
+        "Ground with a physical anchor."
+      ]
+    },
+    {
+      "id": "perspective",
+      "desc": "Zoom out to see the room and intent.",
+      "examples": [
+        "Name the audience’s top concern.",
+        "Pick one person to win first.",
+        "Reframe the meeting as a partnership."
+      ]
+    }
+  ]
+}
+

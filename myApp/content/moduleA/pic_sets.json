@@ -1,0 +1,35 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "PIC-001",
+      "scenario_id": "A1-001",
+      "recommended_default": {
+        "P": 4,
+        "I": 3,
+        "C": 2
+      }
+    },
+    {
+      "id": "PIC-002",
+      "scenario_id": "A1-002",
+      "recommended_default": {
+        "P": 3,
+        "I": 4,
+        "C": 2
+      }
+    },
+    {
+      "id": "PIC-003",
+      "scenario_id": "A1-003",
+      "recommended_default": {
+        "P": 5,
+        "I": 5,
+        "C": 2
+      }
+    }
+  ]
+}
+

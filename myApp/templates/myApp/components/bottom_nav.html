@@ -1,8 +1,8 @@
 {% load app_filters %}
 <div class="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" id="bottomNav">
     <!-- Glassy footer bar -->
-    <div class="bg-ink-surface/80 backdrop-blur-md border-t border-default h-16 sm:h-18">
-        <div class="max-w-7xl mx-auto h-full flex items-center justify-around px-2 sm:px-4">
+    <div class="bg-ink-surface/90 backdrop-blur-md border-t border-default h-20">
+        <div class="max-w-5xl mx-auto h-full flex items-center justify-between gap-3 px-4">
             
             <!-- [A] Home / Map -->
             <a href="{% if user.profile.ab_variant == 'B' %}{% url 'district_map' 1 %}{% else %}{% url 'home' %}{% endif %}" 
@@ -12,23 +12,23 @@
                 <div class="relative">
                     {% if user.profile.ab_variant == 'B' %}
                         <!-- Map icon -->
-                        <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                         </svg>
                     {% else %}
                         <!-- Home icon -->
-                        <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
                     {% endif %}
                     <!-- Streak badge -->
                     {% if user.profile.current_streak > 0 %}
-                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-xs">🔥</span>
+                    <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs">🔥</span>
                     {% endif %}
                     <!-- Active indicator -->
-                    <div class="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-electric-violet rounded-full nav-indicator hidden"></div>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-electric-violet rounded-full nav-indicator hidden"></div>
                 </div>
-                <span class="nav-label text-[10px] sm:text-[11px] font-medium mt-0.5">{% if user.profile.ab_variant == 'B' %}Map{% else %}Home{% endif %}</span>
+                <span class="nav-label text-[11px] sm:text-[12px] font-semibold mt-1">{% if user.profile.ab_variant == 'B' %}Map{% else %}Home{% endif %}</span>
             </a>
             
             <!-- [B] Learn -->
@@ -37,17 +37,17 @@
                data-tab="learn"
                onclick="handleNavTap(this, event)">
                 <div class="relative">
-                    <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
                     <!-- Quest badge -->
                     {% if daily_quest and not daily_quest.completed %}
-                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-cyan rounded-full flex items-center justify-center text-[8px] font-bold">!</span>
+                    <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-cyan rounded-full flex items-center justify-center text-[10px] font-bold">!</span>
                     {% endif %}
                     <!-- Active indicator -->
-                    <div class="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-electric-violet rounded-full nav-indicator hidden"></div>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-electric-violet rounded-full nav-indicator hidden"></div>
                 </div>
-                <span class="nav-label text-[10px] sm:text-[11px] font-medium mt-0.5">Learn</span>
+                <span class="nav-label text-[11px] sm:text-[12px] font-semibold mt-1">Learn</span>
             </a>
             
                <!-- [C] Coach (Center Action) -->
@@ -56,15 +56,15 @@
                   data-tab="coach"
                   onclick="handleCoachTap(this, event); return false;">
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-electric-violet to-purple-600 flex items-center justify-center shadow-lg shadow-electric-violet/50 coach-glow">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-electric-violet to-purple-600 flex items-center justify-center shadow-lg shadow-electric-violet/50 coach-glow">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                         </svg>
                     </div>
                     <!-- AI tip badge -->
-                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-cyan rounded-full flex items-center justify-center text-[8px] font-bold coach-badge hidden">💡</span>
+                    <span class="absolute -top-2 -right-2 w-5 h-5 bg-cyan rounded-full flex items-center justify-center text-[10px] font-bold coach-badge hidden">💡</span>
                 </div>
-                <span class="nav-label text-[10px] sm:text-[11px] font-medium mt-0.5 hidden sm:block">Coach</span>
+                <span class="nav-label text-[11px] sm:text-[12px] font-semibold mt-1">Coach</span>
             </a>
             
             <!-- [D] District -->
@@ -74,22 +74,22 @@
                onclick="handleNavTap(this, event)">
                 <div class="relative">
                     {% if user.profile.district_1_unlocked %}
-                        <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                         </svg>
                     {% else %}
-                        <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                     {% endif %}
                     <!-- Ticket badge -->
                     {% if user.profile.tickets > 0 %}
-                    <span class="absolute -top-1 -right-1 min-w-[16px] h-4 bg-electric-violet rounded-full flex items-center justify-center text-[8px] font-bold px-1">🎟{{ user.profile.tickets }}</span>
+                    <span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-electric-violet rounded-full flex items-center justify-center text-[10px] font-bold px-1">🎟{{ user.profile.tickets }}</span>
                     {% endif %}
                     <!-- Active indicator -->
-                    <div class="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-electric-violet rounded-full nav-indicator hidden"></div>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-electric-violet rounded-full nav-indicator hidden"></div>
                 </div>
-                <span class="nav-label text-[10px] sm:text-[11px] font-medium mt-0.5">District</span>
+                <span class="nav-label text-[11px] sm:text-[12px] font-semibold mt-1">District</span>
             </a>
             
             <!-- [E] Me -->
@@ -98,15 +98,15 @@
                data-tab="me"
                onclick="handleNavTap(this, event)">
                 <div class="relative">
-                    <svg class="w-6 h-6 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-7 h-7 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
                     <!-- New reward dot -->
-                    <div class="absolute -top-1 -right-1 w-2 h-2 bg-cyan rounded-full me-dot hidden"></div>
+                    <div class="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-cyan rounded-full me-dot hidden"></div>
                     <!-- Active indicator -->
-                    <div class="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-electric-violet rounded-full nav-indicator hidden"></div>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-electric-violet rounded-full nav-indicator hidden"></div>
                 </div>
-                <span class="nav-label text-[10px] sm:text-[11px] font-medium mt-0.5">Me</span>
+                <span class="nav-label text-[11px] sm:text-[12px] font-semibold mt-1">Me</span>
             </a>
             
         </div>
@@ -121,7 +121,7 @@
 
 /* Nav tab states */
 .nav-tab {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.75);
     transform: scale(1);
 }
 
@@ -145,7 +145,7 @@
 
 .nav-label {
     color: inherit;
-    opacity: 0.7;
+    opacity: 0.75;
 }
 
 .nav-tab.active .nav-label {
@@ -154,7 +154,7 @@
 }
 
 [data-theme="light"] .nav-tab {
-    color: rgba(15, 23, 42, 0.65);
+    color: rgba(15, 23, 42, 0.75);
 }
 
 [data-theme="light"] .nav-tab.active {
@@ -166,7 +166,7 @@
 }
 
 [data-theme="light"] .nav-label {
-    color: rgba(15, 23, 42, 0.65);
+    color: rgba(15, 23, 42, 0.75);
 }
 
 [data-theme="light"] .nav-tab.active .nav-label {
@@ -175,14 +175,14 @@
 }
 
 [data-theme="light"] #bottomNav > div {
-    background-color: rgba(255, 255, 255, 0.95);
+    background-color: rgba(255, 255, 255, 0.96);
     border-color: var(--color-border-default);
-    box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.12);
 }
 
 /* Coach center action */
 .coach-tab {
-    margin-top: -8px;
+    margin-top: -18px;
 }
 
 .coach-glow {
@@ -206,10 +206,10 @@
 
 @keyframes coachPulse {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 24px rgba(139, 92, 246, 0.55);
     }
     50% {
-        box-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
+        box-shadow: 0 0 36px rgba(139, 92, 246, 0.85);
     }
 }
 
@@ -219,38 +219,8 @@
         transform: scale(1);
     }
     50% {
-        opacity: 0.8;
+        opacity: 0.85;
         transform: scale(1.1);
-    }
-}
-
-/* Tablet/Desktop: Side dock */
-@media (min-width: 768px) {
-    #bottomNav {
-        top: 0;
-        bottom: auto;
-        left: 0;
-        width: 80px;
-        height: 100vh;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        border-top: none;
-    }
-    
-    #bottomNav > div {
-        flex-direction: column;
-        height: 100%;
-        justify-content: flex-start;
-        padding-top: 2rem;
-        gap: 2rem;
-    }
-    
-    .coach-tab {
-        margin-top: auto;
-        margin-bottom: 2rem;
-    }
-    
-    .nav-label {
-        display: block !important;
     }
 }
 </style>

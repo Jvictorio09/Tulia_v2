@@ -1,0 +1,47 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "A1-001",
+      "text": "Board update with a skeptical CFO.",
+      "tags": ["pressure", "visibility"],
+      "difficulty": "medium",
+      "answer_key": {
+        "pressure": true,
+        "visibility": true,
+        "irreversibility": false
+      },
+      "variants": [
+        {
+          "id": "coaching",
+          "text": "Mentoring a teammate through a board update rehearsal."
+        }
+      ]
+    },
+    {
+      "id": "A1-002",
+      "text": "Quarterly team sync after misses.",
+      "tags": ["pressure", "irreversibility"],
+      "difficulty": "medium",
+      "answer_key": {
+        "pressure": true,
+        "visibility": false,
+        "irreversibility": true
+      }
+    },
+    {
+      "id": "A1-003",
+      "text": "Sales pitch to a marquee prospect.",
+      "tags": ["pressure", "visibility", "irreversibility"],
+      "difficulty": "high",
+      "answer_key": {
+        "pressure": true,
+        "visibility": true,
+        "irreversibility": true
+      }
+    }
+  ]
+}
+

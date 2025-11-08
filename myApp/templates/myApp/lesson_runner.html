@@ -1,552 +1,135 @@
 {% extends 'myApp/base.html' %}
 
-{% block title %}Lesson - Module {{ module.code }} - Speak Pro{% endblock %}
+{% block title %}Lesson · Module {{ module.code }}{% endblock %}
 
 {% block content %}
-<div id="lessonRunnerApp" class="space-y-6 sm:space-y-8">
-    <header class="sticky top-0 z-40 bg-ink-bg/95 backdrop-blur-md border-b border-default">
-        <div class="max-w-6xl mx-auto px-4 py-3 sm:py-5 flex flex-col gap-3">
+<div id="lessonRunnerApp" class="min-h-screen pb-28 bg-ink-bg">
+    <header class="sticky top-0 z-30 bg-ink-bg/95 backdrop-blur border-b border-default">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
-                <a href="{% url 'home' %}" class="flex-shrink-0 w-10 h-10 rounded-lg bg-overlay-weak hover:bg-overlay-strong border border-default flex items-center justify-center transition" aria-label="Back to home">
-                    <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                <a href="{% url 'home' %}" class="w-10 h-10 rounded-xl border border-default bg-overlay-weak hover:bg-overlay-strong transition grid place-items-center" aria-label="Back to home">
+                    <svg class="w-5 h-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </a>
                 <div class="flex-1 min-w-0 text-center">
                     <h1 class="text-sm sm:text-base font-heading font-bold text-text-strong truncate">Module {{ module.code }} · {{ module.name }}</h1>
-                    <p class="text-xs text-muted" id="loopDescriptor">Loop 1 · Main Pass</p>
+                    <p class="text-xs text-muted" id="sessionLoopLabel">Loop 1 · Main</p>
                             </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 text-xs font-semibold">
                     {% if profile.current_streak > 0 %}
-                    <div class="hidden sm:flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-500">
-                        <span>🔥</span><span class="font-semibold">{{ profile.current_streak }}</span>
-                            </div>
+                    <span class="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-500">
+                        <span>🔥</span><span>{{ profile.current_streak }}</span>
+                    </span>
                         {% endif %}
-                    <div class="flex items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded text-xs text-muted">
-                        <span>⚡</span><span class="font-semibold">{{ profile.total_xp }}</span>
-                    </div>
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-default bg-overlay-weak text-muted">
+                        <span>⚡</span><span>{{ profile.total_xp }}</span>
+                    </span>
                     </div>
                     </div>
             <div class="flex items-center justify-between text-xs text-muted">
                 <div class="flex items-center gap-2">
-                    <span id="picTrend" class="hidden items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded-full text-[11px] font-semibold"></span>
-                    <span id="leverChip" class="hidden items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded-full text-[11px] font-semibold"></span>
+                    <span id="stakesScoreChip" class="hidden items-center gap-1 px-2 py-1 rounded-full border border-default bg-overlay-weak text-[11px] font-semibold"></span>
+                    <span id="leverChoiceChip" class="hidden items-center gap-1 px-2 py-1 rounded-full border border-default bg-overlay-weak text-[11px] font-semibold"></span>
                     </div>
-                <button id="returnPassAction" class="hidden items-center gap-2 px-3 py-1.5 text-[11px] rounded-full border border-electric-violet/40 bg-electric-violet/10 text-electric-violet font-semibold hover:bg-electric-violet/15 transition" type="button">
-                    Booster Ready
+                <button id="coachToggleButton" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-electric-violet/30 bg-electric-violet/10 text-electric-violet font-semibold hover:bg-electric-violet/15 transition focus:outline-none focus:ring-2 focus:ring-brand">
+                    <span>Coach</span>
+                    <span class="w-6 h-6 rounded-full bg-gradient-to-br from-electric-violet to-cyan text-white grid place-items-center text-xs font-bold">AI</span>
                 </button>
                 </div>
             <div>
-                <div class="h-1 bg-overlay-weak rounded-full overflow-hidden">
-                    <div id="stageProgressBar" class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" style="width:0%"></div>
+                <div class="w-full h-1 rounded-full bg-overlay-weak overflow-hidden">
+                    <div id="progressFill" class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" style="width: 0%;"></div>
             </div>
-                <div id="stageLabels" class="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted"></div>
+                <div id="stageRail" class="mt-2 grid grid-cols-6 gap-2 text-[11px] font-semibold text-muted"></div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 pb-28">
-        <div id="stageContainer" class="min-h-[60vh]"></div>
-        <div id="stageActions" class="fixed left-0 right-0 bottom-[calc(env(safe-area-inset-bottom)+16px)] sm:bottom-6">
-            <div class="max-w-3xl mx-auto px-4">
-                <div class="flex items-center gap-3 bg-ink-surface/95 border border-default rounded-2xl shadow-brand-soft px-4 py-3">
-                    <button id="stageBackBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-overlay-weak border border-default text-muted cursor-not-allowed" type="button" disabled>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                        <span>Back</span>
-                    </button>
-                    <div class="flex-1 text-center text-xs text-muted" id="stageTimeboxHint"></div>
-                    <div class="flex items-center gap-2">
-                        <button id="stageSkipBtn" class="hidden px-4 py-2 rounded-lg border border-default text-muted hover:text-text-strong hover:bg-overlay-weak transition" type="button">Skip</button>
-                        <button id="coachToggleBtn" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-electric-violet/30 bg-electric-violet/10 text-electric-violet font-semibold hover:bg-electric-violet/15 transition" type="button">
-                            <span>Coach</span>
-                            <span class="w-6 h-6 rounded-full bg-gradient-to-br from-electric-violet to-cyan text-white grid place-items-center text-xs font-bold">AI</span>
-                        </button>
-                        <button id="stageSubmitBtn" class="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-electric-violet to-cyan text-white font-semibold shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 transition" type="button">
+    <main class="max-w-3xl mx-auto px-4 sm:px-6">
+        {% if seed_error %}
+        <div class="mt-10 p-6 rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-100">
+            <h2 class="text-lg font-heading font-semibold mb-2">Content Unavailable</h2>
+            <p class="text-sm leading-relaxed">{{ seed_error }}</p>
+            <p class="text-xs mt-3 opacity-80">Our team has already been alerted. Please retry in a moment.</p>
+        </div>
+        {% else %}
+        <section id="cardRegion" class="mt-8 space-y-6" aria-live="polite"></section>
+
+        <div id="cardActions" class="fixed inset-x-0 pointer-events-none bottom-[6.5rem] z-[60]" style="padding-bottom: env(safe-area-inset-bottom)">
+            <div class="max-w-xl mx-auto px-4 sm:px-6 pointer-events-auto">
+                <div class="rounded-2xl border border-default bg-ink-surface shadow-xl shadow-black/10 px-4 py-3 flex items-center gap-3">
+                    <button id="cardSkipButton" type="button" class="hidden px-4 py-2 rounded-lg border border-default text-muted hover:text-text-strong hover:bg-overlay-weak transition focus:outline-none focus:ring-2 focus:ring-brand">Skip</button>
+                    <div id="timeboxHint" class="flex-1 text-center text-xs text-muted"></div>
+                    <button id="cardSubmitButton" type="button" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-electric-violet to-cyan text-white font-semibold shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand">
                             <span>Continue</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
                         </button>
                 </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </main>
+
+    <aside id="coachDrawer" class="fixed inset-x-0 bottom-0 z-40 transform translate-y-full transition-transform duration-300 ease-out">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
+            <div class="rounded-3xl border border-default bg-ink-surface shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-default">
+                <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Coach Tuli</p>
+                        <h2 id="coachTitle" class="text-lg font-heading font-semibold text-text-strong">Gentle guidance</h2>
+                        <p id="coachSubtitle" class="text-xs text-muted mt-0.5">Stage-specific nudges appear here</p>
     </div>
-    
-<template id="template-prime">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Prime</h2>
-                <p class="text-sm text-muted">Set your intention and choose one lever to watch.</p>
-    </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Intention</label>
-                    <textarea name="intention" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="In one line, how do you want to show up?"></textarea>
+                    <button id="coachCloseButton" type="button" class="w-9 h-9 rounded-full border border-default bg-overlay-weak hover:bg-overlay-strong transition focus:outline-none focus:ring-2 focus:ring-brand" aria-label="Close coach drawer">
+                        <svg class="w-4 h-4 mx-auto text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                         </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="focus_lever" value="preparation" class="sr-only">
-                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Preparation</p>
-                            <p class="text-xs text-muted">Clarify the outcome and structure.</p>
+                <div id="coachContent" class="px-4 sm:px-6 py-6 space-y-4 max-h-[55vh] overflow-y-auto"></div>
                         </div>
-                    </label>
-                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="focus_lever" value="presence" class="sr-only">
-                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Presence</p>
-                            <p class="text-xs text-muted">Manage tempo, breathing, and signaling.</p>
                     </div>
-                    </label>
-                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="focus_lever" value="perspective" class="sr-only">
-                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Perspective</p>
-                            <p class="text-xs text-muted">Tune to the audience and stakes.</p>
-                    </div>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </form>
-</template>
+    </aside>
 
-<template id="template-teach">
-    <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-4">
-        <div class="flex items-center gap-2">
-            <span class="px-2 py-1 bg-overlay-weak border border-default rounded text-[11px] font-semibold text-muted">Micro Teach</span>
-            <span class="px-2 py-1 bg-electric-violet/10 text-electric-violet text-[11px] font-semibold rounded">Concept Tile</span>
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] space-y-3 w-full max-w-sm pointer-events-none"></div>
                         </div>
-        <h2 class="text-2xl font-heading font-bold text-text-strong" data-teach-title></h2>
-        <p class="text-sm text-muted">One idea · <span data-timebox></span> seconds.</p>
-        <div class="text-base text-text-strong leading-relaxed whitespace-pre-wrap" data-teach-summary></div>
-        <div class="flex flex-wrap gap-2 text-xs text-muted" data-teach-citations></div>
-                    </div>
-</template>
-
-<template id="template-diagnose">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-                        <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Diagnose</h2>
-                <p class="text-sm text-muted">Map the stakes (PIC) and label the load.</p>
-                            </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Scenario</label>
-                    <textarea name="scenario_text" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="What’s the moment you’re preparing for?"></textarea>
-                            </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Pressure</label>
-                        <input type="range" name="pic_pressure" min="0" max="5" step="1" value="0" class="w-full">
-                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
-                            </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Visibility</label>
-                        <input type="range" name="pic_visibility" min="0" max="5" step="1" value="0" class="w-full">
-                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
-                            </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Irreversibility</label>
-                        <input type="range" name="pic_irreversibility" min="0" max="5" step="1" value="0" class="w-full">
-                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
-                        </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Control</label>
-                        <input type="range" name="pic_control" min="0" max="5" step="1" value="0" class="w-full">
-                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
-                    </div>
-                    </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Load Type</label>
-                    <div class="flex flex-wrap gap-2">
-                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
-                            <input type="radio" name="load_label" value="emotional" class="sr-only">
-                            <span class="text-sm text-text-strong">Emotional</span>
-                        </label>
-                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
-                            <input type="radio" name="load_label" value="cognitive" class="sr-only">
-                            <span class="text-sm text-text-strong">Cognitive</span>
-                        </label>
-                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
-                            <input type="radio" name="load_label" value="mixed" class="sr-only">
-                            <span class="text-sm text-text-strong">Mixed</span>
-                        </label>
-                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
-                            <input type="radio" name="load_label" value="unknown" class="sr-only" checked>
-                            <span class="text-sm text-text-strong">Unsure</span>
-                        </label>
-                </div>
-            </div>
-        </div>
-        </div>
-    </form>
-</template>
-
-<template id="template-control_shift">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Control Shift</h2>
-                <p class="text-sm text-muted">Choose one lever and commit to a concrete action.</p>
-                        </div>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="lever_choice" value="preparation" class="mt-1.5">
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Preparation</p>
-                            <p class="text-xs text-muted">Clarify goal & map the route.</p>
-                        </div>
-                    </label>
-                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="lever_choice" value="presence" class="mt-1.5">
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Presence</p>
-                            <p class="text-xs text-muted">Adjust tempo, signaling, and body.</p>
-                        </div>
-                    </label>
-                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
-                        <input type="radio" name="lever_choice" value="perspective" class="mt-1.5">
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Perspective</p>
-                            <p class="text-xs text-muted">Align to audience needs & stakes.</p>
-                    </div>
-                    </label>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Action Plan</label>
-                    <textarea name="action_plan" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="One thing you’ll do differently in the next attempt."></textarea>
-            </div>
-        </div>
-        </div>
-    </form>
-</template>
-
-<template id="template-perform_text">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-heading font-bold text-text-strong">Perform · Text</h2>
-                    <p class="text-sm text-muted">Draft the opening using your chosen lever.</p>
-                    </div>
-                <div class="text-xs text-muted text-right">
-                    <p id="wordCounter">0 words</p>
-                    <p>Goal: 90–120 words</p>
-                </div>
-            </div>
-            <div>
-                <textarea name="text" rows="6" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Write your opening..."></textarea>
-        </div>
-    </div>
-    </form>
-</template>
-
-<template id="template-perform_voice">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong">Perform · Voice</h2>
-                <p class="text-sm text-muted">Record a 30–45 second take (paste a link until the recorder arrives).</p>
-        </div>
-            <div class="grid gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Audio Link</label>
-                    <input type="url" name="audio_ref" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="https://...">
-    </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Duration (ms)</label>
-                    <input type="number" name="duration_ms" class="w-32 px-3 py-2 bg-overlay-weak border border-default rounded-lg text-text-strong focus:outline-none focus:ring-2 focus:ring-brand" value="0" min="0" step="500">
-        </div>
-            </div>
-        </div>
-    </form>
-</template>
-
-<template id="template-review">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Review</h2>
-                <p class="text-sm text-muted">Reflect on what worked and what you'll tweak next.</p>
-            </div>
-            <div class="space-y-4">
-                <div id="reviewScores" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted"></div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Self-explain</label>
-                    <textarea name="self_explain" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Why did it work? What will you tweak?"></textarea>
-        </div>
-                <label class="flex items-center gap-2 text-sm text-muted">
-                    <input type="checkbox" name="accept_suggestions" class="w-4 h-4 rounded border-default">
-                    Accept AI suggestions for the next loop
-                </label>
-                </div>
-                </div>
-    </form>
-</template>
-
-<template id="template-transfer">
-    <form class="space-y-6">
-        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
-            <div>
-                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Transfer</h2>
-                <p class="text-sm text-muted">Log the next real moment where you’ll use this.</p>
-                </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Moment Title</label>
-                    <input type="text" name="next_title" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Board update, client pitch, ...">
-            </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Date & Time</label>
-                        <input type="datetime-local" name="next_when" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong focus:outline-none focus:ring-2 focus:ring-brand">
-                </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Desired Outcome</label>
-                        <input type="text" name="desired_outcome" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Land decision, align team, ...">
-            </div>
-        </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Context</label>
-                    <textarea name="next_context" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Key players, stakes, constraints..."></textarea>
-    </div>
-</div>
-            <div class="flex flex-wrap gap-2 text-xs text-muted">
-                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="24h">Schedule booster in 24h</button>
-                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="48h">Schedule in 48h</button>
-                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="72h">Schedule in 72h</button>
-            </div>
-        </div>
-    </form>
-</template>
-
-<div id="coachSheet" class="fixed inset-x-0 bottom-0 z-50 bg-ink-surface/95 backdrop-blur-xl border-t border-default rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out" style="height: 55vh; max-height: 600px;">
-    <div class="flex flex-col h-full">
-        <div class="flex-shrink-0 pt-3 pb-2">
-            <div class="w-16 h-1.5 mx-auto rounded-full bg-overlay-weak"></div>
-        </div>
-        <div class="flex-shrink-0 px-4 pb-3 border-b border-default flex items-center justify-between">
-            <div>
-                <h3 id="coachStageTitle" class="text-lg font-heading font-semibold text-text-strong">Coach Sidekick</h3>
-                <p id="coachStageSubtitle" class="text-xs text-muted mt-1"></p>
-            </div>
-            <button id="closeCoachSheet" class="w-8 h-8 rounded-full bg-overlay-weak border border-default text-muted hover:text-text-strong hover:bg-overlay-strong transition" type="button" aria-label="Close coach sheet">
-                <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div id="coachSheetContent" class="flex-1 overflow-y-auto px-4 pb-6 space-y-4"></div>
-    </div>
-</div>
-
-{% include 'myApp/components/signal_sentence_checker.html' %}
-{% include 'myApp/components/message_builder_3x3.html' %}
-{% include 'myApp/components/style_radar.html' %}
 {% endblock %}
 
 {% block extra_js %}
-{{ sequence|json_script:"lesson-sequence-data" }}
-{{ progress_payload|json_script:"lesson-progress-data" }}
-{{ content_payload|json_script:"lesson-content-data" }}
-{{ guardrails|json_script:"lesson-guardrails-data" }}
+{{ lesson_cards|json_script:"lesson-cards" }}
+{{ session_state|json_script:"lesson-session" }}
+{{ flow_meta|json_script:"lesson-flow-meta" }}
+{{ progress_payload|json_script:"lesson-progress" }}
+{{ ui_tokens|json_script:"lesson-ui-tokens" }}
 {{ module.code|json_script:"lesson-module-code" }}
-{{ current_block.id|json_script:"lesson-block-id" }}
 <script>
 (() => {
-    const sequenceEl = document.getElementById('lesson-sequence-data');
-    const progressEl = document.getElementById('lesson-progress-data');
-    const contentEl = document.getElementById('lesson-content-data');
-    const guardrailsEl = document.getElementById('lesson-guardrails-data');
+    const cardsEl = document.getElementById('lesson-cards');
+    const sessionEl = document.getElementById('lesson-session');
+    const flowEl = document.getElementById('lesson-flow-meta');
+    const progressEl = document.getElementById('lesson-progress');
+    const tokensEl = document.getElementById('lesson-ui-tokens');
     const moduleEl = document.getElementById('lesson-module-code');
-    const blockEl = document.getElementById('lesson-block-id');
-    if (!sequenceEl || !moduleEl || !blockEl) return;
 
-    const sequence = JSON.parse(sequenceEl.textContent || '[]');
-    const progressState = JSON.parse(progressEl?.textContent || '{}');
-    const contentState = JSON.parse(contentEl?.textContent || '{}');
-    const guardrails = JSON.parse(guardrailsEl?.textContent || '{}');
-    const moduleCode = JSON.parse(moduleEl.textContent || '""');
-    const blockId = JSON.parse(blockEl.textContent || 'null');
+    const lessonCards = cardsEl ? JSON.parse(cardsEl.textContent || '[]') : [];
+    const sessionState = sessionEl ? JSON.parse(sessionEl.textContent || '{}') : {};
+    const flowMeta = flowEl ? JSON.parse(flowEl.textContent || '{}') : {};
+    const progressPayload = progressEl ? JSON.parse(progressEl.textContent || '{}') : {};
+    const uiTokens = tokensEl ? JSON.parse(tokensEl.textContent || '{}') : {};
+    const moduleCode = moduleEl ? JSON.parse(moduleEl.textContent || '""') : '';
 
-    if (!Array.isArray(sequence) || sequence.length === 0) return;
-    if (blockId === null) return;
+    if (!Array.isArray(lessonCards)) return;
 
-    const stageEndpoints = {
-        prime: "{% url 'lesson_prime_submit' %}",
-        teach: "{% url 'lesson_teach_submit' %}",
-        diagnose: "{% url 'lesson_diagnose_submit' %}",
-        control_shift: "{% url 'lesson_control_shift_submit' %}",
-        perform_text: "{% url 'lesson_perform_text_submit' %}",
-        perform_voice: "{% url 'lesson_perform_voice_submit' %}",
-        review: "{% url 'lesson_review_submit' %}",
-        transfer: "{% url 'lesson_transfer_submit' %}",
-    };
-    const spacingEndpoint = "{% url 'lesson_spacing_schedule' %}";
-
-    const stageSubtitles = {
-        prime: 'Prime your attention',
-        teach: 'Watch a micro concept',
-        diagnose: 'Name the stakes',
-        control_shift: 'Choose the lever',
-        perform_text: 'Draft the text pass',
-        perform_voice: 'Deliver a voice pass',
-        review: 'Reflect & capture feedback',
-        transfer: 'Plan your real-world moment',
+    const endpoints = {
+        submit: "{% url 'lesson_card_submit' %}",
+        spacing: "{% url 'lesson_spacing_schedule' %}",
     };
 
-    const toolPreferences = {
-        prime: { message: 'Signal Sentence captures your intention before you dive in.', primary: 'signal' },
-        teach: { message: 'Use 3×3 Builder to expand the tile into three pillars.', primary: 'message' },
-        diagnose: { message: 'Signal Sentence helps you articulate Pressure · Visibility · Irreversibility.', primary: 'signal' },
-        control_shift: { message: 'Style Radar can reset your body before you enact the lever.', primary: 'style' },
-        perform_text: { message: '3×3 Builder turns your lever into a tight script.', primary: 'message' },
-        perform_voice: { message: 'Style Radar keeps tabs on presence cues while you record.', primary: 'style' },
-        review: { message: '3×3 Builder captures keep / tweak / next for your notes.', primary: 'message' },
-        transfer: { message: 'Signal Sentence drafts the follow-up message for your next moment.', primary: 'signal' },
-        default: { message: 'Open a tool to get a prompt tailored to this stage.', primary: 'signal' },
-    };
-
-    const coachContentMap = {
-        prime: (ctx) => [
-            {
-                title: 'Prime Checklist',
-                items: [
-                    'Recall your last win to lower load.',
-                    'Name one lever to watch (Preparation / Presence / Perspective).',
-                    'Set a success sentence before you hit play.',
-                ],
-            },
-            {
-                title: 'Why it matters',
-                body: 'Priming calms the amygdala and frees up working memory so the Teach card lands.',
-            },
-        ],
-        teach: (ctx) => [
-            {
-                title: 'Micro Teach Tips',
-                items: [
-                    'Skim once for the structure, once for the example.',
-                    'Underline the verb in the concept—what action does it demand?',
-                    'Note one question you still have for Diagnose.',
-                ],
-            },
-        ],
-        diagnose: (ctx) => {
-            const blocks = [
-                {
-                    title: 'PIC Reminders',
-                    items: [
-                        'Pressure = consequences if you fail.',
-                        'Visibility = who sees it or hears about it.',
-                        'Irreversibility = how hard it is to undo.',
-                    ],
-                },
-            ];
-            if (ctx.latestScenario) {
-                const pic = ctx.latestPic || {};
-                const picLines = [];
-                if (typeof pic.pressure === 'number') picLines.push(`Pressure ${pic.pressure}/5`);
-                if (typeof pic.visibility === 'number') picLines.push(`Visibility ${pic.visibility}/5`);
-                if (typeof pic.irreversibility === 'number') picLines.push(`Irreversibility ${pic.irreversibility}/5`);
-                if (typeof pic.control === 'number') picLines.push(`Control ${pic.control}/5`);
-                blocks.push({
-                    title: 'Current Scenario',
-                    body: ctx.latestScenario,
-                });
-                if (picLines.length) {
-                    blocks.push({
-                        title: 'Latest PIC Snapshot',
-                        items: picLines,
-                    });
-                }
-            }
-            blocks.push({
-                title: 'Load Labels',
-                body: 'Choose Emotional when nerves are spiking, Cognitive when the problem is thinking load. Mixed is OK.',
-            });
-            return blocks;
-        },
-        control_shift: (ctx) => [
-            {
-                title: 'Levers at a Glance',
-                items: [
-                    'Preparation → clarify purpose, agenda, or evidence.',
-                    'Presence → adjust pacing, pausing, breath, or body.',
-                    'Perspective → tune to the audience’s stakes.',
-                ],
-            },
-            ctx.progress.lever_choice ? {
-                title: 'Current Lever',
-                body: `You are focusing on ${ctx.humanize(ctx.progress.lever_choice)}. Write a one-line action to test it in the next pass.`,
-            } : null,
-        ].filter(Boolean),
-        perform_text: (ctx) => [
-            {
-                title: 'Text Pass Pointers',
-                items: [
-                    'Aim for 90–120 words with a clear open-middle-close.',
-                    'Highlight where your chosen lever shows up.',
-                    'Keep verbs active; read it aloud once before submitting.',
-                ],
-            },
-        ],
-        perform_voice: (ctx) => [
-            {
-                title: 'Voice Pass Pointers',
-                items: [
-                    'Stand if you can—presence shows in posture.',
-                    'Use Style Radar to note body/voice shifts before & after.',
-                    'Mark the moment your lever shows up (pause, signpost, etc.).',
-                ],
-            },
-        ],
-        review: (ctx) => [
-            {
-                title: 'Review Prompts',
-                items: [
-                    'Keep: What landed? Capture the exact phrase or cue.',
-                    'Tweak: What would you change in the next pass?',
-                    'Next: Write a one-line reminder for the transfer card.',
-                ],
-            },
-            ctx.latestPic ? {
-                title: 'Control Delta',
-                body: `Control moved to ${ctx.latestPic.control ?? '—'} / 5. Celebrate progress before you aim higher.`,
-            } : null,
-        ].filter(Boolean),
-        transfer: (ctx) => [
-            {
-                title: 'Transfer Checklist',
-                items: [
-                    'Name your next high-stakes moment (title + date).',
-                    'Log desired outcome + audience perspective.',
-                    'Schedule a booster pass within 24–72h while the concept is fresh.',
-                ],
-            },
-            ctx.latestScenario ? {
-                title: 'Last Scenario Reference',
-                body: ctx.latestScenario,
-            } : null,
-        ].filter(Boolean),
-        default: () => [
-            {
-                title: 'Keep going',
-                body: 'Use the tools below to stay anchored while you move through the loop.',
-            },
-        ],
-    };
-
-    function getCSRFToken() {
+    const csrfToken = (() => {
         const name = 'csrftoken=';
-        const cookies = document.cookie ? document.cookie.split(';') : [];
+        const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             cookie = cookie.trim();
             if (cookie.startsWith(name)) {
@@ -554,653 +137,1134 @@
             }
         }
         return '';
-    }
+    })();
 
-    function showToast(message, type = 'info', duration = 3200) {
+    const formatNumber = (value, digits = 0) => {
+        const number = Number(value);
+        if (Number.isNaN(number)) return '0';
+        return number.toLocaleString(undefined, { maximumFractionDigits: digits });
+    };
+
+    const showToast = (message, tone = 'info') => {
         if (!message) return;
-        const containerId = 'lesson-runner-toast-container';
-        let container = document.getElementById(containerId);
-        if (!container) {
-            container = document.createElement('div');
-            container.id = containerId;
-            container.className = 'fixed top-4 right-4 z-[9999] space-y-3 max-w-sm';
-            document.body.appendChild(container);
-        }
+        const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
-        toast.className = `px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition ${type === 'success' ? 'bg-green-500/10 border-green-400/40 text-green-200' : type === 'error' ? 'bg-rose-500/10 border-rose-400/40 text-rose-100' : 'bg-ink-surface border border-default text-text-strong'}`;
+        toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold tracking-tight ${
+            tone === 'success'
+                ? 'bg-emerald-500/10 border-emerald-400/40 text-emerald-100'
+                : tone === 'error'
+                    ? 'bg-rose-500/10 border-rose-400/40 text-rose-100'
+                    : 'bg-ink-surface border-default text-text-strong'
+        }`;
         toast.textContent = message;
         container.appendChild(toast);
         setTimeout(() => {
             toast.classList.add('opacity-0', 'translate-y-2');
-            setTimeout(() => container.removeChild(toast), 320);
-        }, duration);
-    }
+            setTimeout(() => toast.remove(), 300);
+        }, 2600);
+    };
 
-    function cloneTemplate(id) {
-        const tpl = document.getElementById(id);
-        if (!tpl) return null;
-        return tpl.content.cloneNode(true);
-    }
+    const formatOption = (value) => value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-    class LessonRunnerMachine {
-        constructor(config) {
-            this.sequence = config.sequence.slice();
-            this.progress = { ...config.progress };
-            this.content = config.content || {};
-            this.guardrails = config.guardrails || {};
-            this.moduleCode = config.moduleCode;
-            this.blockId = config.blockId;
-            this.stageEndpoints = config.stageEndpoints;
-            this.spacingEndpoint = config.spacingEndpoint;
-            this.csrfToken = getCSRFToken();
-            this.stageContainer = document.getElementById('stageContainer');
-            this.timeboxHint = document.getElementById('stageTimeboxHint');
-            this.submitBtn = document.getElementById('stageSubmitBtn');
-            this.skipBtn = document.getElementById('stageSkipBtn');
-            this.coachBtn = document.getElementById('coachToggleBtn');
-            this.progressBar = document.getElementById('stageProgressBar');
-            this.stageLabels = document.getElementById('stageLabels');
-            this.loopDescriptor = document.getElementById('loopDescriptor');
-            this.returnPassAction = document.getElementById('returnPassAction');
-            this.picTrendChip = document.getElementById('picTrend');
-            this.leverChip = document.getElementById('leverChip');
-            this.coachSheet = document.getElementById('coachSheet');
-            this.coachContent = document.getElementById('coachSheetContent');
-            this.coachTitle = document.getElementById('coachStageTitle');
-            this.coachSubtitle = document.getElementById('coachStageSubtitle');
-            this.closeCoachBtn = document.getElementById('closeCoachSheet');
-            this.currentTile = (this.content.tiles && this.content.tiles[0]) || null;
-            this.currentScores = null;
-            this.busy = false;
-            this.stageForm = null;
-            this.latestScenario = '';
-            this.latestPic = null;
-            this.latestLever = this.progress.lever_choice || null;
-            const self = this;
-            window.lessonRunnerContext = {
-                getScenario: () => self.latestScenario || '',
-                getLever: () => self.progress.lever_choice || self.latestLever || '',
-                getPic: () => self.latestPic,
+    const CARD_RENDERERS = {
+        ScenarioTaggerCard(card) {
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            const props = card.props || {};
+            const selected = new Map();
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Diagnose · Spot the Heat</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">What signals pressure here?</h2>
+                        <p class="text-sm text-muted leading-relaxed">${props.scenario_text || 'Review the scenario and tag the stakes you notice.'}</p>
+                    </header>
+                    <section class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            ${['pressure', 'visibility', 'irreversibility'].map((key) => `
+                                <label class="flex items-center gap-3 px-4 py-3 border border-default rounded-xl bg-overlay-weak hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand transition">
+                                    <input type="checkbox" value="${key}" class="selection-toggle" />
+                                    <span class="text-sm font-semibold text-text-strong">${formatOption(key)}</span>
+                    </label>
+                            `).join('')}
+                        </div>
+                        <div class="space-y-2">
+                            <span class="text-xs uppercase tracking-[0.2em] text-muted">Overall heat</span>
+                            <div class="flex gap-3">
+                                ${['high', 'medium', 'low', 'not_sure'].map((level) => `
+                                    <label class="inline-flex items-center gap-2 px-3 py-2 border border-default rounded-lg focus-within:ring-2 focus-within:ring-brand">
+                                        <input type="radio" name="classification" value="${level}" />
+                                        <span class="text-sm text-text-strong">${formatOption(level)}</span>
+                    </label>
+                                `).join('')}
+                </div>
+            </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Observation</label>
+                            <textarea name="reflection" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Anything else you notice about the stakes?"></textarea>
+        </div>
+                    </section>
+                </article>
+            `;
+
+            const checkboxes = wrapper.querySelectorAll('.selection-toggle');
+            checkboxes.forEach((box) => {
+                box.addEventListener('change', () => {
+                    selected.set(box.value, box.checked);
+                });
+            });
+
+            const collect = () => {
+                const classification = wrapper.querySelector('input[name="classification"]:checked')?.value || null;
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                const tags = Array.from(selected.entries()).filter(([, checked]) => checked).map(([key]) => key);
+                if (!tags.length) {
+                    throw new Error('Select at least one stakes signal to continue.');
+                }
+                if (!classification) {
+                    throw new Error('Choose how intense this moment feels overall.');
+                }
+                const answerKey = props.answer_key || {};
+                let accuracy = 0;
+                const total = Object.keys(answerKey).length || tags.length;
+                if (total > 0) {
+                    const correct = tags.filter((key) => Boolean(answerKey[key])).length;
+                    accuracy = correct / total;
+                }
+                return {
+                    payload: {
+                        selected_tags: tags,
+                        classification,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy,
+                        reflection: Boolean(reflection),
+                    },
+                };
             };
-            this.init();
-        }
 
-        init() {
-            this.resolveIndex();
-            this.renderStageLabels();
-            this.updateProgressUI();
+            return { form: wrapper, collect };
+        },
+
+        PersonalScenarioCapture(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Capture · Your moment</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Log the high-stakes moment you're facing next</h2>
+                        <p class="text-sm text-muted">Write a short headline and rate the pressure, visibility, and irreversibility.</p>
+                    </header>
+                    <section class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Moment headline</label>
+                            <textarea name="situation_text" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="${props.helper_text || 'What’s the next moment that feels the heat?'}"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-text-strong">
+                            ${['pressure', 'visibility', 'irreversibility'].map((dimension) => `
+                                <label class="flex flex-col gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak focus-within:ring-2 focus-within:ring-brand">
+                                    <span class="text-xs uppercase tracking-[0.2em] text-muted">${formatOption(dimension)}</span>
+                                    <select name="${dimension}" class="bg-transparent border-none focus:outline-none">
+                                        ${(props.rating_scale || ['low', 'medium', 'high']).map((level) => `
+                                            <option value="${level}">${formatOption(level)}</option>
+                                        `).join('')}
+                                    </select>
+                        </label>
+                            `).join('')}
+                    </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">One-line intention (optional)</label>
+                            <input type="text" name="reflection" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Why this moment matters right now" />
+                </div>
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const text = wrapper.querySelector('textarea[name="situation_text"]')?.value.trim() || '';
+                if (!text) {
+                    throw new Error('Give your moment a short description before continuing.');
+                }
+                const ratings = ['pressure', 'visibility', 'irreversibility'].reduce((acc, key) => {
+                    acc[key] = wrapper.querySelector(`select[name="${key}"]`)?.value || 'low';
+                    return acc;
+                }, {});
+                const reflection = wrapper.querySelector('input[name="reflection"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        situation_text: text,
+                        ...ratings,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(reflection),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        TernaryRatingCard(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Quantify · PIC Rating</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Give that moment a quick PIC score</h2>
+                        <p class="text-sm text-muted">Rate Pressure, Irreversibility, and Control from 1–5.</p>
+                    </header>
+                    <section class="space-y-4">
+                        ${['P', 'I', 'C'].map((key) => `
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between text-xs text-muted">
+                                    <span>${props.explainers?.[key] || key}</span>
+                                    <span id="metricValue-${key}" class="text-text-strong font-semibold">3</span>
+                        </div>
+                                <input type="range" name="${key}" min="1" max="5" value="3" class="w-full accent-electric-violet" />
+                        </div>
+                        `).join('')}
+                        <p class="text-xs text-muted">
+                            Stakes score = (Pressure + Irreversibility) ÷ Control
+                            <span id="stakeScorePreview" class="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full border border-default bg-overlay-weak text-[11px] font-semibold text-electric-violet">1.00</span>
+                        </p>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Reflection (optional)</label>
+                            <textarea name="reflection" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="What stands out about this PIC snapshot?"></textarea>
+                        </div>
+                    </section>
+                </article>
+            `;
+
+            const controls = ['P', 'I', 'C'].map((key) => wrapper.querySelector(`input[name="${key}"]`));
+            const labels = ['P', 'I', 'C'].map((key) => wrapper.querySelector(`#metricValue-${key}`));
+            const scorePreview = wrapper.querySelector('#stakeScorePreview');
+
+            const updatePreview = () => {
+                const values = controls.map((input) => Number(input.value || 1));
+                labels.forEach((label, idx) => {
+                    label.textContent = values[idx];
+                });
+                const [p, i, c] = values;
+                const score = ((p + i) / Math.max(1, c));
+                scorePreview.textContent = score.toFixed(2);
+                return score;
+            };
+
+            controls.forEach((input) => {
+                input.addEventListener('input', updatePreview);
+            });
+            let stakesScore = updatePreview();
+
+            const collect = () => {
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                stakesScore = updatePreview();
+                const payload = {};
+                controls.forEach((input) => {
+                    payload[input.name] = Number(input.value || 1);
+                });
+                payload.stakes_score = stakesScore;
+                payload.reflection = reflection;
+                return {
+                    payload,
+                    metrics: {
+                        completion: true,
+                        accuracy: stakesScore >= 4 ? 1 : (stakesScore >= 2 ? 0.6 : 0.3),
+                        reflection: Boolean(reflection),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        SingleSelectActionCard(card) {
+            const props = card.props || {};
+            const actions = props.actions || [];
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Choose · Control Shift</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Pick the move you'll test this round</h2>
+                        <p class="text-sm text-muted">Select one lever-based action. You can always add your own.</p>
+                    </header>
+                    <section class="space-y-4">
+                        <div class="space-y-2">
+                            ${actions.map((action, idx) => `
+                                <label class="flex items-start gap-3 px-4 py-3 border border-default rounded-2xl bg-overlay-weak hover:border-electric-violet/60 transition focus-within:ring-2 focus-within:ring-brand">
+                                    <input type="radio" name="selected_action" value="${action.key}" class="mt-1.5" ${idx === 0 ? 'checked' : ''}/>
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-semibold text-text-strong">${action.label}</p>
+                                        <p class="text-xs text-muted">${action.desc || ''}</p>
+                    </div>
+                    </label>
+                            `).join('')}
+                            ${props.allow_other ? `
+                                <label class="flex items-start gap-3 px-4 py-3 border border-dashed border-default rounded-2xl bg-transparent hover:border-electric-violet/60 transition focus-within:ring-2 focus-within:ring-brand">
+                                    <input type="radio" name="selected_action" value="other" class="mt-1.5"/>
+                                    <div class="flex-1 space-y-1">
+                                        <p class="text-sm font-semibold text-text-strong">Something else</p>
+                                        <input type="text" name="custom_action" class="w-full mt-1 px-3 py-2 border border-default rounded-xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Describe your move" />
+                </div>
+                    </label>
+                            ` : ''}
+            </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Reflection (optional)</label>
+                            <textarea name="reflection" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Why this lever shift matters for the scenario?"></textarea>
+        </div>
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const selected = wrapper.querySelector('input[name="selected_action"]:checked')?.value || '';
+                let actionKey = selected;
+                let customText = '';
+                if (selected === 'other') {
+                    customText = wrapper.querySelector('input[name="custom_action"]')?.value.trim() || '';
+                    if (!customText) {
+                        throw new Error('Describe your custom action to continue.');
+                    }
+                }
+                if (!actionKey) {
+                    throw new Error('Select the action you want to test.');
+                }
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        scenario_ref: props.scenario_ref || null,
+                        selected_action: actionKey,
+                        custom_action: customText,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(reflection),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        MantraSelectOrWrite(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            const groupedMantras = (props.mantras || []).reduce((acc, mantra) => {
+                acc[mantra.tone || 'neutral'] = acc[mantra.tone || 'neutral'] || [];
+                acc[mantra.tone || 'neutral'].push(mantra);
+                return acc;
+            }, {});
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Reframe · Mantra</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Pick or write a mantra that grounds you</h2>
+                        <p class="text-sm text-muted">You can pick one from the list or create your own line (max ${props.character_limit || 120} characters).</p>
+                    </header>
+                    <section class="space-y-4">
+                        <div class="space-y-4" role="radiogroup" aria-label="Prewritten mantras">
+                            ${Object.entries(groupedMantras).map(([tone, items]) => `
+                                <div class="space-y-2">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-muted">${formatOption(tone)}</p>
+                                    <div class="space-y-2">
+                                        ${items.map((mantra, idx) => `
+                                            <label class="flex items-start gap-3 px-4 py-3 border border-default rounded-2xl bg-overlay-weak hover:border-electric-violet/60 transition focus-within:ring-2 focus-within:ring-brand">
+                                                <input type="radio" name="mantra_choice" value="${mantra.id}" class="mt-1.5" ${idx === 0 ? 'checked' : ''}/>
+                                                <span class="text-sm leading-relaxed text-text-strong">${mantra.text}</span>
+                </label>
+                                        `).join('')}
+            </div>
+        </div>
+                            `).join('')}
+                </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Or write your own</label>
+                            <textarea name="custom_mantra" rows="3" maxlength="${props.character_limit || 120}" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Write your custom mantra"></textarea>
+                            <p class="text-xs text-muted">Leave blank to use a prewritten mantra. Coach tip: ${props.coach_tip || 'Pick a line that calms your nervous system before you speak.'}</p>
+            </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Reflection (optional)</label>
+                            <textarea name="reflection" rows="2" class="w-full px-4 py-2 border border-default rounded-xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="What makes this mantra a fit?"></textarea>
+        </div>
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const selected = wrapper.querySelector('input[name="mantra_choice"]:checked')?.value || '';
+                const custom = wrapper.querySelector('textarea[name="custom_mantra"]')?.value.trim() || '';
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                if (!selected && !custom) {
+                    throw new Error('Pick a mantra or write your own before continuing.');
+                }
+                return {
+                    payload: {
+                        selected_id: selected || null,
+                        custom_text: custom,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(reflection),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        GuidedBreathDrill(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            const steps = props.script?.steps || [
+                'Inhale through the nose for two counts.',
+                'Hold softly for one count.',
+                'Exhale through the mouth for four counts.',
+            ];
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Regulate · Micro Drill</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Take ${props.timings?.duration_s || 30}s to reset your body</h2>
+                        <p class="text-sm text-muted">${props.baseline_prompt || 'Notice where tension sits, breathe through this short drill, and log the shift.'}</p>
+                    </header>
+                    <section class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex flex-col gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak focus-within:ring-2 focus-within:ring-brand">
+                                <span class="text-xs uppercase tracking-[0.2em] text-muted">Before</span>
+                                <select name="baseline_state" class="bg-transparent border-none focus:outline-none text-sm text-text-strong">
+                                    <option value="steady">Steady</option>
+                                    <option value="slight">Slight tension</option>
+                                    <option value="tense">Very tense</option>
+                                </select>
+                            </label>
+                            <label class="flex flex-col gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak focus-within:ring-2 focus-within:ring-brand">
+                                <span class="text-xs uppercase tracking-[0.2em] text-muted">After</span>
+                                <select name="post_state" class="bg-transparent border-none focus:outline-none text-sm text-text-strong">
+                                    <option value="steady">Steady</option>
+                                    <option value="lighter">Lighter</option>
+                                    <option value="doing_ok">Still working</option>
+                                </select>
+                            </label>
+    </div>
+                        <div class="space-y-2">
+                            <p class="text-xs uppercase tracking-[0.2em] text-muted">Guided steps</p>
+                            <ol class="space-y-2 text-sm text-text-strong">
+                                ${steps.map((step) => `<li class="px-3 py-2 rounded-xl border border-default bg-overlay-weak">${step}</li>`).join('')}
+                            </ol>
+</div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">One-word anchor (optional)</label>
+                            <input type="text" name="anchor_word" class="w-full px-4 py-2 border border-default rounded-xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Centered, steady, ready..." />
+                </div>
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const baseline = wrapper.querySelector('select[name="baseline_state"]')?.value || 'steady';
+                const post = wrapper.querySelector('select[name="post_state"]')?.value || 'steady';
+                const anchor = wrapper.querySelector('input[name="anchor_word"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        baseline_state: baseline,
+                        post_state: post,
+                        anchor_word: anchor,
+                        duration_s: props.timings?.duration_s || 30,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(anchor),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        BinaryClassifierCard(card) {
+            const props = card.props || {};
+            const examples = props.examples || [];
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Diagnose · Load Lab</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Label each moment as emotional or cognitive load</h2>
+                        <p class="text-sm text-muted">Tap the load type that best matches the cue.</p>
+                    </header>
+                    <section class="space-y-3">
+                        ${examples.map((item, idx) => `
+                            <fieldset class="p-4 rounded-2xl border border-default bg-overlay-weak space-y-3">
+                                <legend class="text-sm text-text-strong font-semibold">Example ${idx + 1}</legend>
+                                <p class="text-sm text-muted leading-relaxed">${item.text}</p>
+                                <div class="flex items-center gap-3 text-sm text-text-strong">
+                                    ${['emotional', 'cognitive', 'not_sure'].map((option) => `
+                                        <label class="inline-flex items-center gap-2 px-3 py-2 border border-default rounded-lg focus-within:ring-2 focus-within:ring-brand">
+                                            <input type="radio" name="example_${item.id}" value="${option}" />
+                                            <span>${formatOption(option)}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </fieldset>
+                        `).join('')}
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const responses = [];
+                let correct = 0;
+                examples.forEach((item) => {
+                    const value = wrapper.querySelector(`input[name="example_${item.id}"]:checked`)?.value || null;
+                    if (!value) {
+                        throw new Error('Label each example before continuing.');
+                    }
+                    if (item.correct && value === item.correct) {
+                        correct += 1;
+                    }
+                    responses.push({
+                        id: item.id,
+                        selection: value,
+                        correct: item.correct,
+                    });
+                });
+                const accuracy = examples.length ? correct / examples.length : 1;
+                return {
+                    payload: { responses },
+                    metrics: {
+                        completion: true,
+                        accuracy,
+                        reflection: false,
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        PickThreeKeyPoints(card) {
+            const props = card.props || {};
+            const options = props.options || [];
+            const correctIds = new Set(props.correct_ids || []);
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Clarify · Pick Three</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Choose the three lines that best carry this message</h2>
+                        <p class="text-sm text-muted">${props.source_paragraph || 'Select exactly three options that keep the signal sharp.'}</p>
+                    </header>
+                    <section class="space-y-3">
+                        ${options.map((option) => `
+                            <label class="flex items-start gap-3 px-4 py-3 border border-default rounded-2xl bg-overlay-weak hover:border-electric-violet/60 transition focus-within:ring-2 focus-within:ring-brand">
+                                <input type="checkbox" value="${option.id}" class="mt-1.5 selection-toggle"/>
+                                <span class="text-sm text-text-strong leading-relaxed">${option.text}</span>
+                            </label>
+                        `).join('')}
+                    </section>
+                    ${props.free_text_enabled ? `
+                    <section class="space-y-2">
+                        <label class="text-xs uppercase tracking-[0.2em] text-muted">Want to pitch your own lines?</label>
+                        <textarea name="free_text" rows="2" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Optional: add your own phrasing"></textarea>
+                    </section>
+                    ` : ''}
+                </article>
+            `;
+
+            const maxSelect = 3;
+            const checkboxes = wrapper.querySelectorAll('.selection-toggle');
+            checkboxes.forEach((box) => {
+                box.addEventListener('change', () => {
+                    const checked = Array.from(checkboxes).filter((input) => input.checked);
+                    if (checked.length > maxSelect) {
+                        box.checked = false;
+                        showToast(`Choose only ${maxSelect} options.`, 'info');
+                    }
+                });
+            });
+
+            const collect = () => {
+                const selectedIds = Array.from(checkboxes).filter((input) => input.checked).map((input) => input.value);
+                if (selectedIds.length !== maxSelect) {
+                    throw new Error(`Pick exactly ${maxSelect} options to continue.`);
+                }
+                const correctCount = selectedIds.filter((id) => correctIds.has(id)).length;
+                const freeText = wrapper.querySelector('textarea[name="free_text"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        selected_ids: selectedIds,
+                        correct_count: correctCount,
+                        free_text,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: maxSelect ? correctCount / maxSelect : 1,
+                        reflection: Boolean(freeText),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        LeverSelector3P(card) {
+            const props = card.props || {};
+            const leverCards = props.lever_cards || [];
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+
+            const leverOptions = leverCards.map((lever) => {
+                const checkedAttr = props.last_choice === lever.id ? 'checked' : '';
+                const exampleItems = (lever.examples || [])
+                    .map((example) => '<li>' + example + '</li>')
+                    .join('');
+                return [
+                    '<label class="flex flex-col gap-3 px-4 py-4 border border-default rounded-2xl bg-overlay-weak hover:border-electric-violet/60 transition focus-within:ring-2 focus-within:ring-brand">',
+                    '    <div class="flex items-center justify-between gap-3">',
+                    '        <span class="text-sm font-semibold text-text-strong">' + formatOption(lever.id) + '</span>',
+                    '        <input type="radio" name="selected_lever" value="' + lever.id + '" ' + checkedAttr + ' />',
+                    '    </div>',
+                    '    <p class="text-xs text-muted leading-relaxed">' + (lever.desc || '') + '</p>',
+                    '    <ul class="text-xs text-muted space-y-1 list-disc list-inside">' + exampleItems + '</ul>',
+                    '</label>',
+                ].join('');
+            }).join('');
+
+            wrapper.innerHTML = [
+                '<article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">',
+                '    <header class="space-y-2">',
+                '        <p class="text-xs uppercase tracking-[0.3em] text-muted">Decide · Pick your lever</p>',
+                '        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Which lever unlocks the most momentum right now?</h2>',
+                '        <p class="text-sm text-muted">Pick Preparation, Presence, or Perspective—then note why.</p>',
+                '    </header>',
+                '    <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">',
+                leverOptions,
+                '    </section>',
+                '    <section class="space-y-2">',
+                '        <label class="text-xs uppercase tracking-[0.2em] text-muted">What makes this lever the move?</label>',
+                '        <textarea name="reflection" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Tie it back to your scenario."></textarea>',
+                '    </section>',
+                '</article>',
+            ].join('');
+
+            const collect = () => {
+                const selected = wrapper.querySelector('input[name="selected_lever"]:checked')?.value || '';
+                if (!selected) {
+                    throw new Error('Pick a lever to continue.');
+                }
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        scenario_ref: props.scenario_ref || null,
+                        selected_lever: selected,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(reflection),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        PresenceRitualQuickStart(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Presence · Quick Ritual</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Drop into your presence ritual (${props.duration_s || 30}s)</h2>
+                        <p class="text-sm text-muted">Follow the steps, then log how ready you feel.</p>
+                    </header>
+                    <section class="space-y-4">
+                        <ol class="space-y-2 text-sm text-text-strong">
+                            ${(Array.isArray(props.script) ? props.script : props.script?.steps || []).map((step) => `<li class="px-3 py-2 rounded-xl border border-default bg-overlay-weak">${step}</li>`).join('')}
+                        </ol>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex flex-col gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak focus-within:ring-2 focus-within:ring-brand">
+                                <span class="text-xs uppercase tracking-[0.2em] text-muted">Readiness now</span>
+                                <select name="readiness_state" class="bg-transparent border-none focus:outline-none text-sm text-text-strong">
+                                    <option value="primed">Primed</option>
+                                    <option value="steady">Steady</option>
+                                    <option value="warming_up">Warming up</option>
+                                </select>
+                            </label>
+                            <label class="flex flex-col gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak focus-within:ring-2 focus-within:ring-brand">
+                                <span class="text-xs uppercase tracking-[0.2em] text-muted">Intention word</span>
+                                <input type="text" name="intention_word" class="bg-transparent border-none focus:outline-none text-sm text-text-strong placeholder:text-muted" placeholder="${props.intention_prompt || 'Anchoring word'}" />
+                            </label>
+                        </div>
+                    </section>
+                </article>
+            `;
+
+            const collect = () => {
+                const readiness = wrapper.querySelector('select[name="readiness_state"]')?.value || 'primed';
+                const intention = wrapper.querySelector('input[name="intention_word"]')?.value.trim() || '';
+                return {
+                    payload: {
+                        readiness_state: readiness,
+                        intention_word: intention,
+                        duration_s: props.duration_s || 30,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: Boolean(intention),
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        StakesMapBuilder(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Map · Stakes Map</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Build your stakes map in five quick fields</h2>
+                        <p class="text-sm text-muted">Capture the situation, pressure points, trigger, lever, and next action.</p>
+                    </header>
+                    <section class="space-y-4">
+                        <label class="space-y-2">
+                            <span class="text-xs uppercase tracking-[0.2em] text-muted">Situation headline</span>
+                            <input type="text" name="situation" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Board update on margin strategy" />
+                        </label>
+                        <div class="space-y-2">
+                            <span class="text-xs uppercase tracking-[0.2em] text-muted">Pressure points (pick up to 2)</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                ${(props.pressure_options || []).map((option) => `
+                                    <label class="flex items-center gap-2 px-4 py-3 border border-default rounded-2xl bg-overlay-weak hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                                        <input type="checkbox" value="${option}" class="pressure-toggle"/>
+                                        <span class="text-sm text-text-strong">${option}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Trigger cue</label>
+                            <select name="trigger" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-brand">
+                                ${(props.trigger_examples || []).map((trigger) => `<option value="${trigger}">${trigger}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Lever to pull</label>
+                            <select name="lever" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-brand">
+                                ${(props.lever_cards || []).map((lever) => `<option value="${lever.id}">${formatOption(lever.id)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Next action</label>
+                            <textarea name="action_step" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="${(props.action_hints || [])[0] || 'One sentence describing what you will do'}"></textarea>
+                        </div>
+                    </section>
+                </article>
+            `;
+
+            const pressureToggles = wrapper.querySelectorAll('.pressure-toggle');
+            pressureToggles.forEach((toggle) => {
+                toggle.addEventListener('change', () => {
+                    const checked = Array.from(pressureToggles).filter((input) => input.checked);
+                    if (checked.length > 2) {
+                        toggle.checked = false;
+                        showToast('Choose at most two pressure points.', 'info');
+                    }
+                });
+            });
+
+            const collect = () => {
+                const situation = wrapper.querySelector('input[name="situation"]')?.value.trim() || '';
+                if (!situation) {
+                    throw new Error('Add a short headline for the situation.');
+                }
+                const pressurePoints = Array.from(pressureToggles).filter((input) => input.checked).map((input) => input.value);
+                if (!pressurePoints.length) {
+                    throw new Error('Pick at least one pressure point.');
+                }
+                const trigger = wrapper.querySelector('select[name="trigger"]')?.value || '';
+                const lever = wrapper.querySelector('select[name="lever"]')?.value || '';
+                const actionStep = wrapper.querySelector('textarea[name="action_step"]')?.value.trim() || '';
+                if (!actionStep) {
+                    throw new Error('Describe the next action to lock the stakes map.');
+                }
+                return {
+                    payload: {
+                        situation,
+                        pressure_points: pressurePoints,
+                        trigger,
+                        lever,
+                        action_step: actionStep,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: 1,
+                        reflection: true,
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        ReflectionRatingCard(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('form');
+            wrapper.className = 'space-y-6';
+            wrapper.innerHTML = `
+                <article class="p-6 sm:p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/5 space-y-6">
+                    <header class="space-y-2">
+                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Reflect · Progress Check</p>
+                        <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">How helpful was this loop?</h2>
+                        <p class="text-sm text-muted">Rate the helpfulness from 1–5 and jot a quick reflection.</p>
+                    </header>
+                    <section class="space-y-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Helpfulness</label>
+                            <input type="range" name="helpfulness_rating" min="1" max="5" value="4" class="accent-electric-violet" />
+                            <div class="flex items-center justify-between text-xs text-muted">
+                                <span>1 · Not helpful</span>
+                                <span id="helpfulnessValue" class="font-semibold text-text-strong">4</span>
+                                <span>5 · Very helpful</span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-[0.2em] text-muted">Reflection</label>
+                            <textarea name="reflection" rows="3" class="w-full px-4 py-3 border border-default rounded-2xl bg-overlay-weak text-sm text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="What shifted for you after this arc?"></textarea>
+                        </div>
+                    </section>
+                </article>
+            `;
+
+            const slider = wrapper.querySelector('input[name="helpfulness_rating"]');
+            const valueLabel = wrapper.querySelector('#helpfulnessValue');
+            slider.addEventListener('input', () => {
+                valueLabel.textContent = slider.value;
+            });
+
+            const collect = () => {
+                const rating = Number(slider.value || 4);
+                const reflection = wrapper.querySelector('textarea[name="reflection"]')?.value.trim() || '';
+                if (!reflection) {
+                    throw new Error('Add a short reflection to capture the insight.');
+                }
+                return {
+                    payload: {
+                        helpfulness_rating: rating,
+                        reflection,
+                    },
+                    metrics: {
+                        completion: true,
+                        accuracy: rating / 5,
+                        reflection: true,
+                    },
+                };
+            };
+
+            return { form: wrapper, collect };
+        },
+
+        CoachSheetTip(card) {
+            const props = card.props || {};
+            const wrapper = document.createElement('div');
+            wrapper.className = 'p-6 sm:p-8 rounded-3xl border border-dashed border-default bg-ink-surface/70 text-center space-y-3';
+            wrapper.innerHTML = `
+                <h2 class="text-lg font-heading font-semibold text-text-strong">${props.title || 'Coach tip'}</h2>
+                <p class="text-sm text-muted">${props.body || 'Taking a quick beat—your next card is almost ready.'}</p>
+                ${Array.isArray(props.details) && props.details.length ? `
+                    <ul class="text-xs text-muted space-y-1">
+                        ${props.details.map((detail) => `<li>${detail}</li>`).join('')}
+                    </ul>
+                ` : ''}
+            `;
+
+            const collect = () => ({
+                payload: {},
+                metrics: { completion: true, accuracy: 1, reflection: false },
+            });
+
+            return { form: wrapper, collect };
+        },
+    };
+
+    class LessonRunnerApp {
+        constructor(config) {
+            this.cards = config.cards.slice();
+            this.sessionState = { ...(config.session || {}) };
+            this.flow = config.flow || {};
+            this.progress = config.progress || {};
+            this.moduleCode = config.moduleCode;
+            this.csrfToken = config.csrfToken;
+            this.endpoints = config.endpoints;
+            this.mount = document.getElementById('cardRegion');
+            this.skipButton = document.getElementById('cardSkipButton');
+            this.submitButton = document.getElementById('cardSubmitButton');
+            this.timeboxHint = document.getElementById('timeboxHint');
+            this.progressFill = document.getElementById('progressFill');
+            this.stageRail = document.getElementById('stageRail');
+            this.loopLabel = document.getElementById('sessionLoopLabel');
+            this.scoreChip = document.getElementById('stakesScoreChip');
+            this.leverChip = document.getElementById('leverChoiceChip');
+            this.coachButton = document.getElementById('coachToggleButton');
+            this.coachDrawer = document.getElementById('coachDrawer');
+            this.coachClose = document.getElementById('coachCloseButton');
+            this.coachContent = document.getElementById('coachContent');
+            this.coachTitle = document.getElementById('coachTitle');
+            this.coachSubtitle = document.getElementById('coachSubtitle');
+
+            this.currentStart = performance.now();
+            this.completedCount = this.sessionState.completed_cards ? this.sessionState.completed_cards.length : 0;
+            this.initialTotal = this.cards.length + this.completedCount;
+            this.currentCard = null;
+            this.currentCollector = null;
+            this.busy = false;
+
             this.bindEvents();
-            this.renderStage();
+            this.renderRail();
+            this.renderHeaderChips();
+            this.renderCurrentCard();
         }
 
         bindEvents() {
-            this.submitBtn.addEventListener('click', () => this.submitCurrentStage());
-            if (this.coachBtn) {
-                this.coachBtn.addEventListener('click', () => this.toggleCoachSheet(true));
-            }
-            if (this.closeCoachBtn) {
-                this.closeCoachBtn.addEventListener('click', () => this.toggleCoachSheet(false));
-            }
-            if (this.coachSheet) {
-                this.coachSheet.addEventListener('click', (evt) => {
-                    if (evt.target === this.coachSheet) this.toggleCoachSheet(false);
-                });
-            }
-            if (this.returnPassAction) {
-                this.returnPassAction.addEventListener('click', () => window.location.reload());
-            }
+            this.submitButton.addEventListener('click', () => this.handleSubmit());
+            this.skipButton.addEventListener('click', () => this.handleSkip());
+            this.coachButton.addEventListener('click', () => this.toggleCoach(true));
+            this.coachClose.addEventListener('click', () => this.toggleCoach(false));
+            document.addEventListener('keydown', (evt) => {
+                if (evt.key === 'Escape') this.toggleCoach(false);
+            });
         }
 
-        resolveIndex() {
-            const key = this.progress.stage_key || this.sequence[0].key;
-            const idx = this.sequence.findIndex(s => s.key === key);
-            this.index = idx >= 0 ? idx : 0;
+        renderRail() {
+            if (!this.stageRail) return;
+            const segments = ['Learn', 'Diagnose', 'Regulate', 'Decide', 'Map', 'Reflect'];
+            this.stageRail.innerHTML = segments.map((label, idx) => {
+                const done = idx < Math.min(this.completedCount, segments.length);
+                return `<span class="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full border text-[11px] font-semibold ${
+                    done ? 'border-electric-violet/40 bg-electric-violet/10 text-electric-violet' : 'border-default bg-overlay-weak text-muted'
+                }">
+                    <span class="w-2 h-2 rounded-full ${done ? 'bg-electric-violet' : 'bg-muted'}"></span>${label}
+                </span>`;
+            }).join('');
         }
 
-        get currentDescriptor() {
-            return this.sequence[this.index];
-        }
-
-        renderStageLabels() {
-            this.stageLabels.innerHTML = '';
-            this.sequence.forEach((stage, idx) => {
-                const el = document.createElement('div');
-                el.className = 'flex-1 text-center';
-                const label = document.createElement('span');
-                label.textContent = stage.key.replace('_', ' ');
-                label.className = 'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full transition';
-                if (idx < this.index) {
-                    label.classList.add('bg-electric-violet/15', 'text-electric-violet');
-                } else if (idx === this.index) {
-                    label.classList.add('bg-electric-violet', 'text-white');
+        renderHeaderChips() {
+            if (this.loopLabel) {
+                this.loopLabel.textContent = `Loop ${(this.progress.loop_index || 0) + 1} · ${this.progress.pass_type === 'return' ? 'Return' : 'Main'}`;
+            }
+            if (this.scoreChip) {
+                const score = this.sessionState.last_stakes_score;
+                if (typeof score === 'number') {
+                    this.scoreChip.textContent = `Stakes score · ${score.toFixed(2)}`;
+                    this.scoreChip.classList.remove('hidden');
                 } else {
-                    label.classList.add('bg-overlay-weak', 'text-muted');
+                    this.scoreChip.classList.add('hidden');
                 }
-                el.appendChild(label);
-                this.stageLabels.appendChild(el);
-            });
-        }
-
-        renderStage() {
-            this.stageContainer.innerHTML = '';
-            const descriptor = this.currentDescriptor;
-            if (!descriptor) return;
-
-            const fragment = cloneTemplate(`template-${descriptor.key}`);
-            if (!fragment) {
-                const fallback = document.createElement('div');
-                fallback.className = 'p-6 bg-ink-surface border border-default rounded-2xl text-text-strong';
-                fallback.textContent = `Missing template for stage: ${descriptor.key}`;
-                this.stageContainer.appendChild(fallback);
-                return;
             }
-            this.stageContainer.appendChild(fragment);
-            this.stageForm = this.stageContainer.querySelector('form') || null;
-            this.stageContainer.setAttribute('data-stage', descriptor.key);
-            if (this.coachSheet) this.coachSheet.setAttribute('data-stage', descriptor.key);
-            this.decorateStage(descriptor);
-            this.updateControls(descriptor);
-            this.renderCoachContent(descriptor.key);
-        }
-
-        decorateStage(descriptor) {
-            switch (descriptor.key) {
-                case 'prime':
-                    this.decoratePrime();
-                    break;
-                case 'teach':
-                    this.decorateTeach();
-                    break;
-                case 'diagnose':
-                    this.decorateDiagnose();
-                    break;
-                case 'perform_text':
-                    this.decoratePerformText();
-                    break;
-                case 'transfer':
-                    this.decorateTransfer();
-                    break;
-                case 'review':
-                    this.decorateReview();
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        updateControls(descriptor) {
-            if (descriptor.timebox_s) {
-                const seconds = parseInt(descriptor.timebox_s, 10);
-                this.timeboxHint.textContent = seconds ? `Timebox · ~${seconds}s` : '';
-            } else {
-                this.timeboxHint.textContent = '';
-            }
-            const optional = descriptor.required === false;
-            this.skipBtn.classList.toggle('hidden', !optional);
-            this.skipBtn.disabled = !optional;
-            this.coachBtn?.classList.remove('hidden');
-        }
-
-        decoratePrime() {
-            const radios = this.stageContainer.querySelectorAll('input[type="radio"][name="focus_lever"]');
-            const self = this;
-            radios.forEach((radio) => {
-                radio.addEventListener('change', () => {
-                    radios.forEach(r => {
-                        const dot = r.parentElement.querySelector('.radio-dot');
-                        if (dot) dot.classList.toggle('hidden', !r.checked);
-                    });
-                    self.latestLever = radio.value;
-                });
-            });
-            const activeLever = this.progress.lever_choice || this.latestLever;
-            if (activeLever) {
-                radios.forEach((radio) => {
-                    if (radio.value === activeLever) {
-                        radio.checked = true;
-                        const dot = radio.parentElement.querySelector('.radio-dot');
-                        if (dot) dot.classList.remove('hidden');
-                    }
-                });
-            }
-        }
-
-        decorateTeach() {
-            const titleEl = this.stageContainer.querySelector('[data-teach-title]');
-            const summaryEl = this.stageContainer.querySelector('[data-teach-summary]');
-            const citationsEl = this.stageContainer.querySelector('[data-teach-citations]');
-            const timeboxEl = this.stageContainer.querySelector('[data-timebox]');
-            const tile = this.currentTile;
-            if (!tile) return;
-            titleEl.textContent = tile.title || 'Concept';
-            summaryEl.textContent = tile.summary || '';
-            if (Array.isArray(tile.citations)) {
-                tile.citations.forEach((cite) => {
-                    const chip = document.createElement('span');
-                    chip.className = 'px-3 py-1 bg-overlay-weak border border-default rounded-full';
-                    chip.textContent = cite;
-                    citationsEl.appendChild(chip);
-                });
-            }
-            timeboxEl.textContent = this.currentDescriptor.timebox_s || 0;
-        }
-
-        decorateDiagnose() {
-            const radios = this.stageContainer.querySelectorAll('input[type="radio"][name="load_label"]');
-            radios.forEach((radio) => {
-                radio.addEventListener('change', () => {
-                    radios.forEach(r => {
-                        const parent = r.parentElement;
-                        if (parent) parent.classList.toggle('border-electric-violet/60', r.checked);
-                    });
-                });
-            });
-            const textarea = this.stageContainer.querySelector('textarea[name="scenario_text"]');
-            if (textarea && this.latestScenario && !textarea.value) {
-                textarea.value = this.latestScenario;
-            }
-            const pic = this.latestPic;
-            if (pic) {
-                const mapping = {
-                    pressure: this.stageContainer.querySelector('input[name="pic_pressure"]'),
-                    visibility: this.stageContainer.querySelector('input[name="pic_visibility"]'),
-                    irreversibility: this.stageContainer.querySelector('input[name="pic_irreversibility"]'),
-                    control: this.stageContainer.querySelector('input[name="pic_control"]'),
-                };
-                Object.entries(mapping).forEach(([key, input]) => {
-                    if (input && typeof pic[key] === 'number') {
-                        input.value = pic[key];
-                    }
-                });
-            }
-            const load = this.progress.load_label || 'unknown';
-            radios.forEach((radio) => {
-                if (radio.value === load) {
-                    radio.checked = true;
-                    const parent = radio.parentElement;
-                    if (parent) parent.classList.add('border-electric-violet/60');
-                }
-            });
-        }
-
-        decoratePerformText() {
-            const textarea = this.stageContainer.querySelector('textarea[name="text"]');
-            const counter = this.stageContainer.querySelector('#wordCounter');
-            const update = () => {
-                const words = textarea.value.trim().split(/\s+/).filter(Boolean);
-                counter.textContent = `${words.length} words`;
-            };
-            textarea.addEventListener('input', update);
-            update();
-        }
-
-        decorateTransfer() {
-            const buttons = this.stageContainer.querySelectorAll('[data-schedule-spacing]');
-            buttons.forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const base = btn.getAttribute('data-schedule-spacing') || '24h';
-                    this.scheduleSpacing(base);
-                });
-            });
-        }
-
-        renderCoachContent(stageKey) {
-            if (!this.coachContent) return;
-            const key = stageKey || (this.currentDescriptor && this.currentDescriptor.key) || 'default';
-            const factory = coachContentMap[key] || coachContentMap.default;
-            const blocks = typeof factory === 'function' ? factory(this) : [];
-            this.coachContent.innerHTML = '';
-            if (this.coachTitle) {
-                this.coachTitle.textContent = `Coach · ${this.humanize(key)}`;
-            }
-            if (this.coachSubtitle) {
-                this.coachSubtitle.textContent = stageSubtitles[key] || 'Support for this stage';
-            }
-            blocks.forEach((block) => {
-                if (!block) return;
-                this.coachContent.appendChild(this.buildCoachCard(block));
-            });
-            this.coachContent.appendChild(this.buildToolsCard(key));
-        }
-
-        buildCoachCard(block) {
-            const card = document.createElement('div');
-            card.className = 'p-4 bg-overlay-weak border border-default rounded-2xl space-y-2';
-            if (block.title) {
-                const title = document.createElement('h4');
-                title.className = 'text-sm font-semibold text-text-strong';
-                title.textContent = block.title;
-                card.appendChild(title);
-            }
-            if (block.body) {
-                const body = document.createElement('p');
-                body.className = 'text-sm text-muted';
-                body.textContent = block.body;
-                card.appendChild(body);
-            }
-            if (Array.isArray(block.items) && block.items.length) {
-                const list = document.createElement('ul');
-                list.className = 'text-sm text-muted space-y-1 list-disc list-inside';
-                block.items.forEach((item) => {
-                    const li = document.createElement('li');
-                    li.textContent = item;
-                    list.appendChild(li);
-                });
-                card.appendChild(list);
-            }
-            return card;
-        }
-
-        buildToolsCard(stageKey) {
-            const prefs = toolPreferences[stageKey] || toolPreferences.default;
-            const card = document.createElement('div');
-            card.className = 'p-4 bg-overlay-weak border border-default rounded-2xl space-y-3';
-            const title = document.createElement('h4');
-            title.className = 'text-sm font-semibold text-text-strong';
-            title.textContent = 'Helpful Tools';
-            card.appendChild(title);
-            if (prefs?.message) {
-                const msg = document.createElement('p');
-                msg.className = 'text-sm text-muted';
-                msg.textContent = prefs.message;
-                card.appendChild(msg);
-            }
-            const buttonRow = document.createElement('div');
-            buttonRow.className = 'grid grid-cols-3 gap-2 text-xs';
-            const buttons = [
-                { key: 'signal', label: 'Signal', handler: 'openSignalSentence' },
-                { key: 'message', label: '3×3', handler: 'openMessageBuilder' },
-                { key: 'style', label: 'Style', handler: 'openStyleRadar' },
-            ];
-            buttons.forEach(({ key, label, handler }) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.textContent = label;
-                const isPrimary = prefs?.primary === key;
-                btn.className = `px-2 py-2 rounded-lg border transition font-semibold ${isPrimary ? 'border-electric-violet/60 bg-electric-violet/10 text-electric-violet' : 'border-default bg-overlay-weak text-muted hover:bg-overlay-strong'}`;
-                btn.addEventListener('click', () => {
-                    if (typeof window[handler] === 'function') {
-                        window[handler]();
-                    }
-                });
-                buttonRow.appendChild(btn);
-            });
-            card.appendChild(buttonRow);
-            return card;
-        }
-
-        humanize(value) {
-            if (!value) return '';
-            return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-        }
-
-        decorateReview() {
-            const container = this.stageContainer.querySelector('#reviewScores');
-            container.innerHTML = '';
-            if (!this.currentScores) return;
-            Object.entries(this.currentScores).forEach(([key, value]) => {
-                const card = document.createElement('div');
-                card.className = 'px-3 py-3 bg-overlay-weak border border-default rounded-lg flex items-center justify-between';
-                const label = document.createElement('span');
-                label.className = 'text-[11px] uppercase tracking-wide text-muted';
-                label.textContent = key;
-                const score = document.createElement('span');
-                score.className = 'text-sm font-semibold text-text-strong';
-                score.textContent = `${Math.round(value)}%`;
-                card.appendChild(label);
-                card.appendChild(score);
-                container.appendChild(card);
-            });
-        }
-
-        updateProgressUI() {
-            this.resolveIndex();
-            this.renderStageLabels();
-            const percent = ((this.index) / this.sequence.length) * 100;
-            this.progressBar.style.width = `${Math.min(100, percent)}%`;
-            const descriptor = this.currentDescriptor;
-            this.loopDescriptor.textContent = `Loop ${this.progress.loop_index + 1} · ${this.progress.pass_type === 'return' ? 'Return Pass' : 'Main Pass'}`;
-            if (this.progress.pass_type === 'return') {
-                this.returnPassAction?.classList.remove('hidden');
-                } else {
-                this.returnPassAction?.classList.add('hidden');
-            }
-            if (this.progress.lever_choice) {
-                this.leverChip.textContent = `Lever · ${this.progress.lever_choice}`;
+            if (this.leverChip) {
+                const lever = this.sessionState.last_lever_choice;
+                if (lever) {
+                    this.leverChip.textContent = `Lever · ${formatOption(lever)}`;
                 this.leverChip.classList.remove('hidden');
             } else {
                 this.leverChip.classList.add('hidden');
             }
-            if (descriptor && descriptor.required === false) {
-                this.skipBtn.classList.remove('hidden');
-            } else {
-                this.skipBtn.classList.add('hidden');
             }
         }
 
-        collectPayload(descriptor) {
-            if (!this.stageForm) return {};
-            const formData = new FormData(this.stageForm);
-            const payload = {};
-            switch (descriptor.key) {
-                case 'prime':
-                    payload.intention = formData.get('intention')?.trim() || '';
-                    payload.focus_lever = formData.get('focus_lever') || null;
-                    break;
-                case 'teach':
-                    payload.tile_slug = this.currentTile?.slug || `${this.moduleCode}-${this.blockId}`;
-                    break;
-                case 'diagnose':
-                    payload.scenario_text = formData.get('scenario_text')?.trim() || '';
-                    payload.pic = {
-                        pressure: Number(formData.get('pic_pressure') || 0),
-                        visibility: Number(formData.get('pic_visibility') || 0),
-                        irreversibility: Number(formData.get('pic_irreversibility') || 0),
-                        control: Number(formData.get('pic_control') || 0),
-                    };
-                    payload.load_label = formData.get('load_label') || 'unknown';
-                    break;
-                case 'control_shift':
-                    payload.lever_choice = formData.get('lever_choice');
-                    payload.action_plan = formData.get('action_plan')?.trim() || '';
-                    break;
-                case 'perform_text':
-                    payload.text = formData.get('text')?.trim() || '';
-                    payload.word_count = payload.text ? payload.text.split(/\s+/).filter(Boolean).length : 0;
-                    payload.duration_ms = Number(formData.get('duration_ms') || 0);
-                    break;
-                case 'perform_voice':
-                    payload.audio_ref = formData.get('audio_ref')?.trim() || '';
-                    payload.duration_ms = Number(formData.get('duration_ms') || 0);
-                    break;
-                case 'review':
-                    payload.self_explain = formData.get('self_explain')?.trim() || '';
-                    payload.accept_suggestions = !!formData.get('accept_suggestions');
-                    payload.scores = this.currentScores || {};
-                    break;
-                case 'transfer':
-                    payload.next_moment = {
-                        title: formData.get('next_title')?.trim() || '',
-                        when: formData.get('next_when') || '',
-                        context: formData.get('next_context')?.trim() || '',
-                    };
-                    payload.desired_outcome = formData.get('desired_outcome')?.trim() || '';
-                    break;
-                default:
-                    break;
+        renderCurrentCard() {
+            if (!this.mount) return;
+            this.mount.innerHTML = '';
+            if (!this.cards.length) {
+                const celebration = document.createElement('div');
+                celebration.className = 'mt-10 p-8 rounded-3xl border border-default bg-ink-surface shadow-xl shadow-black/10 text-center space-y-3';
+                celebration.innerHTML = `
+                    <h2 class="text-2xl font-heading font-bold text-text-strong">Arc complete</h2>
+                    <p class="text-sm text-muted">Great work mapping your stakes. Ready for a booster? You can always come back for another loop.</p>
+                `;
+                this.mount.appendChild(celebration);
+                this.submitButton.disabled = true;
+                this.submitButton.classList.add('opacity-60', 'cursor-not-allowed');
+                this.skipButton.classList.add('hidden');
+                return;
             }
-            return payload;
+            const card = this.cards[0];
+            const renderer = CARD_RENDERERS[card.template_id] || CARD_RENDERERS.CoachSheetTip;
+            const { form, collect } = renderer(card);
+            form.dataset.cardTemplate = card.template_id;
+            this.mount.appendChild(form);
+            this.currentCard = card;
+            this.currentCollector = collect;
+            this.currentStart = performance.now();
+            this.configureActions(card);
+            this.renderCoachCard(card);
+            this.updateProgress();
         }
 
-        async submitCurrentStage() {
-            if (this.busy) return;
-            const descriptor = this.currentDescriptor;
-            if (!descriptor) return;
-            const endpoint = this.stageEndpoints[descriptor.key];
-            if (!endpoint) {
-                showToast('No endpoint configured for this stage.', 'error');
-            return;
+        configureActions(card) {
+            if (!this.submitButton || !this.skipButton || !this.timeboxHint) return;
+            const timebox = card.props?.timebox_s || card.timebox_s;
+            this.timeboxHint.textContent = timebox ? `~${timebox}s focus` : 'Take the time you need';
+            const skippable = card.optional === true || card.skippable === true;
+            this.skipButton.classList.toggle('hidden', !skippable);
+            this.skipButton.disabled = !skippable;
         }
-            const payload = this.collectPayload(descriptor);
-            if (descriptor.key === 'perform_text' && !payload.text) {
-                showToast('Your text performance cannot be empty.', 'error');
-            return;
+
+        handleSkip() {
+            if (!this.cards.length) return;
+            this.cards.shift();
+            this.renderCurrentCard();
         }
-            if (descriptor.key === 'perform_voice' && !payload.audio_ref) {
-                showToast('Please provide an audio link to continue.', 'error');
+
+        async handleSubmit() {
+            if (this.busy || !this.currentCollector || !this.currentCard) return;
+            let collected;
+            try {
+                collected = this.currentCollector();
+            } catch (err) {
+                showToast(err.message || 'Please complete the card before continuing.', 'error');
                 return;
             }
             this.busy = true;
-            this.submitBtn.classList.add('opacity-60');
+            this.submitButton.classList.add('opacity-60', 'cursor-not-allowed');
+            const timeOnCard = Math.round(performance.now() - this.currentStart);
+            const body = {
+                module_code: this.moduleCode,
+                card: {
+                    template_id: this.currentCard.template_id,
+                    exercise_id: this.currentCard.exercise_id,
+                    card_key: this.currentCard.card_key,
+                },
+                payload: collected.payload,
+                metrics: collected.metrics,
+                time_on_card: timeOnCard,
+                client_ts: new Date().toISOString(),
+            };
             try {
-                const response = await fetch(endpoint, {
+                const response = await fetch(this.endpoints.submit, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                         'X-CSRFToken': this.csrfToken,
                 },
-                body: JSON.stringify({
-                        module_code: this.moduleCode,
-                        block_id: this.blockId,
-                        loop_index: this.progress.loop_index,
-                        pass_type: this.progress.pass_type,
-                        client_ts: new Date().toISOString(),
-                        ...payload,
-                    }),
+                    body: JSON.stringify(body),
                 });
             const data = await response.json();
                 if (!data.ok) {
-                    const message = data.error?.message || 'Something went wrong.';
-                    showToast(message, 'error');
-                    return;
+                    throw new Error(data.error?.message || 'Submission failed');
                 }
-                const previousPassType = this.progress.pass_type;
-                this.progress = data.progress;
-                if (data.toast?.body) {
-                    const tone = data.toast.title && data.toast.title.toLowerCase().includes('saved') ? 'success' : 'info';
-                    showToast(data.toast.body, tone);
+                this.sessionState = data.session_state || this.sessionState;
+                this.cards = data.cards || [];
+                this.completedCount += 1;
+                this.renderRail();
+                this.renderHeaderChips();
+                if (data.scores?.total) {
+                    showToast(`+${data.scores.total} pts`, 'success');
                 }
-                if (descriptor.key === 'review' && payload.scores) {
-                    this.currentScores = payload.scores;
-                }
-                if (descriptor.key === 'transfer') {
-                    this.currentScores = null;
-                }
-                if (descriptor.key === 'diagnose') {
-                    this.latestScenario = payload.scenario_text;
-                    this.latestPic = payload.pic;
-                }
-                if (descriptor.key === 'control_shift' && payload.lever_choice) {
-                    this.latestLever = payload.lever_choice;
-                }
-                if (descriptor.key === 'prime' && payload.focus_lever) {
-                    this.latestLever = payload.focus_lever;
-                }
-                this.latestLever = this.progress.lever_choice || this.latestLever;
-                this.resolveSequence(previousPassType, this.progress.pass_type);
-                this.updateProgressUI();
-                this.renderStage();
+                this.renderCurrentCard();
         } catch (error) {
                 console.error(error);
-                showToast('Network error. Please try again.', 'error');
+                showToast(error.message || 'Network error. Try again.', 'error');
             } finally {
                 this.busy = false;
-                this.submitBtn.classList.remove('opacity-60');
+                this.submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
             }
         }
 
-        resolveSequence(previousPassType, nextPassType) {
-            if (previousPassType === nextPassType) return;
-            window.setTimeout(() => window.location.reload(), 400);
-        }
-
-        async scheduleSpacing(baseLabel) {
-            if (this.busy) return;
-            this.busy = true;
-            try {
-                const response = await fetch(this.spacingEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': this.csrfToken,
-                    },
-                    body: JSON.stringify({
-                        module_code: this.moduleCode,
-                        block_id: this.blockId,
-                        loop_index: this.progress.loop_index,
-                        base: baseLabel,
-                        jitter: '±6h',
-                    }),
-                });
-                const data = await response.json();
-                if (!data.ok) {
-                    const message = data.error?.message || 'Could not schedule booster.';
-                    showToast(message, 'error');
-                    return;
-                }
-                showToast(data.toast?.body || 'Booster scheduled.', 'success');
-                window.setTimeout(() => window.location.reload(), 900);
-            } catch (error) {
-                console.error(error);
-                showToast('Failed to schedule booster.', 'error');
-            } finally {
-                this.busy = false;
+        updateProgress() {
+            const total = this.initialTotal || 1;
+            const percent = Math.min(100, (this.completedCount / total) * 100);
+            if (this.progressFill) {
+                this.progressFill.style.width = `${percent}%`;
             }
         }
 
-        toggleCoachSheet(show) {
-            if (!this.coachSheet) return;
-            if (show) {
-                this.renderCoachContent(this.currentDescriptor?.key);
-                this.coachSheet.classList.remove('translate-y-full');
-            } else {
-                this.coachSheet.classList.add('translate-y-full');
-            }
-        }
-
-        renderCoachContent(stageKey) {
-            const coachContent = coachContentMap[stageKey](this.progress);
+        renderCoachCard(card) {
+            if (!this.coachContent || !this.coachTitle || !this.coachSubtitle) return;
+            const templateName = card.template_id || 'CoachSheetTip';
             this.coachContent.innerHTML = '';
-            coachContent.forEach(section => {
-                const sectionEl = document.createElement('div');
-                sectionEl.className = 'space-y-3';
-                if (section.title) {
-                    const titleEl = document.createElement('h3');
-                    titleEl.className = 'text-lg font-heading font-semibold text-text-strong';
-                    titleEl.textContent = section.title;
-                    sectionEl.appendChild(titleEl);
-                }
-                if (section.body) {
-                    const bodyEl = document.createElement('div');
-                    bodyEl.className = 'text-sm text-text-strong leading-relaxed whitespace-pre-wrap';
-                    bodyEl.textContent = section.body;
-                    sectionEl.appendChild(bodyEl);
-                }
-                if (section.items && section.items.length > 0) {
-                    const itemsEl = document.createElement('ul');
-                    itemsEl.className = 'list-disc list-inside text-sm text-text-strong';
-                    section.items.forEach(item => {
-                        const itemEl = document.createElement('li');
-                        itemEl.textContent = item;
-                        itemsEl.appendChild(itemEl);
-                    });
-                    sectionEl.appendChild(itemsEl);
-                }
-                this.coachContent.appendChild(sectionEl);
-            });
+            this.coachTitle.textContent = `Coach · ${formatOption(templateName.replace(/Card$/, ''))}`;
+            const insights = [];
+            if (templateName === 'TernaryRatingCard' && typeof this.sessionState.last_stakes_score === 'number') {
+                insights.push(`Last stakes score: ${this.sessionState.last_stakes_score.toFixed(2)}`);
+            }
+            if (templateName === 'LeverSelector3P' && this.sessionState.last_lever_choice) {
+                insights.push(`Recent lever: ${formatOption(this.sessionState.last_lever_choice)}`);
+            }
+            if (insights.length) {
+                const insightBlock = document.createElement('div');
+                insightBlock.className = 'px-4 py-3 border border-default rounded-2xl bg-overlay-weak';
+                insightBlock.innerHTML = `
+                    <p class="text-xs uppercase tracking-[0.2em] text-muted mb-1">Recent signals</p>
+                    <ul class="text-sm text-text-strong space-y-1 list-disc list-inside">
+                        ${insights.map((line) => `<li>${line}</li>`).join('')}
+                    </ul>
+                `;
+                this.coachContent.appendChild(insightBlock);
+            }
+            const nudge = document.createElement('div');
+            nudge.className = 'px-4 py-4 border border-default rounded-2xl bg-overlay-weak space-y-2 text-sm text-muted';
+            nudge.textContent = 'Complete the card, capture the reflection, and your progress ring fills automatically.';
+            this.coachContent.appendChild(nudge);
+            this.coachSubtitle.textContent = `You're in the ${formatOption(card.exercise_id || 'A')} block`;
+        }
+
+        toggleCoach(show) {
+            if (!this.coachDrawer) return;
+            if (show) {
+                this.coachDrawer.classList.remove('translate-y-full');
+            } else {
+                this.coachDrawer.classList.add('translate-y-full');
+            }
         }
     }
 
-    new LessonRunnerMachine({
-        sequence,
-        progress: progressState,
-        content: contentState,
-        guardrails,
+    const lessonApp = new LessonRunnerApp({
+        cards: lessonCards,
+        session: sessionState,
+        flow: flowMeta,
+        progress: progressPayload,
         moduleCode,
-        blockId,
-        stageEndpoints,
-        spacingEndpoint,
+        csrfToken,
+        endpoints,
     });
+
+    window.lessonRunnerApp = lessonApp;
+    window.openCoachSheet = function () {
+        lessonApp.toggleCoach(true);
+    };
+    window.closeCoachSheet = function () {
+        lessonApp.toggleCoach(false);
+    };
 })();
 </script>
 {% endblock %}
+

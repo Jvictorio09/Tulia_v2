@@ -1,0 +1,37 @@
+{
+  "module_code": "global",
+  "version": "1.0.0",
+  "deprecated_after": "2027-01-01T00:00:00Z",
+  "items": {
+    "brand": {
+      "primary": "#6E55FF",
+      "secondary": "#31C6F7"
+    },
+    "surfaces": {
+      "card": "bg-ink-surface",
+      "focus": "ring-brand"
+    },
+    "chips": {
+      "success": {
+        "bg": "bg-emerald-500/10",
+        "border": "border-emerald-500/30",
+        "text": "text-emerald-600"
+      },
+      "warn": {
+        "bg": "bg-amber-500/10",
+        "border": "border-amber-500/30",
+        "text": "text-amber-600"
+      },
+      "info": {
+        "bg": "bg-electric-violet/10",
+        "border": "border-electric-violet/30",
+        "text": "text-electric-violet"
+      }
+    },
+    "ring": {
+      "focus_light": "ring-2 ring-electric-violet/60",
+      "focus_dark": "ring-2 ring-electric-violet/70"
+    }
+  }
+}
+

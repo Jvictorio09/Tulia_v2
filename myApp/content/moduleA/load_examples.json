@@ -1,0 +1,23 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "load-001",
+      "text": "My pulse spikes because the CFO grills every detail.",
+      "correct": "emotional"
+    },
+    {
+      "id": "load-002",
+      "text": "I'm juggling three frameworks and keep losing my place.",
+      "correct": "cognitive"
+    },
+    {
+      "id": "load-003",
+      "text": "If we miss this pitch we lose the quarter's number.",
+      "correct": "emotional"
+    }
+  ]
+}
+

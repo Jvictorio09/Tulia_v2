@@ -1,3 +1,7 @@
+from functools import lru_cache
+from pathlib import Path
+import uuid
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
@@ -17,108 +21,51 @@ from .models import (
     UserProfile, Level, Module, KnowledgeBlock, Lesson,
     ExerciseAttempt, MilestoneAttempt, District, Venue,
     VenueTaskSheet, VenueEntry, DailyQuest, UserProgress,
-    AnalyticsEvent, ExerciseSubmission
+    AnalyticsEvent, ExerciseSubmission, LessonSessionContext,
+    StakesMap, TelemetryEvent
 )
+from .lesson_engine import LessonEngine, LessonContext, SeedLoader, SeedVersionError
+from .lesson_engine.contracts_registry import build_default_registry
 
 
-MAIN_SEQUENCE = [
-    {
-        "key": "prime",
-        "required": True,
-        "timebox_s": 90,
-        "inputs": ["intention", "focus_lever"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "teach",
-        "required": True,
-        "timebox_s": 180,
-        "inputs": ["tile_slug"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "diagnose",
-        "required": True,
-        "timebox_s": 180,
-        "inputs": ["scenario_text", "pic", "load_label"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "control_shift",
-        "required": True,
-        "timebox_s": 60,
-        "inputs": ["lever_choice", "action_plan"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "perform_text",
-        "required": True,
-        "timebox_s": 180,
-        "inputs": ["text", "word_count"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "perform_voice",
-        "required": False,
-        "timebox_s": 90,
-        "inputs": ["audio_ref", "duration_ms"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
-    {
-        "key": "review",
-        "required": True,
-        "timebox_s": 120,
-        "inputs": ["self_explain", "accept_suggestions"],
-        "ai_scored": True,
-        "variant": "v1",
-    },
-    {
-        "key": "transfer",
-        "required": True,
-        "timebox_s": 120,
-        "inputs": ["next_moment", "desired_outcome"],
-        "ai_scored": False,
-        "variant": "v1",
-    },
+MODULE_A_SEED_PATHS = [
+    "moduleA/scenarios.moduleA.json",
+    "moduleA/pic_sets.json",
+    "moduleA/actions_control_shift.json",
+    "moduleA/reframe_mantras.json",
+    "moduleA/load_examples.json",
+    "moduleA/d2_keypoint_sets.json",
+    "moduleA/lever_cards.json",
+    "moduleA/stakes_map_presets.json",
 ]
+MODULE_A_FLOW_PATH = "moduleA/moduleA.flow.json"
 
-RETURN_SEQUENCE = [
-    {
-        "key": "teach",
-        "required": True,
-        "timebox_s": 90,
-        "inputs": ["tile_slug"],
-        "ai_scored": False,
-        "variant": "return_v1",
-    },
-    {
-        "key": "perform_voice",
-        "required": True,
-        "timebox_s": 90,
-        "inputs": ["audio_ref", "duration_ms"],
-        "ai_scored": False,
-        "variant": "return_v1",
-    },
-    {
-        "key": "review",
-        "required": True,
-        "timebox_s": 120,
-        "inputs": ["self_explain", "accept_suggestions"],
-        "ai_scored": True,
-        "variant": "return_v1",
-    },
-]
 
-GUARDRAILS = {
-    "min_loop_for_return": 1,
-    "min_perform_variants": 2,
-}
+@lru_cache(maxsize=1)
+def get_module_a_bundle():
+    loader = SeedLoader()
+    packs, flow = loader.resolve_module_seeds(
+        "A",
+        MODULE_A_SEED_PATHS,
+        MODULE_A_FLOW_PATH,
+    )
+    return packs, flow
+
+
+@lru_cache(maxsize=1)
+def get_ui_tokens():
+    tokens_path = Path(settings.BASE_DIR) / "myApp" / "content" / "ui.tokens.json"
+    if not tokens_path.exists():
+        return {}
+    with tokens_path.open("r", encoding="utf-8") as handle:
+        try:
+            data = json.load(handle)
+        except json.JSONDecodeError:
+            return {}
+    return {
+        "version": data.get("version"),
+        "values": data.get("items") or data.get("tokens") or {},
+    }
 
 
 def get_stage_sequence(progress):
@@ -459,87 +406,302 @@ def onboarding(request):
 
 @login_required
 def lesson_runner(request, module_code):
-    """Main lesson runner with Teach/Drill/Review tabs"""
+    """Module A lesson runner using the new card engine."""
     profile = request.user.profile
     level_1 = Level.objects.get(number=1)
     module = get_object_or_404(Module, level=level_1, code=module_code.upper())
-    
-    # Get or create progress
-    progress, _ = UserProgress.objects.get_or_create(
-        user=request.user,
-        module=module
-    )
-    
-    modified = False
+
+    progress, _ = UserProgress.objects.get_or_create(user=request.user, module=module)
     if not progress.started:
         progress.started = True
         progress.last_activity = timezone.now()
-        modified = True
+        progress.save(update_fields=['started', 'last_activity'])
         AnalyticsEvent.objects.create(
             user=request.user,
             event_type='lesson_start',
             event_data={'module': module.code}
         )
-    if not progress.stage_key:
-        progress.stage_key = 'prime'
-        modified = True
-    if not progress.sequence_version:
-        progress.sequence_version = 'v1.0'
-        modified = True
-    if modified:
-        progress.save(update_fields=[
-            'started',
-            'last_activity',
-            'stage_key',
-            'sequence_version',
-        ])
-    
-    # Get current knowledge block (or first one)
-    current_block = progress.current_knowledge_block
-    if not current_block:
-        current_block = KnowledgeBlock.objects.filter(module=module).first()
-        if current_block:
-            progress.current_knowledge_block = current_block
-            progress.save()
-    
-    # Ensure citations is always a list (handle JSONField)
-    if current_block and current_block.citations:
-        if not isinstance(current_block.citations, list):
-            current_block.citations = list(current_block.citations) if current_block.citations else []
-    elif current_block:
-        current_block.citations = []
-    
-    # Get all knowledge blocks for left rail
-    knowledge_blocks = KnowledgeBlock.objects.filter(module=module).order_by('order')
-    sequence = get_stage_sequence(progress)
-    progress_payload = build_progress_payload(progress)
-    tile_payload = []
-    if current_block:
-        tile_payload.append({
-            "slug": f"{module.code}-{current_block.order}",
-            "title": current_block.title,
-            "summary": current_block.summary,
-            "citations": current_block.citations,
-        })
-    content_payload = {
-        "tiles": tile_payload,
-        "examples": [],
-        "prompts": [],
+
+    session_ctx, _ = LessonSessionContext.objects.get_or_create(
+        user=request.user,
+        module=module,
+        defaults={
+            'loop_index': progress.loop_index,
+        },
+    )
+
+    try:
+        seed_packs, flow = get_module_a_bundle()
+    except SeedVersionError as exc:
+        return render(
+            request,
+            'myApp/lesson_runner.html',
+            {
+                'module': module,
+                'profile': profile,
+                'seed_error': str(exc),
+                'lesson_cards': [],
+                'session_state': {},
+                'flow_meta': {},
+                'progress_payload': {},
+                'ui_tokens': get_ui_tokens(),
+            },
+        )
+
+    registry = build_default_registry()
+    session_state = {
+        "current_scenario_ref": session_ctx.current_scenario_ref,
+        "last_lever_choice": session_ctx.last_lever_choice or progress.lever_choice,
+        "last_stakes_score": float(session_ctx.last_stakes_score)
+        if session_ctx.last_stakes_score is not None else None,
+        "loop_index": session_ctx.loop_index or progress.loop_index,
+        "cooldowns": session_ctx.cooldowns or {},
     }
-    
+
+    user_state = {
+        "ab_variant": profile.ab_variant,
+        "loop_index": progress.loop_index,
+        "pass_type": progress.pass_type,
+    }
+
+    engine = LessonEngine(registry, seed_packs, flow)
+    lesson_context = LessonContext(
+        module_code=module.code,
+        user_state=user_state,
+        session_context=session_state,
+    )
+    cards = engine.build_session_stack(lesson_context)
+
+    # Persist mutated session context
+    session_ctx.cooldowns = lesson_context.session_context.get("cooldowns", {})
+    session_ctx.loop_index = lesson_context.session_context.get("loop_index", progress.loop_index)
+    session_ctx.save(update_fields=['cooldowns', 'loop_index', 'updated_at'])
+
+    progress_payload = {
+        "loop_index": progress.loop_index,
+        "pass_type": progress.pass_type,
+    }
+
     context = {
         'module': module,
-        'progress': progress,
-        'current_block': current_block,
-        'knowledge_blocks': knowledge_blocks,
         'profile': profile,
-        'sequence': sequence,
+        'flow_meta': {
+            'name': flow.name,
+            'version': flow.version,
+            'scoring': flow.scoring,
+        },
+        'lesson_cards': cards,
+        'session_state': lesson_context.session_context,
         'progress_payload': progress_payload,
-        'content_payload': content_payload,
-        'guardrails': GUARDRAILS,
+        'ui_tokens': get_ui_tokens(),
     }
-    
+
     return render(request, 'myApp/lesson_runner.html', context)
+
+
+def _compute_scores(scoring_conf, metrics):
+    completion_weight = int(scoring_conf.get('completion', 40))
+    accuracy_weight = int(scoring_conf.get('accuracy', 30))
+    reflection_weight = int(scoring_conf.get('reflection', 30))
+
+    completion_score = completion_weight if metrics.get('completion', True) else 0
+    accuracy_score = 0
+    accuracy_ratio = metrics.get('accuracy')
+    if isinstance(accuracy_ratio, (int, float)):
+        accuracy_score = int(max(0.0, min(1.0, float(accuracy_ratio))) * accuracy_weight)
+    reflection_score = reflection_weight if metrics.get('reflection') else 0
+    total_score = completion_score + accuracy_score + reflection_score
+    return completion_score, accuracy_score, reflection_score, total_score
+
+
+def _update_session_context_for_template(session_state, template_id, payload, exercise_id, card_key):
+    completed = session_state.setdefault("completed_cards", [])
+    if card_key and card_key not in completed:
+        completed.append(card_key)
+    if template_id == "PersonalScenarioCapture":
+        scenario_ref = payload.get("scenario_ref") or f"scn_{uuid.uuid4().hex[:10]}"
+        session_state["current_scenario_ref"] = scenario_ref
+        scenarios = session_state.setdefault("scenarios", {})
+        scenarios[scenario_ref] = {
+            "text": payload.get("situation_text", ""),
+            "pressure": payload.get("pressure"),
+            "visibility": payload.get("visibility"),
+            "irreversibility": payload.get("irreversibility"),
+            "reflection": payload.get("reflection"),
+        }
+    elif template_id == "TernaryRatingCard":
+        p = float(payload.get("P", 0) or 0)
+        i = float(payload.get("I", 0) or 0)
+        control = float(payload.get("C", 1) or 1)
+        if control <= 0:
+            control = 1
+        stakes_score = round((p + i) / control, 2)
+        session_state["last_stakes_score"] = stakes_score
+    elif template_id == "LeverSelector3P":
+        lever = payload.get("selected_lever")
+        if lever:
+            session_state["last_lever_choice"] = lever
+    elif template_id == "StakesMapBuilder":
+        session_state["last_stakes_map"] = {
+            "pressure_points": payload.get("pressure_points", []),
+            "trigger": payload.get("trigger"),
+            "lever": payload.get("lever"),
+            "action_step": payload.get("action_step"),
+            "situation": payload.get("situation"),
+        }
+    return session_state
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_card_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+
+    module_code = data.get("module_code")
+    card = data.get("card") or {}
+    payload = data.get("payload") or {}
+    metrics = data.get("metrics") or {}
+    if not module_code:
+        return _json_error("module_code is required", code="missing_module")
+    template_id = card.get("template_id")
+    exercise_id = card.get("exercise_id")
+    if not template_id or not exercise_id:
+        return _json_error("template_id and exercise_id are required.", code="missing_card_meta")
+    card_key = card.get("card_key") or f"{exercise_id}::0"
+
+    level_1 = Level.objects.get(number=1)
+    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
+    progress, _ = UserProgress.objects.get_or_create(user=request.user, module=module)
+    session_ctx, _ = LessonSessionContext.objects.get_or_create(
+        user=request.user,
+        module=module,
+        defaults={
+            'loop_index': progress.loop_index,
+        },
+    )
+
+    try:
+        seed_packs, flow = get_module_a_bundle()
+    except SeedVersionError as exc:
+        return _json_error(str(exc), code="seed_version_error")
+
+    registry = build_default_registry()
+
+    session_state = {
+        "current_scenario_ref": session_ctx.current_scenario_ref,
+        "last_lever_choice": session_ctx.last_lever_choice or progress.lever_choice,
+        "last_stakes_score": float(session_ctx.last_stakes_score)
+        if session_ctx.last_stakes_score is not None else None,
+        "loop_index": session_ctx.loop_index or progress.loop_index,
+        "cooldowns": session_ctx.cooldowns or {},
+    }
+    session_state.update(session_ctx.data or {})
+
+    payload["card_key"] = card_key
+
+    session_state = _update_session_context_for_template(
+        session_state,
+        template_id,
+        payload,
+        exercise_id=exercise_id,
+        card_key=card_key,
+    )
+
+    completion_score, accuracy_score, reflection_score, total_score = _compute_scores(flow.scoring, metrics)
+
+    duration_ms = int(data.get("time_on_card") or 0)
+    client_ts = _parse_client_ts(data.get("client_ts"))
+
+    ExerciseSubmission.objects.create(
+        user=request.user,
+        module=module,
+        knowledge_block=progress.current_knowledge_block,
+        loop_index=session_state.get("loop_index", progress.loop_index),
+        pass_type=progress.pass_type,
+        stage_key=template_id.lower(),
+        exercise_id=exercise_id,
+        template_id=template_id,
+        payload_version=flow.version,
+        payload=payload,
+        scores=metrics.get("scores") or {},
+        completion_score=completion_score,
+        accuracy_score=accuracy_score,
+        reflection_score=reflection_score,
+        total_score=total_score,
+        duration_ms=duration_ms,
+        ab_variant=request.user.profile.ab_variant,
+        client_ts=client_ts,
+    )
+
+    if template_id == "StakesMapBuilder":
+        map_payload = session_state.get("last_stakes_map", {})
+        if map_payload:
+            StakesMap.objects.create(
+                user=request.user,
+                module=module,
+                scenario_ref=session_state.get("current_scenario_ref", ""),
+                situation_text=map_payload.get("situation", ""),
+                pressure_points=map_payload.get("pressure_points", []),
+                trigger=map_payload.get("trigger", ""),
+                lever=map_payload.get("lever", ""),
+                action_step=map_payload.get("action_step", ""),
+            )
+
+    session_ctx.current_scenario_ref = session_state.get("current_scenario_ref", "") or ""
+    session_ctx.last_lever_choice = session_state.get("last_lever_choice") or ""
+    session_ctx.last_stakes_score = session_state.get("last_stakes_score")
+    session_ctx.cooldowns = session_state.get("cooldowns", {})
+    session_ctx.loop_index = session_state.get("loop_index", progress.loop_index)
+    session_ctx.data = {k: v for k, v in session_state.items() if k not in {"current_scenario_ref", "last_lever_choice", "last_stakes_score", "cooldowns", "loop_index"}}
+    session_ctx.save()
+
+    progress.last_activity = timezone.now()
+    progress.session_state = session_state
+    progress.save(update_fields=['last_activity', 'session_state'])
+
+    TelemetryEvent.objects.create(
+        user=request.user,
+        module_code=module.code,
+        name=f"{template_id}.submitted",
+        properties_json={
+            "exercise_id": exercise_id,
+            "metrics": metrics,
+            "duration_ms": duration_ms,
+        },
+        ab_variant=request.user.profile.ab_variant,
+    )
+
+    user_state = {
+        "ab_variant": request.user.profile.ab_variant,
+        "loop_index": session_state.get("loop_index", progress.loop_index),
+        "pass_type": progress.pass_type,
+    }
+
+    engine = LessonEngine(registry, seed_packs, flow)
+    lesson_context = LessonContext(
+        module_code=module.code,
+        user_state=user_state,
+        session_context=session_state,
+    )
+    cards = engine.build_session_stack(lesson_context)
+
+    session_ctx.cooldowns = lesson_context.session_context.get("cooldowns", {})
+    session_ctx.loop_index = lesson_context.session_context.get("loop_index", progress.loop_index)
+    session_ctx.save(update_fields=['cooldowns', 'loop_index', 'updated_at'])
+
+    return JsonResponse({
+        "ok": True,
+        "cards": cards,
+        "session_state": lesson_context.session_context,
+        "scores": {
+            "completion": completion_score,
+            "accuracy": accuracy_score,
+            "reflection": reflection_score,
+            "total": total_score,
+        },
+    })
 
 
 @login_required

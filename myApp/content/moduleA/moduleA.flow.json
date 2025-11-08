@@ -1,0 +1,209 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "name": "ModuleA-MainFlow",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "sequence": [
+    {
+      "template_id": "ScenarioTaggerCard",
+      "exercise_id": "A1",
+      "repeat": 3,
+      "seed_sequence": "moduleA/scenarios.moduleA.json",
+      "props": {
+        "copy": {
+          "correct": "Nice read on the stakes.",
+          "partial": "Almost—look for the leverage point.",
+          "explain": "Pressure + visibility shift how you prep."
+        }
+      }
+    },
+    {
+      "template_id": "PersonalScenarioCapture",
+      "exercise_id": "A2",
+      "props": {
+        "rating_scale": ["low", "medium", "high"],
+        "examples": [
+          "Board Q&A about margins",
+          "Sales call with enterprise prospect",
+          "Difficult feedback conversation"
+        ],
+        "helper_text": "Capture the headline and why it matters."
+      }
+    },
+    {
+      "template_id": "TernaryRatingCard",
+      "exercise_id": "B1",
+      "needs_scenario_ref": true,
+      "props": {
+        "explainers": {
+          "P": "Pressure is the consequence if you miss.",
+          "I": "Irreversibility signals permanence.",
+          "C": "Control is what you can influence."
+        }
+      }
+    },
+    {
+      "template_id": "SingleSelectActionCard",
+      "exercise_id": "B2",
+      "needs_scenario_ref": true,
+      "props": {
+        "allow_other": true
+      }
+    },
+    {
+      "template_id": "MantraSelectOrWrite",
+      "exercise_id": "C1",
+      "props": {
+        "character_limit": 120,
+        "coach_tip": "Pick a line that grounds you before the moment."
+      }
+    },
+    {
+      "template_id": "GuidedBreathDrill",
+      "exercise_id": "C2",
+      "props": {
+        "script": {
+          "steps": [
+            "Inhale through the nose for two counts.",
+            "Hold gently for one count.",
+            "Exhale through the mouth for four counts."
+          ]
+        },
+        "timings": {
+          "duration_s": 30
+        },
+        "baseline_prompt": "How tense do you feel right now?"
+      }
+    },
+    {
+      "template_id": "BinaryClassifierCard",
+      "exercise_id": "D1",
+      "props": {}
+    },
+    {
+      "template_id": "PickThreeKeyPoints",
+      "exercise_id": "D2",
+      "props": {
+        "free_text_enabled": true
+      }
+    },
+    {
+      "template_id": "LeverSelector3P",
+      "exercise_id": "E1",
+      "needs_scenario_ref": true
+    },
+    {
+      "template_id": "PresenceRitualQuickStart",
+      "exercise_id": "E2",
+      "props": {
+        "script": [
+          "Square your stance and soften your shoulders.",
+          "Breathe in for two counts, out for four.",
+          "Set an intention word."
+        ],
+        "duration_s": 28,
+        "intention_prompt": "One word for how you want to show up."
+      }
+    },
+    {
+      "template_id": "StakesMapBuilder",
+      "exercise_id": "F1",
+      "needs_scenario_ref": true
+    },
+    {
+      "template_id": "ReflectionRatingCard",
+      "exercise_id": "F2",
+      "needs_scenario_ref": true,
+      "props": {
+        "feedback_rules": [
+          {
+            "threshold": 2,
+            "message": "What would make this more helpful next time?"
+          }
+        ]
+      }
+    }
+  ],
+  "guards": [
+    {
+      "id": "high_stakes_relief",
+      "target": "BinaryClassifierCard",
+      "conditions": [
+        {
+          "type": "metric_gte",
+          "metric": "last_stakes_score",
+          "value": 4
+        }
+      ],
+      "inserts": [
+        {
+          "template_id": "GuidedBreathDrill",
+          "exercise_id": "C2",
+          "props": {
+            "script": {
+              "steps": [
+                "Notice the spike—slow your inhale for 4 counts.",
+                "Hold softly, then release for 6."
+              ]
+            },
+            "timings": {
+              "duration_s": 35
+            }
+          }
+        }
+      ],
+      "cooldown_key": "guard:high_stakes_relief"
+    },
+    {
+      "id": "presence_followup",
+      "target": "StakesMapBuilder",
+      "conditions": [
+        {
+          "type": "signal_equals",
+          "signal": "last_lever_choice",
+          "value": "presence"
+        }
+      ],
+      "inserts": [
+        {
+          "template_id": "PresenceRitualQuickStart",
+          "exercise_id": "E2",
+          "props": {
+            "duration_s": 32,
+            "script": [
+              "Roll shoulders back, lengthen through crown.",
+              "Box breathe 3 rounds.",
+              "Lower your center of gravity before speaking."
+            ]
+          }
+        }
+      ],
+      "cooldown_key": "guard:presence_followup"
+    },
+    {
+      "id": "force_personal_scenario",
+      "target": "TernaryRatingCard",
+      "conditions": [
+        {
+          "type": "missing_context",
+          "key": "current_scenario_ref"
+        }
+      ],
+      "inserts": [
+        {
+          "template_id": "PersonalScenarioCapture",
+          "exercise_id": "A2"
+        }
+      ],
+      "cooldown_key": "guard:scenario_capture"
+    }
+  ],
+  "scoring": {
+    "completion": 40,
+    "accuracy": 30,
+    "reflection": 30,
+    "module_unlock_threshold": 300,
+    "excellence_threshold": 450
+  }
+}
+

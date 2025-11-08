@@ -1,0 +1,23 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "id": "calm-1",
+      "text": "Slow is smooth, smooth is fast.",
+      "tone": "calm"
+    },
+    {
+      "id": "assertive-1",
+      "text": "I earned this room—now guide it.",
+      "tone": "assertive"
+    },
+    {
+      "id": "supportive-1",
+      "text": "Breathe, notice, choose the next best move.",
+      "tone": "supportive"
+    }
+  ]
+}
+

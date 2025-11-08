@@ -1,0 +1,26 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "key": "prep-outline",
+      "label": "Sketch the three stakes lines",
+      "desc": "List one sentence on impact, audience, and proof.",
+      "lever_hint": "preparation"
+    },
+    {
+      "key": "presence-breath",
+      "label": "Two-count inhale, four-count exhale",
+      "desc": "Use before you speak to regulate pace.",
+      "lever_hint": "presence"
+    },
+    {
+      "key": "perspective-ally",
+      "label": "Name your ally in the room",
+      "desc": "Decide who you can engage for support.",
+      "lever_hint": "perspective"
+    }
+  ]
+}
+

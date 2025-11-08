@@ -110,7 +110,7 @@ class Lesson(models.Model):
 
 
 class ExerciseAttempt(models.Model):
-    """User attempts at exercises"""
+    """Legacy exercise attempts"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exercise_attempts')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
     knowledge_block = models.ForeignKey(KnowledgeBlock, on_delete=models.CASCADE, null=True, blank=True)
@@ -280,6 +280,7 @@ class UserProgress(models.Model):
     
     # Track checkpoint progress
     checkpoints_passed = models.JSONField(default=list)
+    session_state = models.JSONField(default=dict, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -297,29 +298,27 @@ class UserProgress(models.Model):
 
 class ExerciseSubmission(models.Model):
     """Stage submission records for lesson runner loops"""
-    STAGE_CHOICES = [
-        ('prime', 'Prime'),
-        ('teach', 'Teach'),
-        ('diagnose', 'Diagnose'),
-        ('control_shift', 'Control Shift'),
-        ('perform_text', 'Perform Text'),
-        ('perform_voice', 'Perform Voice'),
-        ('review', 'Review'),
-        ('transfer', 'Transfer'),
-    ]
     PASS_CHOICES = [
         ('main', 'Main'),
         ('return', 'Return'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_submissions')
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lesson_submissions')
-    knowledge_block = models.ForeignKey(KnowledgeBlock, on_delete=models.CASCADE, related_name='lesson_submissions')
+    knowledge_block = models.ForeignKey(KnowledgeBlock, on_delete=models.CASCADE, related_name='lesson_submissions', null=True, blank=True)
     loop_index = models.IntegerField(default=0)
     pass_type = models.CharField(max_length=8, choices=PASS_CHOICES, default='main')
-    stage_key = models.CharField(max_length=32, choices=STAGE_CHOICES)
+    stage_key = models.CharField(max_length=64)
     lever_choice = models.CharField(max_length=16, blank=True)
+    exercise_id = models.CharField(max_length=32, blank=True)
+    template_id = models.CharField(max_length=64, blank=True)
+    payload_version = models.CharField(max_length=12, default='v1')
     payload = models.JSONField(default=dict)
     scores = models.JSONField(default=dict, blank=True)
+    completion_score = models.IntegerField(default=0)
+    accuracy_score = models.IntegerField(default=0)
+    reflection_score = models.IntegerField(default=0)
+    total_score = models.IntegerField(default=0)
+    ab_variant = models.CharField(max_length=12, blank=True)
     duration_ms = models.IntegerField(default=0)
     client_ts = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -347,3 +346,62 @@ class AnalyticsEvent(models.Model):
     
     def __str__(self):
         return f"{self.event_type} - {self.created_at}"
+
+
+class LessonSessionContext(models.Model):
+    """Session context for module-specific lesson runs."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_sessions')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='session_contexts')
+    current_scenario_ref = models.CharField(max_length=64, blank=True)
+    last_lever_choice = models.CharField(max_length=16, blank=True)
+    last_stakes_score = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
+    cooldowns = models.JSONField(default=dict, blank=True)
+    loop_index = models.IntegerField(default=0)
+    data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'module']
+    
+    def __str__(self):
+        return f"{self.user.username} - Session {self.module.code}"
+
+
+class StakesMap(models.Model):
+    """Persistent stakes map artifact reused in later modules."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stakes_maps')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='stakes_maps')
+    scenario_ref = models.CharField(max_length=64)
+    situation_text = models.TextField(blank=True)
+    pressure_points = models.JSONField(default=list)
+    trigger = models.CharField(max_length=255)
+    lever = models.CharField(max_length=32)
+    action_step = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.scenario_ref} - {self.lever}"
+
+
+class TelemetryEvent(models.Model):
+    """Fine-grained telemetry for learning analytics dashboards."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='telemetry_events', null=True, blank=True)
+    module_code = models.CharField(max_length=8)
+    name = models.CharField(max_length=80)
+    properties_json = models.JSONField(default=dict, blank=True)
+    ab_variant = models.CharField(max_length=12, blank=True)
+    ts = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-ts']
+        indexes = [
+            models.Index(fields=['module_code', 'name', 'ts']),
+        ]
+    
+    def __str__(self):
+        return f"{self.module_code} - {self.name} @ {self.ts}"

@@ -1,214 +1,180 @@
 # Lesson Runner Overview
 
-This document summarizes the `lesson_runner` experience, how it currently works, and opportunities to extend or refine it. Use it as the baseline reference when iterating on the learning flow inside authenticated pages.
+This document captures the current intent, structure, and next-phase direction of the `lesson_runner`. Use it as the single source of truth when shipping UI, content, or data changes to the multi-pass learning arc.
 
 ---
 
-## 1. Purpose & Goals
+## 1. Intent & Experience Pillars
 
-- **Primary objective**: guide the learner through each module’s knowledge block in a single, focused flow.
-- **Outcome**: deliver alternate states (Teach → Drill → Review → Checkpoint) that combine instruction, practice, feedback, and completion in one session.
-- **Constraints**:
-  - Must adapt to light/dark themes via tokenized classes.
-  - Should minimize page reloads and preserve progress between sessions.
-  - Needs to support optional A/B variants (coach sheet, hints) without divergent markup.
+**Tulia’s promise** is calm focus, structured insight, and emotional safety. Our enhancement wraps that pedagogy in micro-dopamine loops and gentle-game delight.
 
----
+| Layer | Tulia baseline | Guided enhancement |
+| --- | --- | --- |
+| Cognitive | Mastery through reflection | Mastery through play + tight feedback |
+| Emotional | Compassionate, self-aware tone | “Gentle-game” energy (mascot praise, soft glow wins) |
+| Behavioural | 10-minute focused loops | 10-minute missions / quests |
 
-## 2. Template Entry Point
-
-- File: `myApp/templates/myApp/lesson_runner.html`
-- Django view: serves module context (`module`, `knowledge_blocks`, `current_block`), progress meta (`progress_data`), and user stats (XP, streak).
-- Extends: `myApp/base.html`, inheriting the authenticated shell and theme configuration.
+Guiding mantra: _Less app → more journey_. Every click should feel like forward momentum.
 
 ---
 
-## 3. Layout & Structure
+## 2. System Snapshot
 
-1. **Hidden data block**  
-   `<div id="lessonData" data-block-id="..." data-module-code="..." ...>` seeds JS with IDs, module code, and block counts.
-
-2. **Sticky progress header**  
-   - Shows back button, skill/outcome/time metadata (when available), XP/streak stats, and stage rail.
-   - Stage rail uses labeled dots/rings to indicate which phase is active (Teach, Drill, Review, Checkpoint).
-
-3. **Card carousel (`#cardCarousel`)**  
-   - Each stage is a `.card-slide` with `data-card="teach|drill|review|checkpoint"`.
-   - Cards share markup pattern: heading + body + supporting elements.  
-     - Teach: summary, citations.  
-     - Drill: scenario/hints, textarea, hint toggle.  
-     - Review: AI feedback in tinted blocks (keep using `bg-green-50`, `bg-amber-50`, etc.).  
-     - Checkpoint: summary, CTA to next block/milestone.
-
-4. **Coach sheet (`#coachSheet`)**  
-   - Hidden bottom drawer that surfaces tips, backlog of tasks, or tools (Signal, 3×3, Radar).
-   - Triggered via primary CTA and uses the same tokens for consistent theming.
-
-5. **Modals/Tools**  
-   - Imported partials (Signal Sentence, Message Builder, Style Radar) provide auxiliary helpers. Each tool now respects theme tokens.
+- **Template**: `myApp/templates/myApp/lesson_runner.html`
+- **View**: `lesson_runner()` wires module meta, progress payload, content tiles, coach guardrails.
+- **JS Orchestration**: `LessonRunnerMachine` (inline class) sequences stages, submits payloads, hydrates the coach sidekick, and now tracks mission context (scenario, PIC, lever).
+- **Shared components**: signal sentence, 3×3 builder, style radar. Each now receives state via `window.lessonRunnerContext` for smart prefills.
 
 ---
 
-## 4. Data & Script Flow
+## 3. Mission Loop Overview
 
-- Inline `<script>` at bottom orchestrates:
-  - Stage transitions (e.g., toggling `hidden` on `.card-slide`).
-  - Updating progress rail elements and compressed progress bar.
-  - Handling drill textarea character counts and hint toggling.
-  - Interacting with backend endpoints (fetch calls for saving drill responses, loading review feedback, etc.).
-  - Positioning the player avatar on the board (if relevant modules require it).
-- DOM dataset attributes supply the initial state (`data-block-id`, `data-total-blocks`, `data-module-code`), reducing hard-coded IDs.
-- The script is theme-agnostic; styling relies on Tailwind classes defined in the HTML.
+Reframe the legacy Teach → Drill → Review → Checkpoint into an eight-step “Mission Loop.” Each knowledge block runs 2–3 loops (`loop_index`), then unlocks a return pass (`pass_type = return`).
 
----
+| Legacy exercise | Mission name | Emoji | Emotional beat |
+| --- | --- | --- | --- |
+| Prime | **Prime Intent** | 🪄 | Grounded curiosity |
+| A1 Stakes Detector | **Spot the Heat** | 🔎 | Curious diagnosis |
+| B1 PIC Rating | **Decode the Pressure** | 📊 | Clarity |
+| B2 Control Shift | **Take the Lever** | ⚡ | Agency |
+| C1–C2 Reset drills | **Reset Mode** | 🧘 | Calm confidence |
+| Perform (text/voice) | **Perform Mission** | 🎙️ | Momentum |
+| Review (AI + reflect) | **Insight Check** | 🌟 | Encouraged mastery |
+| A2 / Transfer | **Next Mission** | 🎯 | Anticipation |
+| Spacing return pass | **Booster Loop** | 🔁 | Consistency |
 
-## 5. Theming Checklist
-
-- Use semantic classes:
-  - Surfaces: `bg-ink-surface`, `border-default`, `bg-overlay-weak`.
-  - Text: `text-text-strong` for headings/body, `text-muted` for supporting copy.
-  - Buttons: `bg-electric-violet`, `ring-1 ring-black/5` (light) or `ring-1 ring-white/20` (dark).
-- Keep gradient CTAs (`from-electric-violet to-cyan`) for primary actions; add neutral rings so edges remain visible on white.
-- Status feedback:
-  - Success: `bg-green-50 border-green-200 text-green-700`.
-  - Warning: `bg-amber-50 border-amber-200 text-amber-700`.
-  - Info: `bg-cyan-50 border-cyan-200 text-cyan-700`.
-- Ensure focus states use `focus:ring-2 focus:ring-brand` for accessibility.
+_Optional flavor tiles_: “Brain vs Heart Test” (Load lab), “Your Player Map” (Stakes map) surface as boosters inside Diagnose & Review.
 
 ---
 
-## 6. North Star Experience — “Watch → Do → Explain → Transfer”
+## 4. Stage Blueprint
 
-- Reframe the runner as a **multi-pass arc** that deepens mastery through repetition and escalating challenge.
-- Core loop aligns to the eight-stage path below and repeats 2–3 times per knowledge block.  
-- Each loop should last ~7–10 minutes; full modules span 45–60 minutes across multiple sittings with scheduled return passes.
+### 0 · Prime Intent 🪄
+- Inputs: intention sentence, focus lever chip (Preparation / Presence / Perspective).
+- Output: `focus_lever`, `intention_text`. Animates with soft glow & supportive copy “You’ve set your focus.”
 
-### Loop Overview
+### 1 · Spot the Heat 🔎
+- UI: scenario textarea (prefilled from Transfer), quick binary chips (“Who’s in the room?”), PIC sliders appear after the story stub.
+- Data: `scenario_text`, `pic.{pressure,visibility,irreversibility}`. Reward: tiny “Curiosity +5” gem sparkle.
 
-| Stage | Purpose | Key Artifacts | Notes |
-|-------|---------|---------------|-------|
-| 0. Prime | Set intent, recall wins, pick focus behavior | Intention input, focus checkbox | New card |
-| 1. Teach (Micro) | Deliver one concept (<300 words) | Copy, figure, example | Use existing concept tiles |
-| 2. Diagnose | Identify stakes (A1), rate PIC (B1), label load (D1) | Structured prompts, sliders | Chain exercises in one pass |
-| 3. Control-Shift | Choose lever (3P) + action | Lever selector, action input | Merge B2 + E1 logic |
-| 4. Perform | Practice text & voice (w/ optional body drill) | Text area, recorder hook, C2 baseline | Adds 4a + 4b subcards |
-| 5. Review | AI rubric + self-explain | Rubric scores, reflection prompt | Reuse tinted feedback blocks |
-| 6. Transfer | Log next real moment (A2) | Scenario form, PIC sliders | Schedules follow-up |
-| 7. Spacing | Return pass (micro loop) | Quick re-teach, voice, review | Triggered after delay |
+### 2 · Decode the Pressure 📊
+- UI: slider confirmations, short explanation cards (“Pressure = consequences if…”) pulled from coach sheet if needed.
+- Data: `pic.control`, `load_label` (Emotional / Cognitive / Mixed). Emotion: clarity.
 
----
+### 3 · Take the Lever ⚡
+- UI: lever cards with micro illustration, CTA “What’s the move?” text input.
+- Data: `lever_choice`, `action_plan`. Reward: progress ring tick + “Lever locked in.”
 
-## 7. Stage Breakdown & Content Mapping
+### 4 · Reset Mode 🧘 (optional wrapper)
+- UI: quick body reset slider (“Tension → Ease”), 30-second breathing animation.
+- Data: `body_reset_before`, `body_reset_after`.
 
-### 0) Prime (New)
-- **Goal**: lower emotional load, set intention, clarify success metric.
-- **UI**: short intention input (1–2 lines), checkbox group for 3P focus (Preparation / Presence / Perspective), optional micro animation to acknowledge prior win.
-- **Implementation**: new `prime` card type; data stored with `loop_index`, `focus_choice`.
+### 5 · Perform Mission 🎙️
+- Sub-stages: **Text Pass** (word counter, timer), **Voice Pass** (link upload placeholder).
+- Data: `text`, `audio_ref`, `duration_ms`.
+- Reward: confetti bursts + XP sound.
 
-### 1) Teach (Micro)
-- **Goal**: single concept burst (e.g., “Stakes = Pressure + Visibility + Irreversibility”).
-- **Constraints**: <300 words, one figure, one example. Sequence concept tiles to build narrative across loops.
-- **Content feed**: reuse existing knowledge snippets; mark each tile with `concept_slug` for analytics.
+### 6 · Insight Check 🌟
+- UI: AI rubric chips (Clarity, Audience, Control). Self-explain prompt: “What made that feel right?”
+- Data: `scores`, `self_explain`, `accept_suggestions`.
+- Reward: “Insight +1” gem & friendly mascot reaction.
 
-### 2) Diagnose (Richer)
-- **Goal**: chain A1 (stakes detector) → B1 (PIC rating) → D1 (load label) in one pass.
-- **UI**: scenario prompt (pre-filled from Transfer or user entry), toggles for Pressure/Visibility/Irreversibility, PIC slider, load radio buttons.
-- **Data**: persists as a single `diagnosis` payload containing all sub-results to reduce duplication.
+### 7 · Next Mission 🎯
+- UI: upcoming moment form (title, date/time), optional PIC sliders for preview, lever suggestion.
+- Data: `next_moment`, `desired_outcome`, `return_pass_at` (calculated). Buttons schedule 24h / 48h / 72h boosters.
 
-### 3) Control-Shift (Action)
-- **Goal**: pick one lever and define the action.
-- **Mapping**: merges existing B2/E1 patterns; present lever cards (Preparation/Presence/Perspective) with quick descriptors, plus free-text “What action will you take?”
-- **Persistence**: store `lever_choice`, `action_text`, `scenario_ref`.
-
-### 4) Perform (Guided)
-- **Structure**:
-  - **4a Text Performance**: write a 90–120 word opening/outcome using the chosen lever.
-  - **4b Voice Performance**: 30–45 second spoken version (upload or record when infra ready).
-  - Optional **C2 Body Awareness drill**: pre/post self-report plus guided reset steps.
-- **UI**: treat as stacked subcards within the stage; show timers or progress meters to emphasize time-boxing.
-- **Data**: keep separate entries for text vs. voice attempts; include `body_reset_before`/`after` metrics if C2 triggered.
-
-### 5) Review (AI + Self-Explain)
-- **Goal**: provide rubric-based feedback and force reflection.
-- **Components**:
-  - AI rubric thresholds (clarity, audience relevance, control cues, etc.).
-  - Self-explain prompt: “Why did this work? What tweak next?”
-- **Visuals**: reuse tinted chips (`bg-green-50`, `bg-amber-50`, `bg-rose-50`) to highlight current rating.
-- **Data**: store AI scores + user reflection for progress analytics.
-
-### 6) Transfer (Next Moment)
-- **Goal**: log or revisit the learner’s upcoming high-stakes moment (A2).
-- **UI**: scenario name, date/time, PIC sliders, optional free text for context, lever selection for future focus.
-- **Outcome**: sets a `return_pass_at` timestamp to schedule spacing.
-
-### 7) Spacing (Return Pass)
-- **Mechanic**: schedule short booster loops (2–3 cards) 24–72h later.
-  - Micro re-teach tile (different example).
-  - Perform (voice-only).
-  - Review (lightweight rubric + quick reflection).
-- **Trigger**: view layer shows a notification/CTA; no new page required.
-- **Storage**: add `pass_type` (`main` vs `return`) and `scheduled_for` fields to existing progress models.
+### Booster Loop 🔁
+- Triggered by scheduler; includes micro re-teach tile, voice-only perform, insight check. Light UI with ambient background to reinforce quick-hit practice.
 
 ---
 
-## 8. Coach Sheet as “Sidekick”
+## 5. Visual & Interaction System (Calm × Duolingo × Notion)
 
-- **Stage-aware content**:
-  - Diagnose: slide-in definitions, mini PIC explainer, quick reference diagrams.
-  - Perform: C2 body reset timer, breath/countdown prompts.
-  - Review: rubric explanations with exemplars (“What ‘clarity’ looks like”).
-  - Transfer: one-tap templates for logging next moment (A2) with PIC sliders.
-- **Implementation**: feed the coach sheet via `data-stage` attribute; no new UI chrome required.
-
----
-
-## 9. Progression & Analytics
-
-- **Progression model**:
-  - Block mastery ≥ 80 unlocks harder loop variants (tighter time boxes, higher-stakes scenarios).
-  - Loop mastery requires: one text + one voice performance, one lever action logged, one transfer entry scheduled.
-  - Module pass = 2–3 loops completed over ≥2 days (spacing requirement).
-- **Analytics to track & surface**:
-  - PIC delta loop-to-loop (show trend if control ↑).
-  - Load labeling accuracy (emotional vs cognitive).
-  - Lever usage mix (which 3P choices dominate).
-  - Physio self-report shift from C2 (tense → less tense).
-- **UI surfacing**: add summary chips in header/toast (“Control ↑2”, “Lever mix: Presence 60%”).
+- **Card surfaces**: white (`bg-ink-surface`) with generous rounding, soft shadows, thin borders for clarity.
+- **Ambient animation**: breathing gradients, subtle particles on stage completion, confetti for major milestones.
+- **Mascot**: Coach Tuli (friendly speech bubble avatar) positioned near the coach toggle; reacts with captions (“Nice catch!”, “Deep breath first…”).
+- **Color rhythm**:
+  - Awareness phases (Prime, Diagnose): calm purples/blues.
+  - Action phases (Lever, Perform): vivid violets/cyans.
+  - Reflection/mastery (Review, Transfer): warm greens/golds.
+- **Sound design**: soft chimes for progression, airy tone for insight, no harsh error sounds (use “Try another angle” copy instead).
+- **Layout**: buttons anchored low-center for thumb reach; single action per card.
 
 ---
 
-## 10. Time Budget
+## 6. Motivation & Progress Architecture
 
-- **Single loop**: ~7–10 minutes  
-  Prime (1) → Teach (2) → Diagnose (2) → Control-Shift (1) → Perform (2–3) → Review (1) → Transfer (1)
-- **Two loops in a sitting**: ~20 minutes.
-- **Return pass**: 4–6 minutes.
-- Emphasize “short bursts, repeated often” to raise total learning hours without fatigue.
+| Trigger | Immediate reward | Reinforcement |
+| --- | --- | --- |
+| Submit any stage | +XP toast, gentle sound, progress ring tick | Stage label lights up
+| Complete loop | Badge card + quote + shareable summary | Unlocks next mission tile
+| Return consecutive days | Streak flame + “Keep your calm streak alive” nudge | Calendar highlights streak
+| Record reflection | “Insight +1” gem counter updates | Feeds personalised coach tips
 
----
-
-## 11. Implementation Notes
-
-- **Cards**: add new types (`prime`, `transfer`, `return-pass`) while reusing existing carousel infrastructure.
-- **Routing**: adjust the sequence generator to enqueue additional cards per loop; support `pass_type` flag.
-- **Persistence**: extend current payload schema with `loop_index`, `pass_type`, `lever_choice`, `return_pass_at`.
-- **Webhooks**: reuse existing endpoints for exercises (A1, A2, B1, B2, C2, D1, E1); ensure data binder handles chained inputs.
-- **Coach Sheet**: populate via stage-specific partials; rely on `data-stage` for content selection.
-- **Theme**: unchanged—continue using current tokens so light/dark support comes “for free.”
+Re-use Tulia scoring (50 pts per exercise) but surface it visibly: progress ring around mascot, XP meter in header.
 
 ---
 
-## 12. Quick QA Checklist
+## 7. Copy & Tone Guidelines
 
-- Can a learner run Loop 1 end-to-end without dead ends?
-- Do A1 → B1 → D1 chain smoothly without duplicate scenario entry?
-- Does C2 appear before voice attempts and record pre/post states?
-- Does Transfer (A2) schedule a return pass automatically?
-- Does the coach sheet swap content per stage?
-- Are PIC deltas and lever usage surfaced in the header/toast?
-- Are focus states and instructions accessible via keyboard/screen reader?
+- Replace academic directives with conversational prompts.
+- Examples:
+  - Instruction → “Tap what makes this moment feel intense.”
+  - Feedback → “Exactly — pressure + visibility = that board-meeting buzz.”
+  - Reflection → “What made this choice feel right?”
+- Always celebrate awareness: “Interesting! That tension is data we can use.”
 
 ---
 
-_Last updated: {{DATE}}_
+## 8. Personalisation Hooks
+
+- Store tone words (“tense”, “steady”, “amped”); surface them in future encouragement (“You called it tense last time—how does it feel now?”).
+- Track lever mix; when one lever dominates, spawn a challenge mission (“Try Perspective this round?”).
+- Pause/resume: display “Resume Loop 2 of 3” overlay with calming animation.
+
+---
+
+## 9. Accessibility & Flow
+
+- One-handed mobile first: CTAs centred near bottom, 48px targets.
+- Support keyboard navigation & screen readers (aria-live on rewards, descriptive labels).
+- Provide voice entry option for reflections where feasible.
+- Cache micro drills for offline continuity; resume handshake on reconnect.
+
+---
+
+## 10. Implementation Roadmap
+
+1. **Storyboard mission cards** – map each legacy exercise to new copy, emoji, reward moment.
+2. **Refresh copy deck** – align micro-copy with new tone.
+3. **Mascot system** – create React-ish helper (or Django include) that swaps reactions via data attributes.
+4. **Scoring + streak surface** – expose aggregated XP, insight gems, and streak to the header JSON.
+5. **Animation primitives** – CSS utility classes for glow, confetti, ambient gradients.
+6. **User testing** – A/B “reflective vs playful” tone with 10 users; watch for focus/comfort.
+7. **Ship Module A** – deliver full mission loop with boosters; track KPIs (completion %, reflection depth, return rate).
+
+---
+
+## 11. QA Checklist
+
+- Loop 1 runs end-to-end with mission framing and rewards firing.
+- Scenario text carries into Diagnose, Lever, Transfer without duplicate typing.
+- Booster scheduling writes `return_pass_at` and surfaces in header.
+- Coach sheet swaps stage-aware content + mascot reactions.
+- Progress ring, XP meter, and streak flame update correctly.
+- Focus states, keyboard flows, and screen readers succeed across stages.
+
+---
+
+## 12. Creative Seed (Shareable Prompt)
+
+Use this seed with designers, writers, or generative tools:
+
+> **Context**: “Design a calm-yet-playful mission loop for an adult communication coach called Tulia. Learners complete 10-minute quests to master high-stakes conversations. Keep the tone compassionate, but reward awareness with gentle dopamine (soft chimes, Coach Tuli mascot, progress rings). Stage names: Prime Intent 🪄, Spot the Heat 🔎, Decode the Pressure 📊, Take the Lever ⚡, Reset Mode 🧘, Perform Mission 🎙️, Insight Check 🌟, Next Mission 🎯, Booster Loop 🔁. One action per screen, accessible controls, color rhythm (cool purples for awareness, vibrant violets for action, warm greens for mastery). No red error states—use encouraging re-frames. Surface XP, streaks, and ‘Insight +1’ gems after each reflection. Aim for Calm × Duolingo × Notion vibes.”
+
+Include module-specific content (concept tile summaries, real user scenarios, AI rubric copy) when handing off to content or motion teams.
+
+---
+
+_Last updated: 2025-11-08_
 

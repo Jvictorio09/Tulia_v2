@@ -1,0 +1,27 @@
+{
+  "module_code": "A",
+  "version": "1.0.0",
+  "deprecated_after": "2026-12-31T23:59:59Z",
+  "items": [
+    {
+      "pressure_options": [
+        "Executive visibility",
+        "Unclear data story",
+        "Time pressure",
+        "Past miss in spotlight"
+      ],
+      "trigger_examples": [
+        "CFO interrupts early",
+        "Slide transitions feel shaky",
+        "Voice rushes after first question"
+      ],
+      "action_hints": [
+        "State the stakes and desired outcome calmly",
+        "Pause, breathe, and reset pace",
+        "Invite the CFO into the solution",
+        "Anchor back to the three key lines"
+      ]
+    }
+  ]
+}
+
