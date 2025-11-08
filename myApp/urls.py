@@ -25,5 +25,16 @@ urlpatterns = [
     # Exercise submission
     path('api/exercise/submit/', views.submit_exercise, name='submit_exercise'),
     path('api/venue/<int:venue_id>/complete/', views.complete_venue, name='complete_venue'),
+    
+    # Lesson runner stage endpoints
+    path('api/lessons/prime/submit/', views.lesson_prime_submit, name='lesson_prime_submit'),
+    path('api/lessons/teach/submit/', views.lesson_teach_submit, name='lesson_teach_submit'),
+    path('api/lessons/diagnose/submit/', views.lesson_diagnose_submit, name='lesson_diagnose_submit'),
+    path('api/lessons/control-shift/submit/', views.lesson_control_shift_submit, name='lesson_control_shift_submit'),
+    path('api/lessons/perform/text/submit/', views.lesson_perform_text_submit, name='lesson_perform_text_submit'),
+    path('api/lessons/perform/voice/submit/', views.lesson_perform_voice_submit, name='lesson_perform_voice_submit'),
+    path('api/lessons/review/submit/', views.lesson_review_submit, name='lesson_review_submit'),
+    path('api/lessons/transfer/submit/', views.lesson_transfer_submit, name='lesson_transfer_submit'),
+    path('api/lessons/spacing/schedule/', views.lesson_spacing_schedule, name='lesson_spacing_schedule'),
 ]
 

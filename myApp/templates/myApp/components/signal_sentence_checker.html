@@ -1,30 +1,30 @@
-<div id="signalSentenceTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+<div id="signalSentenceTool" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-default rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-brand-soft">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl sm:text-2xl font-heading font-bold">Signal Sentence Builder</h2>
-            <button onclick="closeSignalSentence()" class="text-gray-400 hover:text-white">✕</button>
+            <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Signal Sentence Builder</h2>
+            <button onclick="closeSignalSentence()" class="text-muted hover:text-text-strong">✕</button>
         </div>
         
         <div class="space-y-4">
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Topic</label>
-                <input type="text" id="signalTopic" placeholder="What are you communicating?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
+                <label class="block text-sm text-muted mb-2">Topic</label>
+                <input type="text" id="signalTopic" placeholder="What are you communicating?" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
             </div>
             
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Tension</label>
-                <input type="text" id="signalTension" placeholder="What's at stake or the challenge?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
+                <label class="block text-sm text-muted mb-2">Tension</label>
+                <input type="text" id="signalTension" placeholder="What's at stake or the challenge?" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
             </div>
             
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Takeaway</label>
-                <input type="text" id="signalTakeaway" placeholder="What should they remember?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
+                <label class="block text-sm text-muted mb-2">Takeaway</label>
+                <input type="text" id="signalTakeaway" placeholder="What should they remember?" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
             </div>
             
-            <button onclick="buildSignalSentence()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Build Sentence</button>
+            <button onclick="buildSignalSentence()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition ring-1 ring-black/5">Build Sentence</button>
             
-            <div id="signalResult" class="hidden p-4 bg-white/5 border border-electric-violet/30 rounded-lg">
-                <p class="text-gray-300" id="signalOutput"></p>
+            <div id="signalResult" class="hidden p-4 bg-overlay-weak border border-electric-violet/30 rounded-lg">
+                <p class="text-text-strong" id="signalOutput"></p>
             </div>
         </div>
     </div>
@@ -32,7 +32,30 @@
 
 <script>
 function openSignalSentence() {
-    document.getElementById('signalSentenceTool').classList.remove('hidden');
+    const tool = document.getElementById('signalSentenceTool');
+    if (!tool) return;
+    const ctx = window.lessonRunnerContext || {};
+    const scenario = typeof ctx.getScenario === 'function' ? ctx.getScenario() : '';
+    const pic = typeof ctx.getPic === 'function' ? ctx.getPic() : null;
+    const lever = typeof ctx.getLever === 'function' ? ctx.getLever() : '';
+    const topic = document.getElementById('signalTopic');
+    const tension = document.getElementById('signalTension');
+    const takeaway = document.getElementById('signalTakeaway');
+    if (topic && !topic.value && scenario) topic.value = scenario;
+    if (tension && !tension.value) {
+        if (pic && typeof pic === 'object') {
+            const parts = [];
+            if (typeof pic.pressure === 'number') parts.push(`Pressure ${pic.pressure}/5`);
+            if (typeof pic.visibility === 'number') parts.push(`Visibility ${pic.visibility}/5`);
+            if (typeof pic.irreversibility === 'number') parts.push(`Irreversibility ${pic.irreversibility}/5`);
+            tension.value = parts.length ? parts.join(' · ') : '';
+        }
+        if (!tension.value && scenario) tension.value = 'Name the stakes clearly (PIC).';
+    }
+    if (takeaway && !takeaway.value && lever) {
+        takeaway.value = `Raise ${lever} for your listener.`;
+    }
+    tool.classList.remove('hidden');
 }
 
 function closeSignalSentence() {

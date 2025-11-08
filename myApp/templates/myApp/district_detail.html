@@ -5,28 +5,28 @@
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6 sm:space-y-8">
     <div class="text-center mb-8 sm:mb-12">
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold mb-2 sm:mb-4">{{ district.name }}</h1>
-        <p class="text-gray-400 text-base sm:text-lg">{{ district.description }}</p>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-text-strong mb-2 sm:mb-4">{{ district.name }}</h1>
+        <p class="text-muted text-base sm:text-lg">{{ district.description }}</p>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {% for venue in venues %}
-        <a href="{% url 'venue_detail' venue.id %}" class="venue-card block bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 hover:border-electric-violet hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-200 relative overflow-hidden group">
+        <a href="{% url 'venue_detail' venue.id %}" class="venue-card block bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 hover:border-electric-violet hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-200 relative overflow-hidden group shadow-brand-soft">
             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-electric-violet to-cyan transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></div>
             
             <div class="text-4xl mb-4">{{ venue.name|first }}</div>
-            <h3 class="text-2xl font-heading font-bold mb-3">{{ venue.name }}</h3>
-            <p class="text-gray-400 mb-6">{{ venue.description }}</p>
+            <h3 class="text-2xl font-heading font-bold text-text-strong mb-3">{{ venue.name }}</h3>
+            <p class="text-muted mb-6">{{ venue.description }}</p>
             
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-gray-500">Entry Cost</span>
+                    <span class="text-xs text-muted">Entry Cost</span>
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-cyan font-semibold">🎫 {{ venue.ticket_cost }}</span>
                     </div>
                 </div>
                 <div>
-                    <span class="text-xs text-gray-500">Reward</span>
+                    <span class="text-xs text-muted">Reward</span>
                     <div class="text-sm text-electric-violet font-semibold mt-1">
                         +{{ venue.xp_reward }} XP
                     </div>
@@ -34,8 +34,8 @@
             </div>
             
             {% if profile.tickets < venue.ticket_cost %}
-            <div class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
-                <span class="text-red-400 text-sm">Not enough tickets</span>
+            <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-center">
+                <span class="text-rose-700 text-sm">Not enough tickets</span>
             </div>
             {% else %}
             <div class="mt-4 text-center">
@@ -47,7 +47,7 @@
     </div>
     
     <div class="text-center mt-12">
-        <a href="{% url 'home' %}" class="text-gray-400 hover:text-white transition">← Back to Home</a>
+        <a href="{% url 'home' %}" class="text-muted hover:text-text-strong transition">← Back to Home</a>
     </div>
 </div>
 {% endblock %}

@@ -10,6 +10,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <script>
+        (function() {
+            const storageKey = 'speakPro.theme';
+            const root = document.documentElement;
+            let stored = null;
+            try {
+                stored = localStorage.getItem(storageKey);
+            } catch (e) {}
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = stored || (prefersDark ? 'dark' : 'light');
+            root.dataset.theme = theme;
+        })();
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -17,26 +31,94 @@
             theme: {
                 extend: {
                     colors: {
-                        'ink-bg': '#0a0a0f',
-                        'ink-surface': '#141420',
-                        'electric-violet': '#8b5cf6',
-                        'cyan': '#06b6d4',
+                        'ink-bg': 'var(--color-ink-bg)',
+                        'ink-surface': 'var(--color-ink-surface)',
+                        'electric-violet': 'var(--color-electric-violet)',
+                        'cyan': 'var(--color-cyan)',
+                        'text-strong': 'var(--color-text-strong)',
+                        'text-muted': 'var(--color-text-muted)',
+                        'overlay-weak': 'var(--color-overlay-weak)',
+                        'overlay-strong': 'var(--color-overlay-strong)',
+                        'border-default': 'var(--color-border-default)',
+                    },
+                    borderColor: {
+                        'default': 'var(--color-border-default)',
+                    },
+                    ringColor: {
+                        'brand': 'var(--color-electric-violet)',
                     },
                     fontFamily: {
                         'primary': ['Inter', 'sans-serif'],
                         'heading': ['Manrope', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'brand-soft': '0 8px 24px rgba(15, 23, 42, 0.08)',
                     },
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        :root {
+            color-scheme: light;
+            --color-ink-bg: #0a0a0f;
+            --color-ink-surface: #141420;
+            --color-electric-violet: #8b5cf6;
+            --color-cyan: #06b6d4;
+            --color-text-strong: #f9fafb;
+            --color-text-muted: rgba(255, 255, 255, 0.65);
+            --color-overlay-weak: rgba(255, 255, 255, 0.05);
+            --color-overlay-strong: rgba(255, 255, 255, 0.12);
+            --color-border-default: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] {
+            color-scheme: dark;
+            --color-ink-bg: #0a0a0f;
+            --color-ink-surface: #141420;
+            --color-electric-violet: #8b5cf6;
+            --color-cyan: #06b6d4;
+            --color-text-strong: #f9fafb;
+            --color-text-muted: rgba(255, 255, 255, 0.65);
+            --color-overlay-weak: rgba(255, 255, 255, 0.05);
+            --color-overlay-strong: rgba(255, 255, 255, 0.12);
+            --color-border-default: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            color-scheme: light;
+            --color-ink-bg: #f7f8fb;
+            --color-ink-surface: #ffffff;
+            --color-electric-violet: #6d28d9;
+            --color-cyan: #0891b2;
+            --color-text-strong: #0f172a;
+            --color-text-muted: #64748b;
+            --color-overlay-weak: rgba(15, 23, 42, 0.05);
+            --color-overlay-strong: rgba(15, 23, 42, 0.1);
+            --color-border-default: #e5e7eb;
+        }
+
+        body { font-family: 'Inter', sans-serif; color: var(--color-text-strong); }
         h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
+
+        [data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.05) !important; }
+        [data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.1) !important; }
+        [data-theme="light"] .bg-white\/20 { background-color: rgba(15, 23, 42, 0.2) !important; }
+        [data-theme="light"] .border-white\/10 { border-color: #e5e7eb !important; }
+        [data-theme="light"] .border-white\/20 { border-color: #d1d5db !important; }
+        [data-theme="light"] .text-white\/60 { color: #64748b !important; }
+        [data-theme="light"] .text-white\/70 { color: #475569 !important; }
+        [data-theme="light"] .text-white\/80 { color: #334155 !important; }
+        [data-theme="light"] .text-gray-300 { color: #475569 !important; }
+        [data-theme="light"] .text-gray-400 { color: #64748b !important; }
+        [data-theme="light"] .hover\:text-white:hover { color: #1f2937 !important; }
+        [data-theme="light"] .shadow-electric-violet\/50 { box-shadow: 0 8px 24px rgba(109, 40, 217, 0.18) !important; }
+        [data-theme="light"] .shadow-electric-violet\/30 { box-shadow: 0 8px 16px rgba(109, 40, 217, 0.12) !important; }
+        [data-theme="light"] .bg-white { background-color: #ffffff !important; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-ink-bg text-gray-100 min-h-screen {% if user.is_authenticated %}authenticated{% endif %} {% block body_class %}{% endblock %}">
+<body class="bg-ink-bg text-text-strong min-h-screen {% if user.is_authenticated %}authenticated{% endif %} {% block body_class %}{% endblock %}">
     {% if user.is_authenticated %}
     <!-- Add padding bottom for footer on mobile -->
     <style>
@@ -50,7 +132,7 @@
             }
         }
     </style>
-    <nav class="bg-ink-surface border-b border-white/10 sticky top-0 z-50 backdrop-blur-sm">
+    <nav class="bg-ink-surface border-b border-default sticky top-0 z-50 backdrop-blur-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div class="flex justify-between items-center">
                 <a href="{% url 'home' %}" class="flex items-center">
@@ -122,6 +204,13 @@
                             <span class="text-gray-400 text-xs hidden lg:inline">Day Streak</span>
                         </div>
                     </div>
+                    <button id="themeToggle" class="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full border border-default bg-overlay-weak text-muted hover:text-text-strong hover:bg-overlay-strong transition" type="button" aria-label="Toggle theme">
+                        <span class="sr-only">Toggle theme</span>
+                        <svg id="themeToggleIcon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-13.9l1.414 1.414M18.364 18.364l1.414 1.414"/>
+                            <circle cx="12" cy="12" r="4"/>
+                        </svg>
+                    </button>
                     <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white transition text-sm sm:text-base hidden sm:inline">{{ user.username }}</a>
                     <a href="{% url 'logout' %}" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-md text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/10 transition">Logout</a>
                 </div>
@@ -151,6 +240,40 @@
     {% endif %}
     
     {% block extra_js %}{% endblock %}
+    {% if user.is_authenticated %}
+    <script>
+        (function() {
+            const storageKey = 'speakPro.theme';
+            const root = document.documentElement;
+            const toggle = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeToggleIcon');
+
+            function setTheme(theme, persist = true) {
+                root.dataset.theme = theme;
+                if (persist) {
+                    try {
+                        localStorage.setItem(storageKey, theme);
+                    } catch (e) {}
+                }
+                if (icon) {
+                    if (theme === 'dark') {
+                        icon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
+                    } else {
+                        icon.innerHTML = '<path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-13.9l1.414 1.414M18.364 18.364l1.414 1.414"/><circle cx="12" cy="12" r="4"/>';
+                    }
+                }
+            }
+
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    const nextTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
+                    setTheme(nextTheme);
+                });
+                setTheme(root.dataset.theme || 'light', false);
+            }
+        })();
+    </script>
+    {% endif %}
 </body>
 </html>
 

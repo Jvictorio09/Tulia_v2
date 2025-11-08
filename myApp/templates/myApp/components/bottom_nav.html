@@ -1,7 +1,7 @@
 {% load app_filters %}
 <div class="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" id="bottomNav">
     <!-- Glassy footer bar -->
-    <div class="bg-ink-surface/80 backdrop-blur-md border-t border-white/10 h-16 sm:h-18">
+    <div class="bg-ink-surface/80 backdrop-blur-md border-t border-default h-16 sm:h-18">
         <div class="max-w-7xl mx-auto h-full flex items-center justify-around px-2 sm:px-4">
             
             <!-- [A] Home / Map -->
@@ -151,6 +151,33 @@
 .nav-tab.active .nav-label {
     opacity: 1;
     color: #8b5cf6;
+}
+
+[data-theme="light"] .nav-tab {
+    color: rgba(15, 23, 42, 0.65);
+}
+
+[data-theme="light"] .nav-tab.active {
+    color: var(--color-electric-violet);
+}
+
+[data-theme="light"] .nav-tab.active .nav-icon {
+    color: var(--color-electric-violet);
+}
+
+[data-theme="light"] .nav-label {
+    color: rgba(15, 23, 42, 0.65);
+}
+
+[data-theme="light"] .nav-tab.active .nav-label {
+    color: var(--color-electric-violet);
+    opacity: 1;
+}
+
+[data-theme="light"] #bottomNav > div {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: var(--color-border-default);
+    box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.08);
 }
 
 /* Coach center action */

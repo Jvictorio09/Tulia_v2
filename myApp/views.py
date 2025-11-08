@@ -11,13 +11,267 @@ from django.conf import settings
 import json
 import random
 import requests
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from .models import (
     UserProfile, Level, Module, KnowledgeBlock, Lesson,
     ExerciseAttempt, MilestoneAttempt, District, Venue,
-    VenueTaskSheet, VenueEntry, DailyQuest, UserProgress, AnalyticsEvent
+    VenueTaskSheet, VenueEntry, DailyQuest, UserProgress,
+    AnalyticsEvent, ExerciseSubmission
 )
+
+
+MAIN_SEQUENCE = [
+    {
+        "key": "prime",
+        "required": True,
+        "timebox_s": 90,
+        "inputs": ["intention", "focus_lever"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "teach",
+        "required": True,
+        "timebox_s": 180,
+        "inputs": ["tile_slug"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "diagnose",
+        "required": True,
+        "timebox_s": 180,
+        "inputs": ["scenario_text", "pic", "load_label"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "control_shift",
+        "required": True,
+        "timebox_s": 60,
+        "inputs": ["lever_choice", "action_plan"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "perform_text",
+        "required": True,
+        "timebox_s": 180,
+        "inputs": ["text", "word_count"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "perform_voice",
+        "required": False,
+        "timebox_s": 90,
+        "inputs": ["audio_ref", "duration_ms"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+    {
+        "key": "review",
+        "required": True,
+        "timebox_s": 120,
+        "inputs": ["self_explain", "accept_suggestions"],
+        "ai_scored": True,
+        "variant": "v1",
+    },
+    {
+        "key": "transfer",
+        "required": True,
+        "timebox_s": 120,
+        "inputs": ["next_moment", "desired_outcome"],
+        "ai_scored": False,
+        "variant": "v1",
+    },
+]
+
+RETURN_SEQUENCE = [
+    {
+        "key": "teach",
+        "required": True,
+        "timebox_s": 90,
+        "inputs": ["tile_slug"],
+        "ai_scored": False,
+        "variant": "return_v1",
+    },
+    {
+        "key": "perform_voice",
+        "required": True,
+        "timebox_s": 90,
+        "inputs": ["audio_ref", "duration_ms"],
+        "ai_scored": False,
+        "variant": "return_v1",
+    },
+    {
+        "key": "review",
+        "required": True,
+        "timebox_s": 120,
+        "inputs": ["self_explain", "accept_suggestions"],
+        "ai_scored": True,
+        "variant": "return_v1",
+    },
+]
+
+GUARDRAILS = {
+    "min_loop_for_return": 1,
+    "min_perform_variants": 2,
+}
+
+
+def get_stage_sequence(progress):
+    if progress.pass_type == 'return':
+        return RETURN_SEQUENCE
+    return MAIN_SEQUENCE
+
+
+def build_progress_payload(progress):
+    return {
+        "loop_index": progress.loop_index,
+        "pass_type": progress.pass_type,
+        "stage_key": progress.stage_key,
+        "sequence_version": progress.sequence_version,
+        "lever_choice": progress.lever_choice,
+        "pic_control": progress.pic_control,
+        "return_at": progress.return_at.isoformat() if progress.return_at else None,
+    }
+
+
+def _json_error(message, status=400, code='bad_request'):
+    return JsonResponse({
+        "ok": False,
+        "error": {
+            "code": code,
+            "message": message,
+        }
+    }, status=status)
+
+
+def _parse_request_json(request):
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return None, _json_error("Invalid JSON payload", status=400, code='invalid_json')
+    return payload, None
+
+
+def _append_meta_history(progress, key, payload, limit=10):
+    meta = progress.meta or {}
+    history = meta.get(key, [])
+    history.append(payload)
+    meta[key] = history[-limit:]
+    progress.meta = meta
+
+
+def _get_module_and_block(user, module_code, block_id):
+    level_1 = Level.objects.get(number=1)
+    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
+    block = get_object_or_404(KnowledgeBlock, module=module, id=block_id)
+    progress, _ = UserProgress.objects.get_or_create(user=user, module=module)
+    if progress.current_knowledge_block_id != block.id:
+        progress.current_knowledge_block = block
+    return module, block, progress
+
+
+def _stage_keys_for(progress):
+    return [s["key"] for s in get_stage_sequence(progress)]
+
+
+def _validate_stage(progress, stage_key):
+    allowed = _stage_keys_for(progress)
+    if stage_key not in allowed:
+        return False, _json_error("Stage not allowed in current sequence.", code='invalid_stage')
+    if progress.stage_key != stage_key:
+        return False, _json_error("Stage out of order.", code='stage_out_of_order')
+    return True, None
+
+
+def _validate_loop_index(progress, loop_index):
+    if loop_index != progress.loop_index:
+        return False, _json_error("Loop index mismatch; reload to refresh state.", code='loop_conflict')
+    return True, None
+
+
+def _compute_next_stage(progress, completed_stage):
+    order = _stage_keys_for(progress)
+    idx = order.index(completed_stage)
+    if idx + 1 < len(order):
+        next_stage = order[idx + 1]
+        progress.stage_key = next_stage
+        return next_stage
+    # Completed sequence
+    if progress.pass_type == 'main':
+        progress.loop_index += 1
+    else:
+        # Return pass completed; restore main loop
+        progress.pass_type = 'main'
+        progress.return_at = None
+    progress.stage_key = order[0] if order else 'prime'
+    return None
+
+
+def _build_submission_response(progress, next_stage, toast=None):
+    payload = {
+        "ok": True,
+        "progress": build_progress_payload(progress),
+        "next": {
+            "stage_key": next_stage if next_stage else progress.stage_key,
+        }
+    }
+    if toast:
+        payload["toast"] = toast
+    return JsonResponse(payload)
+
+
+def _parse_client_ts(value):
+    if not value:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(value)
+        except Exception:
+            return None
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+    return None
+
+
+def _create_submission(user, module, block, progress, stage_key, payload, duration_ms=0, lever_choice=None, scores=None, client_ts=None):
+    return ExerciseSubmission.objects.create(
+        user=user,
+        module=module,
+        knowledge_block=block,
+        loop_index=progress.loop_index,
+        pass_type=progress.pass_type,
+        stage_key=stage_key,
+        lever_choice=lever_choice or '',
+        payload=payload,
+        scores=scores or {},
+        duration_ms=duration_ms or 0,
+        client_ts=client_ts,
+    )
+
+
+def _parse_hours(label):
+    if not label:
+        return 0
+    if isinstance(label, (int, float)):
+        return float(label)
+    label = str(label).strip()
+    if label.endswith('h'):
+        try:
+            return float(label[:-1])
+        except ValueError:
+            return 0
+    try:
+        return float(label)
+    except ValueError:
+        return 0
 
 
 def login_view(request):
@@ -216,16 +470,29 @@ def lesson_runner(request, module_code):
         module=module
     )
     
+    modified = False
     if not progress.started:
         progress.started = True
         progress.last_activity = timezone.now()
-        progress.save()
-        
+        modified = True
         AnalyticsEvent.objects.create(
             user=request.user,
             event_type='lesson_start',
             event_data={'module': module.code}
         )
+    if not progress.stage_key:
+        progress.stage_key = 'prime'
+        modified = True
+    if not progress.sequence_version:
+        progress.sequence_version = 'v1.0'
+        modified = True
+    if modified:
+        progress.save(update_fields=[
+            'started',
+            'last_activity',
+            'stage_key',
+            'sequence_version',
+        ])
     
     # Get current knowledge block (or first one)
     current_block = progress.current_knowledge_block
@@ -244,6 +511,21 @@ def lesson_runner(request, module_code):
     
     # Get all knowledge blocks for left rail
     knowledge_blocks = KnowledgeBlock.objects.filter(module=module).order_by('order')
+    sequence = get_stage_sequence(progress)
+    progress_payload = build_progress_payload(progress)
+    tile_payload = []
+    if current_block:
+        tile_payload.append({
+            "slug": f"{module.code}-{current_block.order}",
+            "title": current_block.title,
+            "summary": current_block.summary,
+            "citations": current_block.citations,
+        })
+    content_payload = {
+        "tiles": tile_payload,
+        "examples": [],
+        "prompts": [],
+    }
     
     context = {
         'module': module,
@@ -251,11 +533,497 @@ def lesson_runner(request, module_code):
         'current_block': current_block,
         'knowledge_blocks': knowledge_blocks,
         'profile': profile,
+        'sequence': sequence,
+        'progress_payload': progress_payload,
+        'content_payload': content_payload,
+        'guardrails': GUARDRAILS,
     }
     
     return render(request, 'myApp/lesson_runner.html', context)
 
 
+@login_required
+@require_http_methods(["POST"])
+def lesson_prime_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'prime')
+    if not valid:
+        return error_resp
+    focus_lever = data.get('focus_lever')
+    lever_options = {choice[0] for choice in UserProgress.LEVER_CHOICES}
+    if focus_lever and focus_lever not in lever_options:
+        return _json_error("Invalid focus lever.", code='invalid_lever')
+    intention = (data.get('intention') or "").strip()
+    payload = {
+        "intention": intention,
+        "focus_lever": focus_lever,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'prime',
+        payload,
+        client_ts=client_ts,
+        lever_choice=focus_lever,
+    )
+    if not progress.lever_choice and focus_lever:
+        progress.lever_choice = focus_lever
+    _append_meta_history(progress, 'prime', payload)
+    next_stage = _compute_next_stage(progress, 'prime')
+    progress.last_activity = timezone.now()
+    progress.save()
+    return _build_submission_response(progress, next_stage)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_teach_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'teach')
+    if not valid:
+        return error_resp
+    tile_slug = data.get('tile_slug') or f"{module.code}-{block.order}"
+    payload = {
+        "tile_slug": tile_slug,
+        "summary_hash": hash(block.summary),
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'teach',
+        payload,
+        client_ts=client_ts,
+    )
+    _append_meta_history(progress, 'teach', payload)
+    next_stage = _compute_next_stage(progress, 'teach')
+    progress.last_activity = timezone.now()
+    progress.save()
+    return _build_submission_response(progress, next_stage)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_diagnose_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'diagnose')
+    if not valid:
+        return error_resp
+    pic = data.get('pic') or {}
+    try:
+        pressure = int(pic.get('pressure', 0))
+        visibility = int(pic.get('visibility', 0))
+        irreversibility = int(pic.get('irreversibility', 0))
+        control = int(pic.get('control', 0))
+    except (TypeError, ValueError):
+        return _json_error("PIC values must be integers.", code='invalid_pic')
+    for value in (pressure, visibility, irreversibility, control):
+        if value < 0 or value > 5:
+            return _json_error("PIC values must be between 0 and 5.", code='invalid_pic')
+    load_label = (data.get('load_label') or 'unknown').lower()
+    load_options = {choice[0] for choice in UserProgress.LOAD_CHOICES}
+    if load_label not in load_options:
+        return _json_error("Invalid load label.", code='invalid_load')
+    scenario_text = data.get('scenario_text', '').strip()
+    previous_control = progress.pic_control
+    payload = {
+        "scenario_text": scenario_text,
+        "pic": {
+            "pressure": pressure,
+            "visibility": visibility,
+            "irreversibility": irreversibility,
+            "control": control,
+        },
+        "load_label": load_label,
+        "control_delta": control - previous_control,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'diagnose',
+        payload,
+        client_ts=client_ts,
+    )
+    progress.pic_pressure = pressure
+    progress.pic_visibility = visibility
+    progress.pic_irreversibility = irreversibility
+    progress.pic_control = control
+    progress.load_label = load_label
+    _append_meta_history(progress, 'diagnose', payload)
+    next_stage = _compute_next_stage(progress, 'diagnose')
+    progress.last_activity = timezone.now()
+    progress.save()
+    return _build_submission_response(progress, next_stage)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_control_shift_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'control_shift')
+    if not valid:
+        return error_resp
+    lever_choice = data.get('lever_choice')
+    lever_options = {choice[0] for choice in UserProgress.LEVER_CHOICES}
+    if lever_choice not in lever_options:
+        return _json_error("Invalid lever choice.", code='invalid_lever')
+    action_plan = (data.get('action_plan') or "").strip()
+    payload = {
+        "lever_choice": lever_choice,
+        "action_plan": action_plan,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'control_shift',
+        payload,
+        client_ts=client_ts,
+        lever_choice=lever_choice,
+    )
+    progress.lever_choice = lever_choice
+    _append_meta_history(progress, 'control_shift', payload)
+    next_stage = _compute_next_stage(progress, 'control_shift')
+    progress.last_activity = timezone.now()
+    progress.save()
+    return _build_submission_response(progress, next_stage)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_perform_text_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'perform_text')
+    if not valid:
+        return error_resp
+    text = (data.get('text') or "").strip()
+    if not text:
+        return _json_error("Text performance cannot be empty.", code='empty_text')
+    word_count = data.get('word_count')
+    if word_count is None:
+        word_count = len(text.split())
+    try:
+        word_count = int(word_count)
+    except (TypeError, ValueError):
+        return _json_error("word_count must be numeric.", code='invalid_word_count')
+    duration_ms = data.get('duration_ms', 0)
+    try:
+        duration_ms = int(duration_ms or 0)
+    except (TypeError, ValueError):
+        duration_ms = 0
+    payload = {
+        "text": text,
+        "word_count": word_count,
+        "duration_ms": duration_ms,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'perform_text',
+        payload,
+        duration_ms=duration_ms,
+        lever_choice=progress.lever_choice,
+        client_ts=client_ts,
+    )
+    _append_meta_history(progress, 'perform_text', payload)
+    next_stage = _compute_next_stage(progress, 'perform_text')
+    progress.last_activity = timezone.now()
+    progress.save()
+    return _build_submission_response(progress, next_stage)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_perform_voice_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'perform_voice')
+    if not valid:
+        return error_resp
+    audio_ref = data.get('audio_ref')
+    if not audio_ref:
+        return _json_error("audio_ref is required.", code='missing_audio')
+    duration_ms = data.get('duration_ms')
+    try:
+        duration_ms = int(duration_ms or 0)
+    except (TypeError, ValueError):
+        duration_ms = 0
+    payload = {
+        "audio_ref": audio_ref,
+        "duration_ms": duration_ms,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'perform_voice',
+        payload,
+        duration_ms=duration_ms,
+        lever_choice=progress.lever_choice,
+        client_ts=client_ts,
+    )
+    _append_meta_history(progress, 'perform_voice', payload)
+    next_stage = _compute_next_stage(progress, 'perform_voice')
+    progress.last_activity = timezone.now()
+    progress.save()
+    toast = None
+    if not next_stage:
+        toast = {
+            "title": "Voice pass saved",
+            "body": "Great work—check your review for feedback.",
+        }
+    return _build_submission_response(progress, next_stage, toast=toast)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_review_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'review')
+    if not valid:
+        return error_resp
+    self_explain = (data.get('self_explain') or "").strip()
+    accept_suggestions = bool(data.get('accept_suggestions', False))
+    scores = data.get('scores') or {}
+    payload = {
+        "self_explain": self_explain,
+        "accept_suggestions": accept_suggestions,
+        "scores": scores,
+    }
+    # Compute PIC delta using latest diagnose entry if available
+    diagnose_history = progress.meta.get('diagnose', []) if progress.meta else []
+    pic_delta = 0
+    if diagnose_history:
+        last_entry = diagnose_history[-1]
+        pic_delta = last_entry.get('control_delta', 0)
+        payload["pic_delta"] = pic_delta
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    submission = _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'review',
+        payload,
+        lever_choice=progress.lever_choice,
+        scores=scores,
+        client_ts=client_ts,
+    )
+    _append_meta_history(progress, 'review', payload)
+    next_stage = _compute_next_stage(progress, 'review')
+    progress.last_activity = timezone.now()
+    progress.save()
+    toast = {
+        "title": "Review complete",
+        "body": "AI feedback saved. PIC ΔControl: {:+d}".format(int(pic_delta)),
+    }
+    return _build_submission_response(progress, next_stage, toast=toast)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_transfer_submit(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    try:
+        loop_index = int(data.get('loop_index', progress.loop_index))
+    except (TypeError, ValueError):
+        return _json_error("loop_index must be an integer.", code='invalid_loop')
+    valid, error_resp = _validate_loop_index(progress, loop_index)
+    if not valid:
+        return error_resp
+    valid, error_resp = _validate_stage(progress, 'transfer')
+    if not valid:
+        return error_resp
+    next_moment = data.get('next_moment') or {}
+    desired_outcome = (data.get('desired_outcome') or "").strip()
+    payload = {
+        "next_moment": next_moment,
+        "desired_outcome": desired_outcome,
+    }
+    client_ts = _parse_client_ts(data.get('client_ts'))
+    _create_submission(
+        request.user,
+        module,
+        block,
+        progress,
+        'transfer',
+        payload,
+        lever_choice=progress.lever_choice,
+        client_ts=client_ts,
+    )
+    _append_meta_history(progress, 'transfer', payload)
+    next_stage = _compute_next_stage(progress, 'transfer')
+    progress.last_activity = timezone.now()
+    progress.save()
+    toast = {
+        "title": "Transfer logged",
+        "body": "Great—set a booster to revisit this in a day or two.",
+    }
+    return _build_submission_response(progress, next_stage, toast=toast)
+
+
+@login_required
+@require_http_methods(["POST"])
+def lesson_spacing_schedule(request):
+    data, error = _parse_request_json(request)
+    if error:
+        return error
+    module_code = data.get('module_code')
+    block_id = data.get('block_id')
+    if not module_code or not block_id:
+        return _json_error("module_code and block_id are required.", code='missing_fields')
+    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    base_label = data.get('base', '24h')
+    jitter_label = data.get('jitter', '±6h')
+    base_hours = _parse_hours(base_label)
+    jitter_hours = 0
+    if isinstance(jitter_label, str) and jitter_label.startswith('±'):
+        jitter_hours = _parse_hours(jitter_label[1:])
+    else:
+        jitter_hours = _parse_hours(jitter_label)
+    offset = random.uniform(-jitter_hours, jitter_hours) if jitter_hours else 0
+    schedule_at = timezone.now() + timedelta(hours=base_hours + offset)
+    progress.return_at = schedule_at
+    progress.pass_type = 'return'
+    progress.stage_key = RETURN_SEQUENCE[0]['key']
+    progress.last_activity = timezone.now()
+    _append_meta_history(progress, 'spacing', {
+        "scheduled_for": schedule_at.isoformat(),
+        "base": base_label,
+        "jitter": jitter_label,
+    })
+    progress.save()
+    payload = {
+        "ok": True,
+        "progress": build_progress_payload(progress),
+        "next": {
+            "stage_key": progress.stage_key,
+        },
+        "toast": {
+            "title": "Booster scheduled",
+            "body": schedule_at.strftime("Return pass due %b %d %H:%M"),
+        }
+    }
+    return JsonResponse(payload)
 @login_required
 @require_http_methods(["POST"])
 def ai_lesson_orchestrate(request):

@@ -1,18 +1,18 @@
-<div id="styleRadarTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+<div id="styleRadarTool" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-default rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-brand-soft">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl sm:text-2xl font-heading font-bold">Style Radar</h2>
-            <button onclick="closeStyleRadar()" class="text-gray-400 hover:text-white">✕</button>
+            <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">Style Radar</h2>
+            <button onclick="closeStyleRadar()" class="text-muted hover:text-text-strong">✕</button>
         </div>
         
         <div class="space-y-6">
-            <p class="text-gray-400 text-sm">Rate your communication style across these dimensions:</p>
+            <p class="text-muted text-sm">Rate your communication style across these dimensions:</p>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Clarity (1-10)</label>
+                    <label class="block text-sm text-muted mb-2">Clarity (1-10)</label>
                     <input type="range" id="styleClarity" min="1" max="10" value="5" class="w-full">
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-muted mt-1">
                         <span>Unclear</span>
                         <span id="clarityValue" class="text-electric-violet font-semibold">5</span>
                         <span>Very Clear</span>
@@ -20,9 +20,9 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Energy (1-10)</label>
+                    <label class="block text-sm text-muted mb-2">Energy (1-10)</label>
                     <input type="range" id="styleEnergy" min="1" max="10" value="5" class="w-full">
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-muted mt-1">
                         <span>Calm</span>
                         <span id="energyValue" class="text-electric-violet font-semibold">5</span>
                         <span>High Energy</span>
@@ -30,9 +30,9 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Formality (1-10)</label>
+                    <label class="block text-sm text-muted mb-2">Formality (1-10)</label>
                     <input type="range" id="styleFormality" min="1" max="10" value="5" class="w-full">
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-muted mt-1">
                         <span>Casual</span>
                         <span id="formalityValue" class="text-electric-violet font-semibold">5</span>
                         <span>Formal</span>
@@ -40,9 +40,9 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Empathy (1-10)</label>
+                    <label class="block text-sm text-muted mb-2">Empathy (1-10)</label>
                     <input type="range" id="styleEmpathy" min="1" max="10" value="5" class="w-full">
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-muted mt-1">
                         <span>Logical</span>
                         <span id="empathyValue" class="text-electric-violet font-semibold">5</span>
                         <span>Emotional</span>
@@ -50,11 +50,11 @@
                 </div>
             </div>
             
-            <button onclick="generateStyleRadar()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Generate Radar</button>
+            <button onclick="generateStyleRadar()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition ring-1 ring-black/5">Generate Radar</button>
             
-            <div id="styleResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
-                <h3 class="font-semibold mb-4">Your Style Profile:</h3>
-                <div class="space-y-2 text-sm text-gray-300" id="styleOutput"></div>
+            <div id="styleResult" class="hidden p-6 bg-overlay-weak border border-electric-violet/30 rounded-lg">
+                <h3 class="font-semibold text-text-strong mb-4">Your Style Profile:</h3>
+                <div class="space-y-2 text-sm text-text-strong" id="styleOutput"></div>
             </div>
         </div>
     </div>
@@ -62,12 +62,37 @@
 
 <script>
 function openStyleRadar() {
-    document.getElementById('styleRadarTool').classList.remove('hidden');
+    const tool = document.getElementById('styleRadarTool');
+    if (!tool) return;
+    applyLeverPreset();
+    tool.classList.remove('hidden');
     updateSliderValues();
 }
 
 function closeStyleRadar() {
     document.getElementById('styleRadarTool').classList.add('hidden');
+}
+
+function applyLeverPreset() {
+    const ctx = window.lessonRunnerContext || {};
+    const lever = typeof ctx.getLever === 'function' ? ctx.getLever() : '';
+    const sliders = {
+        clarity: document.getElementById('styleClarity'),
+        energy: document.getElementById('styleEnergy'),
+        formality: document.getElementById('styleFormality'),
+        empathy: document.getElementById('styleEmpathy'),
+    };
+    const presets = {
+        preparation: { clarity: 8, energy: 5, formality: 7, empathy: 5 },
+        presence: { clarity: 6, energy: 8, formality: 5, empathy: 6 },
+        perspective: { clarity: 6, energy: 5, formality: 4, empathy: 8 },
+    };
+    const target = presets[lever] || null;
+    if (target) {
+        Object.entries(target).forEach(([key, value]) => {
+            if (sliders[key]) sliders[key].value = value;
+        });
+    }
 }
 
 function updateSliderValues() {

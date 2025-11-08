@@ -1,923 +1,1206 @@
 {% extends 'myApp/base.html' %}
-{% load app_filters %}
 
 {% block title %}Lesson - Module {{ module.code }} - Speak Pro{% endblock %}
 
 {% block content %}
-<!-- Data attributes for JS -->
-<div id="lessonData" 
-     data-block-id="{% if current_block %}{{ current_block.id }}{% else %}0{% endif %}"
-     data-module-code="{{ module.code }}"
-     data-total-blocks="{{ knowledge_blocks|length }}"
-     style="display: none;"></div>
-
-<!-- Sticky Progress Header -->
-<header id="lessonHeader" class="sticky top-0 z-50 bg-ink-bg/95 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
-    <div class="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+<div id="lessonRunnerApp" class="space-y-6 sm:space-y-8">
+    <header class="sticky top-0 z-40 bg-ink-bg/95 backdrop-blur-md border-b border-default">
+        <div class="max-w-6xl mx-auto px-4 py-3 sm:py-5 flex flex-col gap-3">
         <div class="flex items-center justify-between gap-3">
-            <!-- Left: Back Button -->
-            <a href="{% url 'home' %}" class="flex-shrink-0 w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                <a href="{% url 'home' %}" class="flex-shrink-0 w-10 h-10 rounded-lg bg-overlay-weak hover:bg-overlay-strong border border-default flex items-center justify-center transition" aria-label="Back to home">
+                    <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </a>
-            
-            <!-- Center: Skill • Outcome • Time -->
-            <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
-                {% if current_block and current_block.exercise_seeds %}
-                    {% for seed in current_block.exercise_seeds %}
-                        {% if seed.type == "metadata" %}
-                            <div class="text-xs sm:text-sm text-gray-300 text-center">
-                                <span class="font-semibold text-white">Skill:</span> {{ seed.skill|default:"Learning" }}
+                <div class="flex-1 min-w-0 text-center">
+                    <h1 class="text-sm sm:text-base font-heading font-bold text-text-strong truncate">Module {{ module.code }} · {{ module.name }}</h1>
+                    <p class="text-xs text-muted" id="loopDescriptor">Loop 1 · Main Pass</p>
                             </div>
-                            <div class="text-xs sm:text-sm text-gray-300 text-center">
-                                <span class="font-semibold text-white">Outcome:</span> {{ seed.outcome|default:"Master the concept" }}
-                            </div>
-                            <div class="text-xs text-gray-400 text-center">
-                                {{ seed.time_estimate|default:"2 cards • ~2 mins" }}
+                <div class="flex items-center gap-2">
+                    {% if profile.current_streak > 0 %}
+                    <div class="hidden sm:flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-500">
+                        <span>🔥</span><span class="font-semibold">{{ profile.current_streak }}</span>
                             </div>
                         {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <h1 class="text-sm sm:text-base font-heading font-bold text-white truncate w-full text-center">
-                        Module {{ module.code }} · {{ module.name }}
-                    </h1>
-                {% endif %}
-                <!-- Labeled Progress Rail -->
-                <div class="flex items-center gap-2 mt-2" id="progressRail">
-                    <div class="flex items-center gap-1" data-stage="teach">
-                        <div class="w-1.5 h-1.5 rounded-full bg-electric-violet transition-all"></div>
-                        <span class="text-[10px] sm:text-xs text-electric-violet font-medium">Teach</span>
+                    <div class="flex items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded text-xs text-muted">
+                        <span>⚡</span><span class="font-semibold">{{ profile.total_xp }}</span>
                     </div>
-                    <span class="text-gray-500">•</span>
-                    <div class="flex items-center gap-1" data-stage="drill">
-                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Drill</span>
                     </div>
-                    <span class="text-gray-500">•</span>
-                    <div class="flex items-center gap-1" data-stage="review">
-                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Review</span>
                     </div>
-                    <span class="text-gray-500">•</span>
-                    <div class="flex items-center gap-1" data-stage="checkpoint">
-                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">✓ Checkpoint</span>
+            <div class="flex items-center justify-between text-xs text-muted">
+                <div class="flex items-center gap-2">
+                    <span id="picTrend" class="hidden items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded-full text-[11px] font-semibold"></span>
+                    <span id="leverChip" class="hidden items-center gap-1 px-2 py-1 bg-overlay-weak border border-default rounded-full text-[11px] font-semibold"></span>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Right: Streak + XP -->
-            <div class="flex-shrink-0 flex items-center gap-2">
-                {% if user.profile.current_streak > 0 %}
-                <div class="hidden sm:flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs">
-                    <span>🔥</span>
-                    <span class="font-semibold">{{ user.profile.current_streak }}</span>
-                </div>
-                {% endif %}
-                <div class="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs">
-                    <span>⚡</span>
-                    <span class="font-semibold">{{ user.profile.total_xp }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Compressed Progress Bar (on scroll) -->
-    <div id="compressedProgress" class="hidden h-1 bg-white/5">
-        <div id="progressFill" class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" style="width: 0%"></div>
-    </div>
-</header>
-
-<!-- Content Stage: Card Carousel -->
-<main class="relative min-h-[calc(100vh-64px-64px)] pb-20" id="contentStage">
-    <!-- Card Container -->
-    <div id="cardCarousel" class="relative w-full min-h-[calc(100vh-200px)]">
-        <!-- Teach Card -->
-        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8" data-card="teach" data-block-id="{% if current_block %}{{ current_block.id }}{% else %}0{% endif %}">
-            <div class="w-full max-w-2xl mx-auto py-8">
-                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
-                    <div class="mb-6">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-gray-400">Module {{ module.code }}</span>
-                            {% if current_block and current_block.exercise_seeds %}
-                                {% for seed in current_block.exercise_seeds %}
-                                    {% if seed.type == "drill" and seed.scenario %}
-                                    <span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-xs text-cyan font-medium">{{ seed.scenario }}</span>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-2 text-white" id="teachTitle">
-                            {% if current_block %}{{ current_block.title }}{% else %}Welcome{% endif %}
-                        </h2>
-                        <p class="text-sm text-gray-400 mb-4">Try it in 30s</p>
-                        <div class="text-base sm:text-lg text-gray-300 leading-relaxed whitespace-pre-wrap" id="teachContent">
-                            {% if current_block %}{{ current_block.summary }}{% else %}Let's begin your learning journey.{% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Source Chips -->
-                    <div class="flex flex-wrap gap-2" id="teachCitations">
-                        {% if current_block and current_block.citations %}
-                            {% for citation in current_block.citations %}
-                            <span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm text-gray-400">{{ citation }}</span>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Drill Card -->
-        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="drill">
-            <div class="w-full max-w-2xl mx-auto py-8">
-                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
-                    <div class="mb-4">
-                        <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-2 text-white">Practice</h2>
-                        <p class="text-sm text-gray-400 mb-3">Try it in 30 seconds</p>
-                        <div id="drillScenario" class="mb-4">
-                            <!-- Scenario pill will be inserted here -->
-                        </div>
-                    </div>
-                    <div id="drillContent" class="space-y-4">
-                        <div>
-                            <p class="text-base sm:text-lg text-gray-300 mb-3" id="drillPrompt">Write one Signal Sentence for this scenario.</p>
-                            <div id="drillTemplateChips" class="flex flex-wrap gap-2 mb-4">
-                                <!-- Template chips will be inserted here -->
-                            </div>
-                            <div id="drillConstraint" class="mb-3">
-                                <!-- Constraint will be shown here -->
-                            </div>
-                            <textarea 
-                                id="drillInput" 
-                                placeholder="One sentence. 140 chars. Make it count."
-                                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30 resize-none"
-                                rows="4"
-                                maxlength="140"
-                            ></textarea>
-                            <div class="flex items-center justify-between mt-2">
-                                <span class="text-xs text-gray-400" id="charCount">0/140</span>
-                                <button id="toggleHint" class="text-xs text-cyan hover:text-cyan-400 transition">Show hint</button>
-                            </div>
-                            <div id="drillHint" class="hidden mt-3 p-3 bg-cyan/10 border border-cyan/30 rounded-lg">
-                                <p class="text-sm text-cyan" id="hintText"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
-                        <span>✓</span>
-                        <span id="drillCriteria">1 sentence · ≤140 chars</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Review Card -->
-        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="review">
-            <div class="w-full max-w-2xl mx-auto">
-                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
-                    <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-6 text-white">Review</h2>
-                    <div id="reviewContent" class="space-y-6">
-                        <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-                            <p class="text-sm font-semibold text-green-400 mb-2">Keep this:</p>
-                            <p class="text-gray-300" id="reviewStrength">Loading...</p>
-                        </div>
-                        <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                            <p class="text-sm font-semibold text-amber-400 mb-2">Tweak this:</p>
-                            <p class="text-gray-300" id="reviewFix">Loading...</p>
-                        </div>
-                        <div class="p-4 bg-cyan/10 border border-cyan/30 rounded-xl">
-                            <p class="text-sm font-semibold text-cyan mb-2">Next tiny step:</p>
-                            <p class="text-gray-300" id="reviewNext">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Checkpoint Card -->
-        <div class="card-slide w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 hidden" data-card="checkpoint">
-            <div class="w-full max-w-2xl mx-auto">
-                <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">
-                    <h2 class="text-2xl sm:text-3xl font-heading font-bold mb-4 text-white">Checkpoint</h2>
-                    <p class="text-base sm:text-lg text-gray-300 mb-6">Quick check to see how you're doing.</p>
-                    <div id="checkpointContent" class="space-y-4">
-                        <!-- Checkpoint questions will be loaded here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Primary CTA Button (Morphing) -->
-    <div class="fixed bottom-20 left-0 right-0 z-40 px-4 pb-4 pointer-events-none">
-        <div class="max-w-2xl mx-auto">
-            <button id="primaryCTA" class="w-full px-6 py-4 bg-gradient-to-r from-electric-violet to-cyan text-white font-semibold rounded-xl shadow-2xl shadow-electric-violet/50 hover:shadow-electric-violet/70 transition-all duration-300 hover:scale-105 active:scale-95 pointer-events-auto">
-                Start
-            </button>
-        </div>
-    </div>
-</main>
-
-<!-- Bottom Sheet: Coach -->
-<div id="coachSheet" class="fixed inset-x-0 bottom-0 z-50 bg-ink-surface/95 backdrop-blur-xl border-t border-white/20 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out" style="height: 55vh; max-height: 600px;">
-    <div class="h-full flex flex-col">
-        <!-- Sheet Handle -->
-        <div class="flex-shrink-0 pt-3 pb-2">
-            <div class="w-12 h-1 bg-white/30 rounded-full mx-auto"></div>
-        </div>
-        
-        <!-- Sheet Header -->
-        <div class="flex-shrink-0 px-4 pb-3 border-b border-white/10">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-heading font-bold text-white">AI Coach</h3>
-                <button id="closeCoachSheet" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                <button id="returnPassAction" class="hidden items-center gap-2 px-3 py-1.5 text-[11px] rounded-full border border-electric-violet/40 bg-electric-violet/10 text-electric-violet font-semibold hover:bg-electric-violet/15 transition" type="button">
+                    Booster Ready
                 </button>
+                </div>
+            <div>
+                <div class="h-1 bg-overlay-weak rounded-full overflow-hidden">
+                    <div id="stageProgressBar" class="h-full bg-gradient-to-r from-electric-violet to-cyan transition-all duration-500" style="width:0%"></div>
             </div>
-            
-            <!-- Coach Tabs -->
-            <div class="flex gap-2 mt-3">
-                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold border-b-2 border-electric-violet text-electric-violet" data-tab="teach">Teach</button>
-                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white transition" data-tab="drill">Drill</button>
-                <button class="coach-sheet-tab px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white transition" data-tab="review">Review</button>
+                <div id="stageLabels" class="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted"></div>
             </div>
         </div>
-        
-        <!-- Sheet Content -->
-        <div class="flex-1 overflow-y-auto px-4 py-4">
-            <div id="coachSheetContent" class="space-y-4">
-                <div id="coachTeachTab">
-                    <p class="text-sm text-gray-300" id="coachTeachContent">
-                        {% if current_block %}{{ current_block.summary }}{% else %}Learn the core concepts here.{% endif %}
-                    </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 pb-28">
+        <div id="stageContainer" class="min-h-[60vh]"></div>
+        <div id="stageActions" class="fixed left-0 right-0 bottom-[calc(env(safe-area-inset-bottom)+16px)] sm:bottom-6">
+            <div class="max-w-3xl mx-auto px-4">
+                <div class="flex items-center gap-3 bg-ink-surface/95 border border-default rounded-2xl shadow-brand-soft px-4 py-3">
+                    <button id="stageBackBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-overlay-weak border border-default text-muted cursor-not-allowed" type="button" disabled>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        <span>Back</span>
+                    </button>
+                    <div class="flex-1 text-center text-xs text-muted" id="stageTimeboxHint"></div>
+                    <div class="flex items-center gap-2">
+                        <button id="stageSkipBtn" class="hidden px-4 py-2 rounded-lg border border-default text-muted hover:text-text-strong hover:bg-overlay-weak transition" type="button">Skip</button>
+                        <button id="coachToggleBtn" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-electric-violet/30 bg-electric-violet/10 text-electric-violet font-semibold hover:bg-electric-violet/15 transition" type="button">
+                            <span>Coach</span>
+                            <span class="w-6 h-6 rounded-full bg-gradient-to-br from-electric-violet to-cyan text-white grid place-items-center text-xs font-bold">AI</span>
+                        </button>
+                        <button id="stageSubmitBtn" class="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-electric-violet to-cyan text-white font-semibold shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 transition" type="button">
+                            <span>Continue</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
                 </div>
-                
-                <div id="coachDrillTab" class="hidden">
-                    <p class="text-sm text-gray-300">Practice with a quick exercise.</p>
-                </div>
-                
-                <div id="coachReviewTab" class="hidden">
-                    <p class="text-sm text-gray-300">Get feedback on your progress.</p>
-                </div>
-            </div>
-            
-            <!-- Quick Tools Rail -->
-            <div class="mt-6 pt-6 border-t border-white/10">
-                <h4 class="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Quick Tools</h4>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="openSignalSentence()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
-                        <span class="font-semibold text-white">Signal</span>
-                        <p class="text-xs text-gray-400 mt-1">Build your signal sentence</p>
-                    </button>
-                    <button onclick="openMessageBuilder()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
-                        <span class="font-semibold text-white">3×3</span>
-                        <p class="text-xs text-gray-400 mt-1">Message builder</p>
-                    </button>
-                    <button onclick="openAudienceMap()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
-                        <span class="font-semibold text-white">MAP</span>
-                        <p class="text-xs text-gray-400 mt-1">Audience mapping</p>
-                    </button>
-                    <button onclick="openStyleRadar()" class="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-electric-violet hover:bg-white/10 transition text-left">
-                        <span class="font-semibold text-white">Radar</span>
-                        <p class="text-xs text-gray-400 mt-1">Style awareness</p>
-                    </button>
                 </div>
             </div>
         </div>
+    </main>
+    </div>
+    
+<template id="template-prime">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Prime</h2>
+                <p class="text-sm text-muted">Set your intention and choose one lever to watch.</p>
+    </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Intention</label>
+                    <textarea name="intention" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="In one line, how do you want to show up?"></textarea>
+                        </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="focus_lever" value="preparation" class="sr-only">
+                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Preparation</p>
+                            <p class="text-xs text-muted">Clarify the outcome and structure.</p>
+                        </div>
+                    </label>
+                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="focus_lever" value="presence" class="sr-only">
+                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Presence</p>
+                            <p class="text-xs text-muted">Manage tempo, breathing, and signaling.</p>
+                    </div>
+                    </label>
+                    <label class="relative flex items-center gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="focus_lever" value="perspective" class="sr-only">
+                        <span class="w-5 h-5 rounded-full border border-default flex items-center justify-center"><span class="radio-dot w-2.5 h-2.5 rounded-full bg-electric-violet hidden"></span></span>
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Perspective</p>
+                            <p class="text-xs text-muted">Tune to the audience and stakes.</p>
+                    </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </form>
+</template>
+
+<template id="template-teach">
+    <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="px-2 py-1 bg-overlay-weak border border-default rounded text-[11px] font-semibold text-muted">Micro Teach</span>
+            <span class="px-2 py-1 bg-electric-violet/10 text-electric-violet text-[11px] font-semibold rounded">Concept Tile</span>
+                        </div>
+        <h2 class="text-2xl font-heading font-bold text-text-strong" data-teach-title></h2>
+        <p class="text-sm text-muted">One idea · <span data-timebox></span> seconds.</p>
+        <div class="text-base text-text-strong leading-relaxed whitespace-pre-wrap" data-teach-summary></div>
+        <div class="flex flex-wrap gap-2 text-xs text-muted" data-teach-citations></div>
+                    </div>
+</template>
+
+<template id="template-diagnose">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+                        <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Diagnose</h2>
+                <p class="text-sm text-muted">Map the stakes (PIC) and label the load.</p>
+                            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Scenario</label>
+                    <textarea name="scenario_text" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="What’s the moment you’re preparing for?"></textarea>
+                            </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Pressure</label>
+                        <input type="range" name="pic_pressure" min="0" max="5" step="1" value="0" class="w-full">
+                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
+                            </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Visibility</label>
+                        <input type="range" name="pic_visibility" min="0" max="5" step="1" value="0" class="w-full">
+                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
+                            </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Irreversibility</label>
+                        <input type="range" name="pic_irreversibility" min="0" max="5" step="1" value="0" class="w-full">
+                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
+                        </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Control</label>
+                        <input type="range" name="pic_control" min="0" max="5" step="1" value="0" class="w-full">
+                        <div class="flex justify-between text-[11px] text-muted mt-1"><span>0</span><span>5</span></div>
+                    </div>
+                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Load Type</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
+                            <input type="radio" name="load_label" value="emotional" class="sr-only">
+                            <span class="text-sm text-text-strong">Emotional</span>
+                        </label>
+                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
+                            <input type="radio" name="load_label" value="cognitive" class="sr-only">
+                            <span class="text-sm text-text-strong">Cognitive</span>
+                        </label>
+                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
+                            <input type="radio" name="load_label" value="mixed" class="sr-only">
+                            <span class="text-sm text-text-strong">Mixed</span>
+                        </label>
+                        <label class="px-3 py-2 bg-overlay-weak border border-default rounded-lg cursor-pointer hover:border-electric-violet/60">
+                            <input type="radio" name="load_label" value="unknown" class="sr-only" checked>
+                            <span class="text-sm text-text-strong">Unsure</span>
+                        </label>
+                </div>
+            </div>
+        </div>
+        </div>
+    </form>
+</template>
+
+<template id="template-control_shift">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Control Shift</h2>
+                <p class="text-sm text-muted">Choose one lever and commit to a concrete action.</p>
+                        </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="lever_choice" value="preparation" class="mt-1.5">
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Preparation</p>
+                            <p class="text-xs text-muted">Clarify goal & map the route.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="lever_choice" value="presence" class="mt-1.5">
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Presence</p>
+                            <p class="text-xs text-muted">Adjust tempo, signaling, and body.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 px-4 py-3 bg-overlay-weak border border-default rounded-xl cursor-pointer hover:border-electric-violet/60 focus-within:ring-2 focus-within:ring-brand">
+                        <input type="radio" name="lever_choice" value="perspective" class="mt-1.5">
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">Perspective</p>
+                            <p class="text-xs text-muted">Align to audience needs & stakes.</p>
+                    </div>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Action Plan</label>
+                    <textarea name="action_plan" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="One thing you’ll do differently in the next attempt."></textarea>
+            </div>
+        </div>
+        </div>
+    </form>
+</template>
+
+<template id="template-perform_text">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-heading font-bold text-text-strong">Perform · Text</h2>
+                    <p class="text-sm text-muted">Draft the opening using your chosen lever.</p>
+                    </div>
+                <div class="text-xs text-muted text-right">
+                    <p id="wordCounter">0 words</p>
+                    <p>Goal: 90–120 words</p>
+                </div>
+            </div>
+            <div>
+                <textarea name="text" rows="6" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Write your opening..."></textarea>
+        </div>
+    </div>
+    </form>
+</template>
+
+<template id="template-perform_voice">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong">Perform · Voice</h2>
+                <p class="text-sm text-muted">Record a 30–45 second take (paste a link until the recorder arrives).</p>
+        </div>
+            <div class="grid gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Audio Link</label>
+                    <input type="url" name="audio_ref" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="https://...">
+    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Duration (ms)</label>
+                    <input type="number" name="duration_ms" class="w-32 px-3 py-2 bg-overlay-weak border border-default rounded-lg text-text-strong focus:outline-none focus:ring-2 focus:ring-brand" value="0" min="0" step="500">
+        </div>
+            </div>
+        </div>
+    </form>
+</template>
+
+<template id="template-review">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Review</h2>
+                <p class="text-sm text-muted">Reflect on what worked and what you'll tweak next.</p>
+            </div>
+            <div class="space-y-4">
+                <div id="reviewScores" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted"></div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Self-explain</label>
+                    <textarea name="self_explain" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Why did it work? What will you tweak?"></textarea>
+        </div>
+                <label class="flex items-center gap-2 text-sm text-muted">
+                    <input type="checkbox" name="accept_suggestions" class="w-4 h-4 rounded border-default">
+                    Accept AI suggestions for the next loop
+                </label>
+                </div>
+                </div>
+    </form>
+</template>
+
+<template id="template-transfer">
+    <form class="space-y-6">
+        <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-brand-soft space-y-6">
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-text-strong mb-2">Transfer</h2>
+                <p class="text-sm text-muted">Log the next real moment where you’ll use this.</p>
+                </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Moment Title</label>
+                    <input type="text" name="next_title" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Board update, client pitch, ...">
+            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Date & Time</label>
+                        <input type="datetime-local" name="next_when" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong focus:outline-none focus:ring-2 focus:ring-brand">
+                </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-muted uppercase mb-2">Desired Outcome</label>
+                        <input type="text" name="desired_outcome" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Land decision, align team, ...">
+            </div>
+        </div>
+                <div>
+                    <label class="block text-xs font-semibold text-muted uppercase mb-2">Context</label>
+                    <textarea name="next_context" rows="3" class="w-full px-4 py-3 bg-overlay-weak border border-default rounded-xl text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Key players, stakes, constraints..."></textarea>
     </div>
 </div>
+            <div class="flex flex-wrap gap-2 text-xs text-muted">
+                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="24h">Schedule booster in 24h</button>
+                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="48h">Schedule in 48h</button>
+                <button type="button" class="px-3 py-2 rounded-lg border border-default bg-overlay-weak hover:bg-overlay-strong transition" data-schedule-spacing="72h">Schedule in 72h</button>
+            </div>
+        </div>
+    </form>
+</template>
 
-<!-- Module Outline Modal -->
-<div id="outlineModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-heading font-bold text-white">Module {{ module.code }} Outline</h3>
-            <button id="closeOutlineModal" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+<div id="coachSheet" class="fixed inset-x-0 bottom-0 z-50 bg-ink-surface/95 backdrop-blur-xl border-t border-default rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-out" style="height: 55vh; max-height: 600px;">
+    <div class="flex flex-col h-full">
+        <div class="flex-shrink-0 pt-3 pb-2">
+            <div class="w-16 h-1.5 mx-auto rounded-full bg-overlay-weak"></div>
+        </div>
+        <div class="flex-shrink-0 px-4 pb-3 border-b border-default flex items-center justify-between">
+            <div>
+                <h3 id="coachStageTitle" class="text-lg font-heading font-semibold text-text-strong">Coach Sidekick</h3>
+                <p id="coachStageSubtitle" class="text-xs text-muted mt-1"></p>
+            </div>
+            <button id="closeCoachSheet" class="w-8 h-8 rounded-full bg-overlay-weak border border-default text-muted hover:text-text-strong hover:bg-overlay-strong transition" type="button" aria-label="Close coach sheet">
+                <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
-        <div class="space-y-2">
-            {% for block in knowledge_blocks %}
-            <div class="p-3 rounded-lg {% if block == current_block %}bg-electric-violet/20 border border-electric-violet{% else %}bg-white/5 border border-white/10{% endif %}" data-block-id="{{ block.id }}">
-                <div class="text-sm font-semibold text-white">{{ block.title }}</div>
-                <div class="text-xs text-gray-400 mt-1">{{ block.summary|truncatewords:10 }}</div>
-            </div>
-            {% endfor %}
-        </div>
+        <div id="coachSheetContent" class="flex-1 overflow-y-auto px-4 pb-6 space-y-4"></div>
     </div>
 </div>
 
 {% include 'myApp/components/signal_sentence_checker.html' %}
 {% include 'myApp/components/message_builder_3x3.html' %}
-{% include 'myApp/components/audience_map.html' %}
 {% include 'myApp/components/style_radar.html' %}
 {% endblock %}
 
 {% block extra_js %}
+{{ sequence|json_script:"lesson-sequence-data" }}
+{{ progress_payload|json_script:"lesson-progress-data" }}
+{{ content_payload|json_script:"lesson-content-data" }}
+{{ guardrails|json_script:"lesson-guardrails-data" }}
+{{ module.code|json_script:"lesson-module-code" }}
+{{ current_block.id|json_script:"lesson-block-id" }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // State
-    const lessonData = document.getElementById('lessonData');
-    let currentStage = 'teach'; // teach, drill, review, checkpoint
-    let currentBlockId = lessonData ? parseInt(lessonData.dataset.blockId) : 0;
-    let blockIndex = 0;
-    let isCoachSheetOpen = false;
-    const moduleCode = lessonData ? lessonData.dataset.moduleCode : '';
-    
-    // Elements
-    const primaryCTA = document.getElementById('primaryCTA');
-    const cardCarousel = document.getElementById('cardCarousel');
-    const coachSheet = document.getElementById('coachSheet');
-    const outlineModal = document.getElementById('outlineModal');
-    const progressDots = document.querySelectorAll('#progressDots [data-stage]');
-    const lessonHeader = document.getElementById('lessonHeader');
-    const compressedProgress = document.getElementById('compressedProgress');
-    const progressFill = document.getElementById('progressFill');
-    
-    // Make header title clickable to open outline
-    const headerTitle = document.querySelector('#lessonHeader h1');
-    if (headerTitle) {
-        headerTitle.style.cursor = 'pointer';
-        headerTitle.addEventListener('click', () => {
-            outlineModal.classList.remove('hidden');
-            outlineModal.classList.add('flex');
-        });
-    }
-    
-    // Close outline modal
-    document.getElementById('closeOutlineModal').addEventListener('click', () => {
-        outlineModal.classList.add('hidden');
-        outlineModal.classList.remove('flex');
-    });
-    
-    outlineModal.addEventListener('click', (e) => {
-        if (e.target === outlineModal) {
-            outlineModal.classList.add('hidden');
-            outlineModal.classList.remove('flex');
-        }
-    });
-    
-    // Coach Sheet Management
-    function openCoachSheet() {
-        coachSheet.classList.remove('translate-y-full');
-        isCoachSheetOpen = true;
-        // Update coach content to match current stage
-        updateCoachContent();
-    }
-    
-    function closeCoachSheet() {
-        coachSheet.classList.add('translate-y-full');
-        isCoachSheetOpen = false;
-    }
-    
-    document.getElementById('closeCoachSheet').addEventListener('click', closeCoachSheet);
-    
-    // Coach sheet tabs
-    document.querySelectorAll('.coach-sheet-tab').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tab = this.dataset.tab;
-            document.querySelectorAll('.coach-sheet-tab').forEach(b => {
-                b.classList.remove('border-b-2', 'border-electric-violet', 'text-electric-violet');
-                b.classList.add('text-gray-400');
-            });
-            this.classList.add('border-b-2', 'border-electric-violet', 'text-electric-violet');
-            this.classList.remove('text-gray-400');
-            
-            document.getElementById('coachTeachTab').classList.toggle('hidden', tab !== 'teach');
-            document.getElementById('coachDrillTab').classList.toggle('hidden', tab !== 'drill');
-            document.getElementById('coachReviewTab').classList.toggle('hidden', tab !== 'review');
-        });
-    });
-    
-    // Update coach content based on current stage
-    function updateCoachContent() {
-        const teachContent = document.getElementById('coachTeachContent');
-        const currentCard = document.querySelector('.card-slide:not(.hidden)');
-        if (currentCard && teachContent) {
-            const cardContent = currentCard.querySelector('[id$="Content"]');
-            if (cardContent) {
-                teachContent.textContent = cardContent.textContent.substring(0, 200) + '...';
-            }
-        }
-    }
-    
-    // Progress Rail (labeled)
-    function updateProgressDots(stage) {
-        const stages = ['teach', 'drill', 'review', 'checkpoint'];
-        const progressRail = document.getElementById('progressRail');
-        if (!progressRail) return;
-        
-        stages.forEach((s) => {
-            const stageEl = progressRail.querySelector(`[data-stage="${s}"]`);
-            if (stageEl) {
-                const dot = stageEl.querySelector('.rounded-full');
-                const label = stageEl.querySelector('span');
-                
-                if (s === stage) {
-                    dot.classList.remove('bg-white/20');
-                    dot.classList.add('bg-electric-violet');
-                    if (label) {
-                        label.classList.remove('text-gray-400');
-                        label.classList.add('text-electric-violet');
-                    }
-                } else {
-                    dot.classList.remove('bg-electric-violet');
-                    dot.classList.add('bg-white/20');
-                    if (label) {
-                        label.classList.remove('text-electric-violet');
-                        label.classList.add('text-gray-400');
-                    }
-                }
-            }
-        });
-    }
-    
-    // Card Navigation
-    function showCard(cardType) {
-        document.querySelectorAll('.card-slide').forEach(card => {
-            card.classList.add('hidden');
-        });
-        const targetCard = document.querySelector(`[data-card="${cardType}"]`);
-        if (targetCard) {
-            targetCard.classList.remove('hidden');
-        }
-    }
-    
-    // Morphing CTA
-    function updateCTA(stage) {
-        const labels = {
-            'teach': 'Try it (30s)',
-            'drill': 'Check',
-            'review': 'Next',
-            'checkpoint': 'Continue'
-        };
-        if (primaryCTA) {
-            primaryCTA.textContent = labels[stage] || 'Continue';
-        }
-    }
-    
-    // Primary CTA Handler
-    primaryCTA.addEventListener('click', async function() {
-        const btn = this;
-        const originalText = btn.textContent;
-        
-        btn.disabled = true;
-        btn.textContent = 'Loading...';
-        btn.classList.add('opacity-50');
-        
-        try {
-            if (currentStage === 'teach') {
-                // Move to drill
-                currentStage = 'drill';
-                showCard('drill');
-                updateProgressDots('drill');
-                updateCTA('drill');
-                loadDrill();
-            } else if (currentStage === 'drill') {
-                // Submit drill and move to review (optimistic)
-                currentStage = 'review';
-                showCard('review');
-                updateProgressDots('review');
-                updateCTA('review');
-                await submitDrill();
-            } else if (currentStage === 'review') {
-                // Move to next block
-                await advanceToNextBlock();
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Something went wrong. Please try again.');
-        } finally {
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
-        }
-    });
-    
-    // Load Drill
-    async function loadDrill() {
-        const teachCard = document.querySelector('[data-card="teach"]');
-        const blockId = teachCard ? teachCard.getAttribute('data-block-id') : null;
-        
-        // Try to get drill data from the last API response or fetch it
-        let drillData = null;
-        if (blockId && blockId !== '0') {
-            try {
-                // Fetch current block data to get exercise_seeds
-                const response = await fetch('/ai/lesson/orchestrate/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        module: moduleCode,
-                        last_block: parseInt(blockId),
-                        last_score: 1.0
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.exercise_seeds) {
-                        drillData = data.exercise_seeds.find(s => s.type === 'drill');
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading drill data:', error);
-            }
-        }
-        
-        const drillScenario = document.getElementById('drillScenario');
-        const drillTemplateChips = document.getElementById('drillTemplateChips');
-        const drillConstraint = document.getElementById('drillConstraint');
-        const hintText = document.getElementById('hintText');
-        const drillCriteria = document.getElementById('drillCriteria');
-        const drillInput = document.getElementById('drillInput');
-        const charCount = document.getElementById('charCount');
-        const drillPrompt = document.getElementById('drillPrompt');
-        
-        // Default drill structure (matches seed_data.py)
-        const defaultDrill = {
-            scenario: "Board review • Q2 losses",
-            template: ["[Topic]", "[Tension]", "[Takeaway]"],
-            constraint: "Max 140 characters, 1 sentence",
-            hint: "Start with the problem, end with the action",
-            criteria: "1 sentence · ≤140 chars",
-            prompt: "Write one Signal Sentence for this scenario."
-        };
-        
-        // Use drillData if available, otherwise defaults
-        const drill = drillData || defaultDrill;
-        
-        if (drillScenario && drill.scenario) {
-            drillScenario.innerHTML = `<span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-sm text-cyan font-medium">${drill.scenario}</span>`;
-        }
-        
-        if (drillTemplateChips && drill.template && drill.template.length > 0) {
-            drillTemplateChips.innerHTML = drill.template.map(t => 
-                `<button class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-gray-300 hover:border-electric-violet hover:bg-white/10 transition" onclick="insertTemplate('${t.replace(/'/g, "\\'")}')">${t}</button>`
-            ).join('');
-        } else if (drillTemplateChips) {
-            drillTemplateChips.innerHTML = '';
-        }
-        
-        if (drillConstraint && drill.constraint) {
-            drillConstraint.innerHTML = `<p class="text-sm text-gray-400">${drill.constraint}</p>`;
-        }
-        
-        if (hintText && drill.hint) {
-            hintText.textContent = drill.hint;
-        }
-        
-        if (drillCriteria && drill.criteria) {
-            drillCriteria.textContent = drill.criteria;
-        }
-        
-        if (drillPrompt && drill.prompt) {
-            drillPrompt.textContent = drill.prompt;
-        }
-        
-        // Character counter
-        if (drillInput && charCount) {
-            // Remove existing listeners by cloning
-            const newInput = drillInput.cloneNode(true);
-            drillInput.parentNode.replaceChild(newInput, drillInput);
-            
-            newInput.addEventListener('input', function() {
-                const count = this.value.length;
-                const maxLength = parseInt(this.getAttribute('maxlength')) || 140;
-                charCount.textContent = `${count}/${maxLength}`;
-                if (count > maxLength) {
-                    charCount.classList.add('text-red-400');
-                } else {
-                    charCount.classList.remove('text-red-400');
-                }
-            });
-        }
-        
-        // Toggle hint
-        const toggleHint = document.getElementById('toggleHint');
-        const drillHint = document.getElementById('drillHint');
-        if (toggleHint && drillHint) {
-            toggleHint.addEventListener('click', function() {
-                const isHidden = drillHint.classList.contains('hidden');
-                drillHint.classList.toggle('hidden');
-                toggleHint.textContent = isHidden ? 'Hide hint' : 'Show hint';
-            });
-        }
-    }
-    
-    // Insert template into textarea
-    window.insertTemplate = function(template) {
-        const drillInput = document.getElementById('drillInput');
-        if (drillInput) {
-            const cursorPos = drillInput.selectionStart;
-            const textBefore = drillInput.value.substring(0, cursorPos);
-            const textAfter = drillInput.value.substring(cursorPos);
-            drillInput.value = textBefore + template + ' ' + textAfter;
-            drillInput.focus();
-            drillInput.setSelectionRange(cursorPos + template.length + 1, cursorPos + template.length + 1);
-            // Trigger input event to update char count
-            drillInput.dispatchEvent(new Event('input'));
-        }
+(() => {
+    const sequenceEl = document.getElementById('lesson-sequence-data');
+    const progressEl = document.getElementById('lesson-progress-data');
+    const contentEl = document.getElementById('lesson-content-data');
+    const guardrailsEl = document.getElementById('lesson-guardrails-data');
+    const moduleEl = document.getElementById('lesson-module-code');
+    const blockEl = document.getElementById('lesson-block-id');
+    if (!sequenceEl || !moduleEl || !blockEl) return;
+
+    const sequence = JSON.parse(sequenceEl.textContent || '[]');
+    const progressState = JSON.parse(progressEl?.textContent || '{}');
+    const contentState = JSON.parse(contentEl?.textContent || '{}');
+    const guardrails = JSON.parse(guardrailsEl?.textContent || '{}');
+    const moduleCode = JSON.parse(moduleEl.textContent || '""');
+    const blockId = JSON.parse(blockEl.textContent || 'null');
+
+    if (!Array.isArray(sequence) || sequence.length === 0) return;
+    if (blockId === null) return;
+
+    const stageEndpoints = {
+        prime: "{% url 'lesson_prime_submit' %}",
+        teach: "{% url 'lesson_teach_submit' %}",
+        diagnose: "{% url 'lesson_diagnose_submit' %}",
+        control_shift: "{% url 'lesson_control_shift_submit' %}",
+        perform_text: "{% url 'lesson_perform_text_submit' %}",
+        perform_voice: "{% url 'lesson_perform_voice_submit' %}",
+        review: "{% url 'lesson_review_submit' %}",
+        transfer: "{% url 'lesson_transfer_submit' %}",
     };
-    
-    // Submit Drill (optimistic)
-    async function submitDrill() {
-        const drillInput = document.getElementById('drillInput');
-        const response = drillInput ? drillInput.value.trim() : '';
-        
-        // Validation
-        if (!response) {
-            alert('Try a rough first draft. Perfect comes later.');
-            return;
+    const spacingEndpoint = "{% url 'lesson_spacing_schedule' %}";
+
+    const stageSubtitles = {
+        prime: 'Prime your attention',
+        teach: 'Watch a micro concept',
+        diagnose: 'Name the stakes',
+        control_shift: 'Choose the lever',
+        perform_text: 'Draft the text pass',
+        perform_voice: 'Deliver a voice pass',
+        review: 'Reflect & capture feedback',
+        transfer: 'Plan your real-world moment',
+    };
+
+    const toolPreferences = {
+        prime: { message: 'Signal Sentence captures your intention before you dive in.', primary: 'signal' },
+        teach: { message: 'Use 3×3 Builder to expand the tile into three pillars.', primary: 'message' },
+        diagnose: { message: 'Signal Sentence helps you articulate Pressure · Visibility · Irreversibility.', primary: 'signal' },
+        control_shift: { message: 'Style Radar can reset your body before you enact the lever.', primary: 'style' },
+        perform_text: { message: '3×3 Builder turns your lever into a tight script.', primary: 'message' },
+        perform_voice: { message: 'Style Radar keeps tabs on presence cues while you record.', primary: 'style' },
+        review: { message: '3×3 Builder captures keep / tweak / next for your notes.', primary: 'message' },
+        transfer: { message: 'Signal Sentence drafts the follow-up message for your next moment.', primary: 'signal' },
+        default: { message: 'Open a tool to get a prompt tailored to this stage.', primary: 'signal' },
+    };
+
+    const coachContentMap = {
+        prime: (ctx) => [
+            {
+                title: 'Prime Checklist',
+                items: [
+                    'Recall your last win to lower load.',
+                    'Name one lever to watch (Preparation / Presence / Perspective).',
+                    'Set a success sentence before you hit play.',
+                ],
+            },
+            {
+                title: 'Why it matters',
+                body: 'Priming calms the amygdala and frees up working memory so the Teach card lands.',
+            },
+        ],
+        teach: (ctx) => [
+            {
+                title: 'Micro Teach Tips',
+                items: [
+                    'Skim once for the structure, once for the example.',
+                    'Underline the verb in the concept—what action does it demand?',
+                    'Note one question you still have for Diagnose.',
+                ],
+            },
+        ],
+        diagnose: (ctx) => {
+            const blocks = [
+                {
+                    title: 'PIC Reminders',
+                    items: [
+                        'Pressure = consequences if you fail.',
+                        'Visibility = who sees it or hears about it.',
+                        'Irreversibility = how hard it is to undo.',
+                    ],
+                },
+            ];
+            if (ctx.latestScenario) {
+                const pic = ctx.latestPic || {};
+                const picLines = [];
+                if (typeof pic.pressure === 'number') picLines.push(`Pressure ${pic.pressure}/5`);
+                if (typeof pic.visibility === 'number') picLines.push(`Visibility ${pic.visibility}/5`);
+                if (typeof pic.irreversibility === 'number') picLines.push(`Irreversibility ${pic.irreversibility}/5`);
+                if (typeof pic.control === 'number') picLines.push(`Control ${pic.control}/5`);
+                blocks.push({
+                    title: 'Current Scenario',
+                    body: ctx.latestScenario,
+                });
+                if (picLines.length) {
+                    blocks.push({
+                        title: 'Latest PIC Snapshot',
+                        items: picLines,
+                    });
+                }
+            }
+            blocks.push({
+                title: 'Load Labels',
+                body: 'Choose Emotional when nerves are spiking, Cognitive when the problem is thinking load. Mixed is OK.',
+            });
+            return blocks;
+        },
+        control_shift: (ctx) => [
+            {
+                title: 'Levers at a Glance',
+                items: [
+                    'Preparation → clarify purpose, agenda, or evidence.',
+                    'Presence → adjust pacing, pausing, breath, or body.',
+                    'Perspective → tune to the audience’s stakes.',
+                ],
+            },
+            ctx.progress.lever_choice ? {
+                title: 'Current Lever',
+                body: `You are focusing on ${ctx.humanize(ctx.progress.lever_choice)}. Write a one-line action to test it in the next pass.`,
+            } : null,
+        ].filter(Boolean),
+        perform_text: (ctx) => [
+            {
+                title: 'Text Pass Pointers',
+                items: [
+                    'Aim for 90–120 words with a clear open-middle-close.',
+                    'Highlight where your chosen lever shows up.',
+                    'Keep verbs active; read it aloud once before submitting.',
+                ],
+            },
+        ],
+        perform_voice: (ctx) => [
+            {
+                title: 'Voice Pass Pointers',
+                items: [
+                    'Stand if you can—presence shows in posture.',
+                    'Use Style Radar to note body/voice shifts before & after.',
+                    'Mark the moment your lever shows up (pause, signpost, etc.).',
+                ],
+            },
+        ],
+        review: (ctx) => [
+            {
+                title: 'Review Prompts',
+                items: [
+                    'Keep: What landed? Capture the exact phrase or cue.',
+                    'Tweak: What would you change in the next pass?',
+                    'Next: Write a one-line reminder for the transfer card.',
+                ],
+            },
+            ctx.latestPic ? {
+                title: 'Control Delta',
+                body: `Control moved to ${ctx.latestPic.control ?? '—'} / 5. Celebrate progress before you aim higher.`,
+            } : null,
+        ].filter(Boolean),
+        transfer: (ctx) => [
+            {
+                title: 'Transfer Checklist',
+                items: [
+                    'Name your next high-stakes moment (title + date).',
+                    'Log desired outcome + audience perspective.',
+                    'Schedule a booster pass within 24–72h while the concept is fresh.',
+                ],
+            },
+            ctx.latestScenario ? {
+                title: 'Last Scenario Reference',
+                body: ctx.latestScenario,
+            } : null,
+        ].filter(Boolean),
+        default: () => [
+            {
+                title: 'Keep going',
+                body: 'Use the tools below to stay anchored while you move through the loop.',
+            },
+        ],
+    };
+
+    function getCSRFToken() {
+        const name = 'csrftoken=';
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name)) {
+                return decodeURIComponent(cookie.substring(name.length));
+            }
         }
-        
-        if (response.length > 140) {
-            alert('Too long. Can you cut to the action in one line?');
-            return;
-        }
-        
-        // Optimistically show review with contextual feedback
-        const reviewContent = {
-            strength: "You named the tension clearly: 'Q2 losses'.",
-            fix: "Add a concrete action (what happens next).",
-            next: "Rewrite with a specific fix or timeframe."
-        };
-        
-        // Check if response is good (simple heuristic)
-        const hasTopic = response.length > 20;
-        const hasAction = /\b(will|ship|fix|launch|approve|implement)\b/i.test(response);
-        
-        if (hasTopic && hasAction) {
-            reviewContent.strength = "Locked in. Ready for a tougher example?";
-            reviewContent.fix = "Two pillars are crisp; the third is vague. Make it measurable.";
-            reviewContent.next = "Try a harder scenario or move to the next concept.";
-        }
-        
-        document.getElementById('reviewStrength').textContent = reviewContent.strength;
-        document.getElementById('reviewFix').textContent = reviewContent.fix;
-        document.getElementById('reviewNext').textContent = reviewContent.next;
-        
-        // Submit in background
-        try {
-            // TODO: Call actual API
-            console.log('Drill submitted:', response);
-        } catch (error) {
-            console.error('Error submitting drill:', error);
-        }
+        return '';
     }
-    
-    // Advance to Next Block
-    async function advanceToNextBlock() {
-        try {
-            const response = await fetch('/ai/lesson/orchestrate/', {
+
+    function showToast(message, type = 'info', duration = 3200) {
+        if (!message) return;
+        const containerId = 'lesson-runner-toast-container';
+        let container = document.getElementById(containerId);
+        if (!container) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.className = 'fixed top-4 right-4 z-[9999] space-y-3 max-w-sm';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition ${type === 'success' ? 'bg-green-500/10 border-green-400/40 text-green-200' : type === 'error' ? 'bg-rose-500/10 border-rose-400/40 text-rose-100' : 'bg-ink-surface border border-default text-text-strong'}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => container.removeChild(toast), 320);
+        }, duration);
+    }
+
+    function cloneTemplate(id) {
+        const tpl = document.getElementById(id);
+        if (!tpl) return null;
+        return tpl.content.cloneNode(true);
+    }
+
+    class LessonRunnerMachine {
+        constructor(config) {
+            this.sequence = config.sequence.slice();
+            this.progress = { ...config.progress };
+            this.content = config.content || {};
+            this.guardrails = config.guardrails || {};
+            this.moduleCode = config.moduleCode;
+            this.blockId = config.blockId;
+            this.stageEndpoints = config.stageEndpoints;
+            this.spacingEndpoint = config.spacingEndpoint;
+            this.csrfToken = getCSRFToken();
+            this.stageContainer = document.getElementById('stageContainer');
+            this.timeboxHint = document.getElementById('stageTimeboxHint');
+            this.submitBtn = document.getElementById('stageSubmitBtn');
+            this.skipBtn = document.getElementById('stageSkipBtn');
+            this.coachBtn = document.getElementById('coachToggleBtn');
+            this.progressBar = document.getElementById('stageProgressBar');
+            this.stageLabels = document.getElementById('stageLabels');
+            this.loopDescriptor = document.getElementById('loopDescriptor');
+            this.returnPassAction = document.getElementById('returnPassAction');
+            this.picTrendChip = document.getElementById('picTrend');
+            this.leverChip = document.getElementById('leverChip');
+            this.coachSheet = document.getElementById('coachSheet');
+            this.coachContent = document.getElementById('coachSheetContent');
+            this.coachTitle = document.getElementById('coachStageTitle');
+            this.coachSubtitle = document.getElementById('coachStageSubtitle');
+            this.closeCoachBtn = document.getElementById('closeCoachSheet');
+            this.currentTile = (this.content.tiles && this.content.tiles[0]) || null;
+            this.currentScores = null;
+            this.busy = false;
+            this.stageForm = null;
+            this.latestScenario = '';
+            this.latestPic = null;
+            this.latestLever = this.progress.lever_choice || null;
+            const self = this;
+            window.lessonRunnerContext = {
+                getScenario: () => self.latestScenario || '',
+                getLever: () => self.progress.lever_choice || self.latestLever || '',
+                getPic: () => self.latestPic,
+            };
+            this.init();
+        }
+
+        init() {
+            this.resolveIndex();
+            this.renderStageLabels();
+            this.updateProgressUI();
+            this.bindEvents();
+            this.renderStage();
+        }
+
+        bindEvents() {
+            this.submitBtn.addEventListener('click', () => this.submitCurrentStage());
+            if (this.coachBtn) {
+                this.coachBtn.addEventListener('click', () => this.toggleCoachSheet(true));
+            }
+            if (this.closeCoachBtn) {
+                this.closeCoachBtn.addEventListener('click', () => this.toggleCoachSheet(false));
+            }
+            if (this.coachSheet) {
+                this.coachSheet.addEventListener('click', (evt) => {
+                    if (evt.target === this.coachSheet) this.toggleCoachSheet(false);
+                });
+            }
+            if (this.returnPassAction) {
+                this.returnPassAction.addEventListener('click', () => window.location.reload());
+            }
+        }
+
+        resolveIndex() {
+            const key = this.progress.stage_key || this.sequence[0].key;
+            const idx = this.sequence.findIndex(s => s.key === key);
+            this.index = idx >= 0 ? idx : 0;
+        }
+
+        get currentDescriptor() {
+            return this.sequence[this.index];
+        }
+
+        renderStageLabels() {
+            this.stageLabels.innerHTML = '';
+            this.sequence.forEach((stage, idx) => {
+                const el = document.createElement('div');
+                el.className = 'flex-1 text-center';
+                const label = document.createElement('span');
+                label.textContent = stage.key.replace('_', ' ');
+                label.className = 'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full transition';
+                if (idx < this.index) {
+                    label.classList.add('bg-electric-violet/15', 'text-electric-violet');
+                } else if (idx === this.index) {
+                    label.classList.add('bg-electric-violet', 'text-white');
+                } else {
+                    label.classList.add('bg-overlay-weak', 'text-muted');
+                }
+                el.appendChild(label);
+                this.stageLabels.appendChild(el);
+            });
+        }
+
+        renderStage() {
+            this.stageContainer.innerHTML = '';
+            const descriptor = this.currentDescriptor;
+            if (!descriptor) return;
+
+            const fragment = cloneTemplate(`template-${descriptor.key}`);
+            if (!fragment) {
+                const fallback = document.createElement('div');
+                fallback.className = 'p-6 bg-ink-surface border border-default rounded-2xl text-text-strong';
+                fallback.textContent = `Missing template for stage: ${descriptor.key}`;
+                this.stageContainer.appendChild(fallback);
+                return;
+            }
+            this.stageContainer.appendChild(fragment);
+            this.stageForm = this.stageContainer.querySelector('form') || null;
+            this.stageContainer.setAttribute('data-stage', descriptor.key);
+            if (this.coachSheet) this.coachSheet.setAttribute('data-stage', descriptor.key);
+            this.decorateStage(descriptor);
+            this.updateControls(descriptor);
+            this.renderCoachContent(descriptor.key);
+        }
+
+        decorateStage(descriptor) {
+            switch (descriptor.key) {
+                case 'prime':
+                    this.decoratePrime();
+                    break;
+                case 'teach':
+                    this.decorateTeach();
+                    break;
+                case 'diagnose':
+                    this.decorateDiagnose();
+                    break;
+                case 'perform_text':
+                    this.decoratePerformText();
+                    break;
+                case 'transfer':
+                    this.decorateTransfer();
+                    break;
+                case 'review':
+                    this.decorateReview();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        updateControls(descriptor) {
+            if (descriptor.timebox_s) {
+                const seconds = parseInt(descriptor.timebox_s, 10);
+                this.timeboxHint.textContent = seconds ? `Timebox · ~${seconds}s` : '';
+            } else {
+                this.timeboxHint.textContent = '';
+            }
+            const optional = descriptor.required === false;
+            this.skipBtn.classList.toggle('hidden', !optional);
+            this.skipBtn.disabled = !optional;
+            this.coachBtn?.classList.remove('hidden');
+        }
+
+        decoratePrime() {
+            const radios = this.stageContainer.querySelectorAll('input[type="radio"][name="focus_lever"]');
+            const self = this;
+            radios.forEach((radio) => {
+                radio.addEventListener('change', () => {
+                    radios.forEach(r => {
+                        const dot = r.parentElement.querySelector('.radio-dot');
+                        if (dot) dot.classList.toggle('hidden', !r.checked);
+                    });
+                    self.latestLever = radio.value;
+                });
+            });
+            const activeLever = this.progress.lever_choice || this.latestLever;
+            if (activeLever) {
+                radios.forEach((radio) => {
+                    if (radio.value === activeLever) {
+                        radio.checked = true;
+                        const dot = radio.parentElement.querySelector('.radio-dot');
+                        if (dot) dot.classList.remove('hidden');
+                    }
+                });
+            }
+        }
+
+        decorateTeach() {
+            const titleEl = this.stageContainer.querySelector('[data-teach-title]');
+            const summaryEl = this.stageContainer.querySelector('[data-teach-summary]');
+            const citationsEl = this.stageContainer.querySelector('[data-teach-citations]');
+            const timeboxEl = this.stageContainer.querySelector('[data-timebox]');
+            const tile = this.currentTile;
+            if (!tile) return;
+            titleEl.textContent = tile.title || 'Concept';
+            summaryEl.textContent = tile.summary || '';
+            if (Array.isArray(tile.citations)) {
+                tile.citations.forEach((cite) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'px-3 py-1 bg-overlay-weak border border-default rounded-full';
+                    chip.textContent = cite;
+                    citationsEl.appendChild(chip);
+                });
+            }
+            timeboxEl.textContent = this.currentDescriptor.timebox_s || 0;
+        }
+
+        decorateDiagnose() {
+            const radios = this.stageContainer.querySelectorAll('input[type="radio"][name="load_label"]');
+            radios.forEach((radio) => {
+                radio.addEventListener('change', () => {
+                    radios.forEach(r => {
+                        const parent = r.parentElement;
+                        if (parent) parent.classList.toggle('border-electric-violet/60', r.checked);
+                    });
+                });
+            });
+            const textarea = this.stageContainer.querySelector('textarea[name="scenario_text"]');
+            if (textarea && this.latestScenario && !textarea.value) {
+                textarea.value = this.latestScenario;
+            }
+            const pic = this.latestPic;
+            if (pic) {
+                const mapping = {
+                    pressure: this.stageContainer.querySelector('input[name="pic_pressure"]'),
+                    visibility: this.stageContainer.querySelector('input[name="pic_visibility"]'),
+                    irreversibility: this.stageContainer.querySelector('input[name="pic_irreversibility"]'),
+                    control: this.stageContainer.querySelector('input[name="pic_control"]'),
+                };
+                Object.entries(mapping).forEach(([key, input]) => {
+                    if (input && typeof pic[key] === 'number') {
+                        input.value = pic[key];
+                    }
+                });
+            }
+            const load = this.progress.load_label || 'unknown';
+            radios.forEach((radio) => {
+                if (radio.value === load) {
+                    radio.checked = true;
+                    const parent = radio.parentElement;
+                    if (parent) parent.classList.add('border-electric-violet/60');
+                }
+            });
+        }
+
+        decoratePerformText() {
+            const textarea = this.stageContainer.querySelector('textarea[name="text"]');
+            const counter = this.stageContainer.querySelector('#wordCounter');
+            const update = () => {
+                const words = textarea.value.trim().split(/\s+/).filter(Boolean);
+                counter.textContent = `${words.length} words`;
+            };
+            textarea.addEventListener('input', update);
+            update();
+        }
+
+        decorateTransfer() {
+            const buttons = this.stageContainer.querySelectorAll('[data-schedule-spacing]');
+            buttons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const base = btn.getAttribute('data-schedule-spacing') || '24h';
+                    this.scheduleSpacing(base);
+                });
+            });
+        }
+
+        renderCoachContent(stageKey) {
+            if (!this.coachContent) return;
+            const key = stageKey || (this.currentDescriptor && this.currentDescriptor.key) || 'default';
+            const factory = coachContentMap[key] || coachContentMap.default;
+            const blocks = typeof factory === 'function' ? factory(this) : [];
+            this.coachContent.innerHTML = '';
+            if (this.coachTitle) {
+                this.coachTitle.textContent = `Coach · ${this.humanize(key)}`;
+            }
+            if (this.coachSubtitle) {
+                this.coachSubtitle.textContent = stageSubtitles[key] || 'Support for this stage';
+            }
+            blocks.forEach((block) => {
+                if (!block) return;
+                this.coachContent.appendChild(this.buildCoachCard(block));
+            });
+            this.coachContent.appendChild(this.buildToolsCard(key));
+        }
+
+        buildCoachCard(block) {
+            const card = document.createElement('div');
+            card.className = 'p-4 bg-overlay-weak border border-default rounded-2xl space-y-2';
+            if (block.title) {
+                const title = document.createElement('h4');
+                title.className = 'text-sm font-semibold text-text-strong';
+                title.textContent = block.title;
+                card.appendChild(title);
+            }
+            if (block.body) {
+                const body = document.createElement('p');
+                body.className = 'text-sm text-muted';
+                body.textContent = block.body;
+                card.appendChild(body);
+            }
+            if (Array.isArray(block.items) && block.items.length) {
+                const list = document.createElement('ul');
+                list.className = 'text-sm text-muted space-y-1 list-disc list-inside';
+                block.items.forEach((item) => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    list.appendChild(li);
+                });
+                card.appendChild(list);
+            }
+            return card;
+        }
+
+        buildToolsCard(stageKey) {
+            const prefs = toolPreferences[stageKey] || toolPreferences.default;
+            const card = document.createElement('div');
+            card.className = 'p-4 bg-overlay-weak border border-default rounded-2xl space-y-3';
+            const title = document.createElement('h4');
+            title.className = 'text-sm font-semibold text-text-strong';
+            title.textContent = 'Helpful Tools';
+            card.appendChild(title);
+            if (prefs?.message) {
+                const msg = document.createElement('p');
+                msg.className = 'text-sm text-muted';
+                msg.textContent = prefs.message;
+                card.appendChild(msg);
+            }
+            const buttonRow = document.createElement('div');
+            buttonRow.className = 'grid grid-cols-3 gap-2 text-xs';
+            const buttons = [
+                { key: 'signal', label: 'Signal', handler: 'openSignalSentence' },
+                { key: 'message', label: '3×3', handler: 'openMessageBuilder' },
+                { key: 'style', label: 'Style', handler: 'openStyleRadar' },
+            ];
+            buttons.forEach(({ key, label, handler }) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = label;
+                const isPrimary = prefs?.primary === key;
+                btn.className = `px-2 py-2 rounded-lg border transition font-semibold ${isPrimary ? 'border-electric-violet/60 bg-electric-violet/10 text-electric-violet' : 'border-default bg-overlay-weak text-muted hover:bg-overlay-strong'}`;
+                btn.addEventListener('click', () => {
+                    if (typeof window[handler] === 'function') {
+                        window[handler]();
+                    }
+                });
+                buttonRow.appendChild(btn);
+            });
+            card.appendChild(buttonRow);
+            return card;
+        }
+
+        humanize(value) {
+            if (!value) return '';
+            return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+        }
+
+        decorateReview() {
+            const container = this.stageContainer.querySelector('#reviewScores');
+            container.innerHTML = '';
+            if (!this.currentScores) return;
+            Object.entries(this.currentScores).forEach(([key, value]) => {
+                const card = document.createElement('div');
+                card.className = 'px-3 py-3 bg-overlay-weak border border-default rounded-lg flex items-center justify-between';
+                const label = document.createElement('span');
+                label.className = 'text-[11px] uppercase tracking-wide text-muted';
+                label.textContent = key;
+                const score = document.createElement('span');
+                score.className = 'text-sm font-semibold text-text-strong';
+                score.textContent = `${Math.round(value)}%`;
+                card.appendChild(label);
+                card.appendChild(score);
+                container.appendChild(card);
+            });
+        }
+
+        updateProgressUI() {
+            this.resolveIndex();
+            this.renderStageLabels();
+            const percent = ((this.index) / this.sequence.length) * 100;
+            this.progressBar.style.width = `${Math.min(100, percent)}%`;
+            const descriptor = this.currentDescriptor;
+            this.loopDescriptor.textContent = `Loop ${this.progress.loop_index + 1} · ${this.progress.pass_type === 'return' ? 'Return Pass' : 'Main Pass'}`;
+            if (this.progress.pass_type === 'return') {
+                this.returnPassAction?.classList.remove('hidden');
+                } else {
+                this.returnPassAction?.classList.add('hidden');
+            }
+            if (this.progress.lever_choice) {
+                this.leverChip.textContent = `Lever · ${this.progress.lever_choice}`;
+                this.leverChip.classList.remove('hidden');
+            } else {
+                this.leverChip.classList.add('hidden');
+            }
+            if (descriptor && descriptor.required === false) {
+                this.skipBtn.classList.remove('hidden');
+            } else {
+                this.skipBtn.classList.add('hidden');
+            }
+        }
+
+        collectPayload(descriptor) {
+            if (!this.stageForm) return {};
+            const formData = new FormData(this.stageForm);
+            const payload = {};
+            switch (descriptor.key) {
+                case 'prime':
+                    payload.intention = formData.get('intention')?.trim() || '';
+                    payload.focus_lever = formData.get('focus_lever') || null;
+                    break;
+                case 'teach':
+                    payload.tile_slug = this.currentTile?.slug || `${this.moduleCode}-${this.blockId}`;
+                    break;
+                case 'diagnose':
+                    payload.scenario_text = formData.get('scenario_text')?.trim() || '';
+                    payload.pic = {
+                        pressure: Number(formData.get('pic_pressure') || 0),
+                        visibility: Number(formData.get('pic_visibility') || 0),
+                        irreversibility: Number(formData.get('pic_irreversibility') || 0),
+                        control: Number(formData.get('pic_control') || 0),
+                    };
+                    payload.load_label = formData.get('load_label') || 'unknown';
+                    break;
+                case 'control_shift':
+                    payload.lever_choice = formData.get('lever_choice');
+                    payload.action_plan = formData.get('action_plan')?.trim() || '';
+                    break;
+                case 'perform_text':
+                    payload.text = formData.get('text')?.trim() || '';
+                    payload.word_count = payload.text ? payload.text.split(/\s+/).filter(Boolean).length : 0;
+                    payload.duration_ms = Number(formData.get('duration_ms') || 0);
+                    break;
+                case 'perform_voice':
+                    payload.audio_ref = formData.get('audio_ref')?.trim() || '';
+                    payload.duration_ms = Number(formData.get('duration_ms') || 0);
+                    break;
+                case 'review':
+                    payload.self_explain = formData.get('self_explain')?.trim() || '';
+                    payload.accept_suggestions = !!formData.get('accept_suggestions');
+                    payload.scores = this.currentScores || {};
+                    break;
+                case 'transfer':
+                    payload.next_moment = {
+                        title: formData.get('next_title')?.trim() || '',
+                        when: formData.get('next_when') || '',
+                        context: formData.get('next_context')?.trim() || '',
+                    };
+                    payload.desired_outcome = formData.get('desired_outcome')?.trim() || '';
+                    break;
+                default:
+                    break;
+            }
+            return payload;
+        }
+
+        async submitCurrentStage() {
+            if (this.busy) return;
+            const descriptor = this.currentDescriptor;
+            if (!descriptor) return;
+            const endpoint = this.stageEndpoints[descriptor.key];
+            if (!endpoint) {
+                showToast('No endpoint configured for this stage.', 'error');
+            return;
+        }
+            const payload = this.collectPayload(descriptor);
+            if (descriptor.key === 'perform_text' && !payload.text) {
+                showToast('Your text performance cannot be empty.', 'error');
+            return;
+        }
+            if (descriptor.key === 'perform_voice' && !payload.audio_ref) {
+                showToast('Please provide an audio link to continue.', 'error');
+                return;
+            }
+            this.busy = true;
+            this.submitBtn.classList.add('opacity-60');
+            try {
+                const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                        'X-CSRFToken': this.csrfToken,
                 },
                 body: JSON.stringify({
-                    module: moduleCode,
-                    last_block: currentBlockId,
-                    last_score: 1.0
-                })
-            });
-            
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
+                        module_code: this.moduleCode,
+                        block_id: this.blockId,
+                        loop_index: this.progress.loop_index,
+                        pass_type: this.progress.pass_type,
+                        client_ts: new Date().toISOString(),
+                        ...payload,
+                    }),
+                });
             const data = await response.json();
-            
-            if (data.block_id) {
-                // Update teach card
-                document.getElementById('teachTitle').textContent = data.title || 'Welcome';
-                document.getElementById('teachContent').textContent = data.summary || '';
-                
-                // Update citations
-                const citationsContainer = document.getElementById('teachCitations');
-                if (citationsContainer && data.citations && data.citations.length > 0) {
-                    citationsContainer.innerHTML = data.citations.map(c => 
-                        `<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm text-gray-400">${c}</span>`
-                    ).join('');
-                } else if (citationsContainer) {
-                    citationsContainer.innerHTML = '';
+                if (!data.ok) {
+                    const message = data.error?.message || 'Something went wrong.';
+                    showToast(message, 'error');
+                    return;
                 }
-                
-                // Update scenario pill if drill data exists
-                const scenarioContainer = document.querySelector('[data-card="teach"] .flex.items-center.gap-2');
-                if (scenarioContainer && data.exercise_seeds) {
-                    const drillSeed = data.exercise_seeds.find(s => s.type === 'drill');
-                    if (drillSeed && drillSeed.scenario) {
-                        const existingScenario = scenarioContainer.querySelector('.bg-cyan\\/10');
-                        if (existingScenario) {
-                            existingScenario.textContent = drillSeed.scenario;
-                        } else {
-                            scenarioContainer.innerHTML += `<span class="px-3 py-1 bg-cyan/10 border border-cyan/30 rounded-full text-xs text-cyan font-medium">${drillSeed.scenario}</span>`;
-                        }
-                    }
+                const previousPassType = this.progress.pass_type;
+                this.progress = data.progress;
+                if (data.toast?.body) {
+                    const tone = data.toast.title && data.toast.title.toLowerCase().includes('saved') ? 'success' : 'info';
+                    showToast(data.toast.body, tone);
                 }
-                
-                // Update header with skill/outcome/time if metadata exists
-                if (data.exercise_seeds) {
-                    const metadata = data.exercise_seeds.find(s => s.type === 'metadata');
-                    if (metadata) {
-                        const headerCenter = document.querySelector('#lessonHeader .flex-1.flex-col');
-                        if (headerCenter) {
-                            headerCenter.innerHTML = `
-                                <div class="text-xs sm:text-sm text-gray-300 text-center">
-                                    <span class="font-semibold text-white">Skill:</span> ${metadata.skill || 'Learning'}
-                                </div>
-                                <div class="text-xs sm:text-sm text-gray-300 text-center">
-                                    <span class="font-semibold text-white">Outcome:</span> ${metadata.outcome || 'Master the concept'}
-                                </div>
-                                <div class="text-xs text-gray-400 text-center">
-                                    ${metadata.time_estimate || '2 cards • ~2 mins'}
-                                </div>
-                                <div class="flex items-center gap-2 mt-2" id="progressRail">
-                                    <div class="flex items-center gap-1" data-stage="teach">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-electric-violet transition-all"></div>
-                                        <span class="text-[10px] sm:text-xs text-electric-violet font-medium">Teach</span>
-                                    </div>
-                                    <span class="text-gray-500">•</span>
-                                    <div class="flex items-center gap-1" data-stage="drill">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Drill</span>
-                                    </div>
-                                    <span class="text-gray-500">•</span>
-                                    <div class="flex items-center gap-1" data-stage="review">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">Review</span>
-                                    </div>
-                                    <span class="text-gray-500">•</span>
-                                    <div class="flex items-center gap-1" data-stage="checkpoint">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></div>
-                                        <span class="text-[10px] sm:text-xs text-gray-400 font-medium">✓ Checkpoint</span>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }
+                if (descriptor.key === 'review' && payload.scores) {
+                    this.currentScores = payload.scores;
                 }
-                
-                // Update block ID
-                const teachCard = document.querySelector('[data-card="teach"]');
-                if (teachCard) {
-                    teachCard.setAttribute('data-block-id', data.block_id);
-                    currentBlockId = data.block_id;
+                if (descriptor.key === 'transfer') {
+                    this.currentScores = null;
                 }
-                
-                // Reset to teach stage
-                currentStage = 'teach';
-                showCard('teach');
-                updateProgressDots('teach');
-                updateCTA('teach');
-                
-                // Update progress
-                updateProgress();
-                
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                // Module complete
-                showCard('teach');
-                document.getElementById('teachTitle').textContent = 'Module Complete!';
-                document.getElementById('teachContent').textContent = 'Congratulations! You\'ve completed all knowledge blocks.';
-                primaryCTA.textContent = 'Back to Home';
-                primaryCTA.onclick = () => window.location.href = '{% url "home" %}';
-            }
+                if (descriptor.key === 'diagnose') {
+                    this.latestScenario = payload.scenario_text;
+                    this.latestPic = payload.pic;
+                }
+                if (descriptor.key === 'control_shift' && payload.lever_choice) {
+                    this.latestLever = payload.lever_choice;
+                }
+                if (descriptor.key === 'prime' && payload.focus_lever) {
+                    this.latestLever = payload.focus_lever;
+                }
+                this.latestLever = this.progress.lever_choice || this.latestLever;
+                this.resolveSequence(previousPassType, this.progress.pass_type);
+                this.updateProgressUI();
+                this.renderStage();
         } catch (error) {
-            console.error('Error advancing block:', error);
-            throw error;
+                console.error(error);
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                this.busy = false;
+                this.submitBtn.classList.remove('opacity-60');
+            }
         }
-    }
-    
-    // Update Progress
-    function updateProgress() {
-        // Calculate progress based on blocks completed
-        const totalBlocks = lessonData ? parseInt(lessonData.dataset.totalBlocks) : 1;
-        const progress = ((blockIndex + 1) / totalBlocks) * 100;
-        if (progressFill) {
-            progressFill.style.width = Math.min(progress, 100) + '%';
+
+        resolveSequence(previousPassType, nextPassType) {
+            if (previousPassType === nextPassType) return;
+            window.setTimeout(() => window.location.reload(), 400);
         }
-    }
-    
-    // Swipe Gestures
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    cardCarousel.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    });
-    
-    cardCarousel.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    });
-    
-    function handleSwipe() {
-        const swipeThreshold = 50;
-        const diff = touchStartX - touchEndX;
-        
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0 && currentStage !== 'teach') {
-                // Swipe left - go back
-                if (currentStage === 'drill') {
-                    currentStage = 'teach';
-                    showCard('teach');
-                    updateProgressDots('teach');
-                    updateCTA('teach');
-                } else if (currentStage === 'review') {
-                    currentStage = 'drill';
-                    showCard('drill');
-                    updateProgressDots('drill');
-                    updateCTA('drill');
+
+        async scheduleSpacing(baseLabel) {
+            if (this.busy) return;
+            this.busy = true;
+            try {
+                const response = await fetch(this.spacingEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.csrfToken,
+                    },
+                    body: JSON.stringify({
+                        module_code: this.moduleCode,
+                        block_id: this.blockId,
+                        loop_index: this.progress.loop_index,
+                        base: baseLabel,
+                        jitter: '±6h',
+                    }),
+                });
+                const data = await response.json();
+                if (!data.ok) {
+                    const message = data.error?.message || 'Could not schedule booster.';
+                    showToast(message, 'error');
+                    return;
                 }
-            } else if (diff < 0 && currentStage === 'teach') {
-                // Swipe right - advance (only from teach)
-                primaryCTA.click();
+                showToast(data.toast?.body || 'Booster scheduled.', 'success');
+                window.setTimeout(() => window.location.reload(), 900);
+            } catch (error) {
+                console.error(error);
+                showToast('Failed to schedule booster.', 'error');
+            } finally {
+                this.busy = false;
             }
         }
-    }
-    
-    // Keyboard Navigation
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft' && currentStage !== 'teach') {
-            if (currentStage === 'drill') {
-                currentStage = 'teach';
-                showCard('teach');
-                updateProgressDots('teach');
-                updateCTA('teach');
-            } else if (currentStage === 'review') {
-                currentStage = 'drill';
-                showCard('drill');
-                updateProgressDots('drill');
-                updateCTA('drill');
+
+        toggleCoachSheet(show) {
+            if (!this.coachSheet) return;
+            if (show) {
+                this.renderCoachContent(this.currentDescriptor?.key);
+                this.coachSheet.classList.remove('translate-y-full');
+            } else {
+                this.coachSheet.classList.add('translate-y-full');
             }
-        } else if (e.key === 'ArrowRight' && currentStage === 'teach') {
-            primaryCTA.click();
-        } else if (e.key === 'Enter' && currentStage === 'drill') {
-            primaryCTA.click();
         }
-    });
-    
-    // Scroll Header Compression
-    let lastScroll = 0;
-    window.addEventListener('scroll', () => {
-        const scroll = window.scrollY;
-        if (scroll > 100 && scroll > lastScroll) {
-            // Scrolling down - compress
-            lessonHeader.classList.add('h-12');
-            compressedProgress.classList.remove('hidden');
-        } else {
-            // Scrolling up - expand
-            lessonHeader.classList.remove('h-12');
-            compressedProgress.classList.add('hidden');
-        }
-        lastScroll = scroll;
-    });
-    
-    // Double-tap header to scroll to top
-    let lastTap = 0;
-    headerTitle.addEventListener('click', (e) => {
-        const now = Date.now();
-        if (now - lastTap < 300) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        lastTap = now;
-    });
-    
-    // Long-press Coach for quick actions (on footer coach button)
-    // This will be handled by the footer component
-    
-    // Helper: Get CSRF Token
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+
+        renderCoachContent(stageKey) {
+            const coachContent = coachContentMap[stageKey](this.progress);
+            this.coachContent.innerHTML = '';
+            coachContent.forEach(section => {
+                const sectionEl = document.createElement('div');
+                sectionEl.className = 'space-y-3';
+                if (section.title) {
+                    const titleEl = document.createElement('h3');
+                    titleEl.className = 'text-lg font-heading font-semibold text-text-strong';
+                    titleEl.textContent = section.title;
+                    sectionEl.appendChild(titleEl);
                 }
-            }
+                if (section.body) {
+                    const bodyEl = document.createElement('div');
+                    bodyEl.className = 'text-sm text-text-strong leading-relaxed whitespace-pre-wrap';
+                    bodyEl.textContent = section.body;
+                    sectionEl.appendChild(bodyEl);
+                }
+                if (section.items && section.items.length > 0) {
+                    const itemsEl = document.createElement('ul');
+                    itemsEl.className = 'list-disc list-inside text-sm text-text-strong';
+                    section.items.forEach(item => {
+                        const itemEl = document.createElement('li');
+                        itemEl.textContent = item;
+                        itemsEl.appendChild(itemEl);
+                    });
+                    sectionEl.appendChild(itemsEl);
+                }
+                this.coachContent.appendChild(sectionEl);
+            });
         }
-        return cookieValue;
     }
-    
-    // Initialize
-    updateProgressDots('teach');
-    updateCTA('teach');
-    updateProgress();
-    
-    // Expose openCoachSheet globally for footer
-    window.openCoachSheet = openCoachSheet;
-});
+
+    new LessonRunnerMachine({
+        sequence,
+        progress: progressState,
+        content: contentState,
+        guardrails,
+        moduleCode,
+        blockId,
+        stageEndpoints,
+        spacingEndpoint,
+    });
+})();
 </script>
 {% endblock %}

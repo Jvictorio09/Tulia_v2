@@ -245,6 +245,33 @@ class UserProgress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='progress')
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='user_progress')
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
+    PASS_CHOICES = [
+        ('main', 'Main'),
+        ('return', 'Return'),
+    ]
+    LEVER_CHOICES = [
+        ('preparation', 'Preparation'),
+        ('presence', 'Presence'),
+        ('perspective', 'Perspective'),
+    ]
+    LOAD_CHOICES = [
+        ('emotional', 'Emotional'),
+        ('cognitive', 'Cognitive'),
+        ('mixed', 'Mixed'),
+        ('unknown', 'Unknown'),
+    ]
+    stage_key = models.CharField(max_length=32, default='prime')
+    loop_index = models.IntegerField(default=0)
+    pass_type = models.CharField(max_length=8, choices=PASS_CHOICES, default='main')
+    sequence_version = models.CharField(max_length=12, default='v1.0')
+    lever_choice = models.CharField(max_length=16, choices=LEVER_CHOICES, blank=True)
+    pic_pressure = models.SmallIntegerField(default=0)
+    pic_visibility = models.SmallIntegerField(default=0)
+    pic_irreversibility = models.SmallIntegerField(default=0)
+    pic_control = models.SmallIntegerField(default=0)
+    load_label = models.CharField(max_length=16, choices=LOAD_CHOICES, default='unknown')
+    return_at = models.DateTimeField(null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
     
     started = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
@@ -260,9 +287,51 @@ class UserProgress(models.Model):
     class Meta:
         unique_together = ['user', 'module']
         ordering = ['module__order']
+        indexes = [
+            models.Index(fields=['user', 'current_knowledge_block', 'loop_index', 'pass_type']),
+        ]
     
     def __str__(self):
         return f"{self.user.username} - {self.module}"
+
+
+class ExerciseSubmission(models.Model):
+    """Stage submission records for lesson runner loops"""
+    STAGE_CHOICES = [
+        ('prime', 'Prime'),
+        ('teach', 'Teach'),
+        ('diagnose', 'Diagnose'),
+        ('control_shift', 'Control Shift'),
+        ('perform_text', 'Perform Text'),
+        ('perform_voice', 'Perform Voice'),
+        ('review', 'Review'),
+        ('transfer', 'Transfer'),
+    ]
+    PASS_CHOICES = [
+        ('main', 'Main'),
+        ('return', 'Return'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_submissions')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lesson_submissions')
+    knowledge_block = models.ForeignKey(KnowledgeBlock, on_delete=models.CASCADE, related_name='lesson_submissions')
+    loop_index = models.IntegerField(default=0)
+    pass_type = models.CharField(max_length=8, choices=PASS_CHOICES, default='main')
+    stage_key = models.CharField(max_length=32, choices=STAGE_CHOICES)
+    lever_choice = models.CharField(max_length=16, blank=True)
+    payload = models.JSONField(default=dict)
+    scores = models.JSONField(default=dict, blank=True)
+    duration_ms = models.IntegerField(default=0)
+    client_ts = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'module', 'knowledge_block', 'loop_index', 'stage_key']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.stage_key} - loop {self.loop_index}"
 
 
 class AnalyticsEvent(models.Model):

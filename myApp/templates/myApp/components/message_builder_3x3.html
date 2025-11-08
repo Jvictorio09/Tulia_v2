@@ -1,41 +1,41 @@
-<div id="messageBuilderTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+<div id="messageBuilderTool" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ink-surface border border-default rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-brand-soft">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl sm:text-2xl font-heading font-bold">3×3 Message Builder</h2>
-            <button onclick="closeMessageBuilder()" class="text-gray-400 hover:text-white">✕</button>
+            <h2 class="text-xl sm:text-2xl font-heading font-bold text-text-strong">3×3 Message Builder</h2>
+            <button onclick="closeMessageBuilder()" class="text-muted hover:text-text-strong">✕</button>
         </div>
         
         <div class="space-y-6">
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Signal (Core Message)</label>
-                <input type="text" id="msgSignal" placeholder="Your main point" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet">
+                <label class="block text-sm text-muted mb-2">Signal (Core Message)</label>
+                <input type="text" id="msgSignal" placeholder="Your main point" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
             </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Pillar 1</label>
-                    <textarea id="msgPillar1" placeholder="Supporting point 1" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm text-muted mb-2">Pillar 1</label>
+                    <textarea id="msgPillar1" placeholder="Supporting point 1" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30 h-24"></textarea>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Pillar 2</label>
-                    <textarea id="msgPillar2" placeholder="Supporting point 2" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm text-muted mb-2">Pillar 2</label>
+                    <textarea id="msgPillar2" placeholder="Supporting point 2" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30 h-24"></textarea>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Pillar 3</label>
-                    <textarea id="msgPillar3" placeholder="Supporting point 3" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm text-muted mb-2">Pillar 3</label>
+                    <textarea id="msgPillar3" placeholder="Supporting point 3" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30 h-24"></textarea>
                 </div>
             </div>
             
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Call to Action</label>
-                <input type="text" id="msgCTA" placeholder="What should they do?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet">
+                <label class="block text-sm text-muted mb-2">Call to Action</label>
+                <input type="text" id="msgCTA" placeholder="What should they do?" class="w-full p-3 bg-ink-surface border border-default rounded-lg text-text-strong placeholder:text-muted focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
             </div>
             
-            <button onclick="buildMessage()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Build Message</button>
+            <button onclick="buildMessage()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition ring-1 ring-black/5">Build Message</button>
             
-            <div id="messageResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
-                <h3 class="font-semibold mb-4">Your Message Structure:</h3>
-                <div class="space-y-3 text-gray-300" id="messageOutput"></div>
+            <div id="messageResult" class="hidden p-6 bg-overlay-weak border border-electric-violet/30 rounded-lg">
+                <h3 class="font-semibold text-text-strong mb-4">Your Message Structure:</h3>
+                <div class="space-y-3 text-text-strong" id="messageOutput"></div>
             </div>
         </div>
     </div>
@@ -43,7 +43,27 @@
 
 <script>
 function openMessageBuilder() {
-    document.getElementById('messageBuilderTool').classList.remove('hidden');
+    const tool = document.getElementById('messageBuilderTool');
+    if (!tool) return;
+    const ctx = window.lessonRunnerContext || {};
+    const scenario = typeof ctx.getScenario === 'function' ? ctx.getScenario() : '';
+    const lever = typeof ctx.getLever === 'function' ? ctx.getLever() : '';
+    const signal = document.getElementById('msgSignal');
+    const pillar1 = document.getElementById('msgPillar1');
+    const pillar2 = document.getElementById('msgPillar2');
+    const pillar3 = document.getElementById('msgPillar3');
+    const cta = document.getElementById('msgCTA');
+    if (signal && !signal.value && scenario) {
+        signal.value = scenario;
+    }
+    if (lever) {
+        const leverLine = `Leverage ${lever} lever.`;
+        if (pillar1 && !pillar1.value) pillar1.value = leverLine;
+        if (pillar2 && !pillar2.value) pillar2.value = 'Audience takeaway · What they must know.';
+        if (pillar3 && !pillar3.value) pillar3.value = 'Action request · What they must do.';
+        if (cta && !cta.value) cta.value = 'Confirm next step or decision.';
+    }
+    tool.classList.remove('hidden');
 }
 
 function closeMessageBuilder() {

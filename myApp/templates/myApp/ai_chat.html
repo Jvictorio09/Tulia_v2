@@ -5,12 +5,11 @@
 
 {% block extra_head %}
 <style>
-    /* Hide the base navbar on AI chat page, but keep footer */
     body.authenticated nav:first-of-type {
         display: none !important;
     }
     body.authenticated {
-        background: #0B0E14 !important;
+        background: var(--color-ink-bg) !important;
         padding-bottom: 64px !important;
     }
     @media (min-width: 768px) {
@@ -23,14 +22,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col min-h-screen bg-gradient-to-b from-[#0B0E14] via-[#0B0E14] to-[#111623] text-white">
+<div class="flex flex-col min-h-screen bg-ink-bg text-text-strong">
 
   <!-- Premium Dark Header -->
-  <header class="sticky top-0 z-40 bg-[#0B0E14]/95 backdrop-blur-xl border-b border-white/10 shadow-lg">
+  <header class="sticky top-0 z-40 bg-ink-surface/95 backdrop-blur-xl border-b border-default shadow-brand-soft">
     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="{% url 'home' %}" class="flex items-center gap-2 group">
-          <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-8 sm:h-10 w-auto group-hover:scale-110 transition-transform">
+          <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-8 sm:h-10 w-auto group-hover:scale-110 transition-transform drop-shadow-sm">
             <defs>
               <linearGradient id="chatBubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
@@ -49,18 +48,18 @@
             <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
           </svg>
         </a>
-        <div class="h-6 w-px bg-white/20"></div>
+        <div class="h-6 w-px bg-border-default"></div>
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-electric-violet/20 to-cyan/20 border border-electric-violet/30 grid place-items-center">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-electric-violet/10 to-cyan/10 border border-electric-violet/20 grid place-items-center">
             <span class="text-electric-violet font-bold text-sm">T</span>
           </div>
           <div>
-            <h1 class="font-bold text-base sm:text-lg text-white">AI Coach</h1>
-            <p class="text-xs text-white/50">Level {{ current_level }} • {{ profile.total_xp }} XP</p>
+            <h1 class="font-bold text-base sm:text-lg text-text-strong">AI Coach</h1>
+            <p class="text-xs text-muted">Level {{ current_level }} • {{ profile.total_xp }} XP</p>
           </div>
         </div>
       </div>
-      <a href="{% url 'home' %}" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all" aria-label="Close">
+      <a href="{% url 'home' %}" class="w-10 h-10 rounded-xl bg-overlay-weak hover:bg-overlay-strong border border-default flex items-center justify-center text-muted hover:text-text-strong transition-all" aria-label="Close">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -71,14 +70,14 @@
   <!-- Chat Container -->
   <main id="chatContainer" class="flex-1 overflow-y-auto px-4 sm:px-6 max-w-4xl mx-auto w-full pt-4 pb-[calc(100px+env(safe-area-inset-bottom)+64px)] space-y-4">
     <!-- Welcome -->
-    <div class="p-5 rounded-2xl bg-gradient-to-br from-electric-violet/15 via-cyan/15 to-blue-400/15 border border-white/10 backdrop-blur-sm shadow-xl">
+    <div class="p-5 rounded-2xl bg-gradient-to-br from-electric-violet/10 via-cyan/10 to-blue-400/10 border border-default backdrop-blur-sm shadow-brand-soft">
       <div class="flex items-start gap-4">
         <div class="w-12 h-12 rounded-full bg-gradient-to-r from-electric-violet to-cyan grid place-items-center shadow-lg shadow-electric-violet/30 flex-shrink-0">
           <span class="text-white text-xl">💬</span>
         </div>
         <div class="flex-1">
-          <h2 class="font-bold text-lg mb-2 text-white">Hi! I'm your AI Coach 👋</h2>
-          <p class="text-white/80 text-sm leading-relaxed">Ask me anything about your lessons, delivery, or communication skills! I'm here to help you master high-stakes communication.</p>
+          <h2 class="font-bold text-lg mb-2 text-text-strong">Hi! I'm your AI Coach 👋</h2>
+          <p class="text-muted text-sm leading-relaxed">Ask me anything about your lessons, delivery, or communication skills! I'm here to help you master high-stakes communication.</p>
         </div>
       </div>
     </div>
@@ -88,17 +87,17 @@
   </main>
 
   <!-- Input Area -->
-  <footer class="fixed left-0 right-0 z-40 bg-[#0B0E14]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl" style="bottom: calc(env(safe-area-inset-bottom) + 64px + 16px); padding-bottom: 16px;">
+  <footer class="fixed left-0 right-0 z-40 bg-ink-surface/95 backdrop-blur-xl border-t border-default shadow-brand-soft" style="bottom: calc(env(safe-area-inset-bottom) + 64px + 16px); padding-bottom: 16px;">
     <div class="max-w-4xl mx-auto px-4 pt-4 pb-3 flex items-end gap-2 sm:gap-3">
       <div class="flex-1 relative">
         <textarea 
           id="messageInput"
           rows="1"
           placeholder="Type your question for your AI Coach..."
-          class="w-full px-4 py-3.5 pr-14 rounded-2xl bg-white/10 border-2 border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-electric-violet/50 focus:border-electric-violet/50 resize-none transition-all text-sm sm:text-base backdrop-blur-sm shadow-lg"
+          class="w-full px-4 py-3.5 pr-14 rounded-2xl bg-ink-surface border-2 border-default text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-electric-violet/40 focus:border-electric-violet/60 resize-none transition-all text-sm sm:text-base backdrop-blur-sm shadow-brand-soft"
           onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }"
         ></textarea>
-        <button onclick="sendMessage()" class="absolute right-2.5 bottom-2.5 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-r from-electric-violet to-cyan hover:scale-110 active:scale-95 transition-transform grid place-items-center shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60">
+        <button onclick="sendMessage()" class="absolute right-2.5 bottom-2.5 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-r from-electric-violet to-cyan hover:scale-110 active:scale-95 transition-transform grid place-items-center shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 ring-1 ring-black/5">
           <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
           </svg>
@@ -161,17 +160,17 @@ function addMessage(sender, text, isTyping = false, isError = false) {
 
   if (sender === 'user') {
     msgDiv.innerHTML = `
-      <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-tr-none bg-gradient-to-r from-electric-violet to-cyan shadow-lg shadow-electric-violet/30">
+      <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-tr-none bg-gradient-to-r from-electric-violet to-cyan shadow-lg shadow-electric-violet/30 ring-1 ring-black/5">
         <p class="text-white text-sm sm:text-base leading-relaxed font-medium">${escapeHtml(text)}</p>
       </div>`;
   } else {
     const bg = isError 
-      ? 'bg-rose-500/20 border border-rose-500/50 shadow-lg shadow-rose-500/20' 
-      : 'bg-gradient-to-br from-white/10 via-white/5 to-white/5 border border-white/10 backdrop-blur-sm shadow-lg';
+      ? 'bg-rose-50 border border-rose-200 shadow-lg'
+      : 'bg-ink-surface border border-default shadow-brand-soft';
     msgDiv.innerHTML = `
-      <div class="w-9 h-9 rounded-full bg-gradient-to-r from-electric-violet to-cyan grid place-items-center text-white text-sm font-bold flex-shrink-0 shadow-lg shadow-electric-violet/30">T</div>
+      <div class="w-9 h-9 rounded-full bg-gradient-to-r from-electric-violet to-cyan grid place-items-center text-white text-sm font-bold flex-shrink-0 shadow-lg shadow-electric-violet/30 ring-1 ring-black/5">T</div>
       <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-tl-none ${bg}">
-        <p class="text-white/90 text-sm sm:text-base leading-relaxed">${isTyping ? '<span class="animate-pulse flex items-center gap-2"><span class="inline-block w-2 h-2 bg-white/60 rounded-full"></span><span class="inline-block w-2 h-2 bg-white/40 rounded-full" style="animation-delay: 0.2s"></span><span class="inline-block w-2 h-2 bg-white/30 rounded-full" style="animation-delay: 0.4s"></span></span>' : escapeHtml(text)}</p>
+        <p class="text-text-strong text-sm sm:text-base leading-relaxed">${isTyping ? '<span class="animate-pulse flex items-center gap-2 text-muted"><span class="inline-block w-2 h-2 bg-electric-violet/40 rounded-full"></span><span class="inline-block w-2 h-2 bg-electric-violet/30 rounded-full" style="animation-delay: 0.2s"></span><span class="inline-block w-2 h-2 bg-electric-violet/20 rounded-full" style="animation-delay: 0.4s"></span></span>' : escapeHtml(text)}</p>
       </div>`;
   }
 
