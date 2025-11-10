@@ -73,24 +73,35 @@
         {% endif %}
     </main>
 
-    <aside id="coachDrawer" class="fixed inset-x-0 bottom-0 z-40 transform translate-y-full transition-transform duration-300 ease-out">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
-            <div class="rounded-3xl border border-default bg-ink-surface shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-default">
+    <aside id="coachDrawer" class="fixed inset-x-0 bottom-0 sm:inset-y-auto sm:top-24 sm:bottom-24 sm:right-8 sm:left-auto z-40 w-full sm:max-w-md transform translate-y-full sm:translate-y-0 sm:translate-x-full transition-transform duration-300 ease-out">
+        <div class="mx-auto flex h-[min(90vh,_32rem)] w-full flex-col rounded-t-3xl border border-default border-b-0 bg-ink-surface shadow-2xl sm:mx-0 sm:h-[calc(100vh-12rem)] sm:rounded-l-3xl sm:rounded-t-none sm:border-b sm:border-l sm:border-r-0">
+            <div class="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-default">
                 <div>
-                        <p class="text-xs uppercase tracking-[0.3em] text-muted">Coach Tuli</p>
-                        <h2 id="coachTitle" class="text-lg font-heading font-semibold text-text-strong">Gentle guidance</h2>
-                        <p id="coachSubtitle" class="text-xs text-muted mt-0.5">Stage-specific nudges appear here</p>
-    </div>
-                    <button id="coachCloseButton" type="button" class="w-9 h-9 rounded-full border border-default bg-overlay-weak hover:bg-overlay-strong transition focus:outline-none focus:ring-2 focus:ring-brand" aria-label="Close coach drawer">
-                        <svg class="w-4 h-4 mx-auto text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <p class="text-xs uppercase tracking-[0.3em] text-muted">Coach Tuli</p>
+                    <h2 id="coachTitle" class="text-lg font-heading font-semibold text-text-strong">Gentle guidance</h2>
+                    <p id="coachSubtitle" class="text-xs text-muted mt-0.5">Stage-specific nudges appear here</p>
+                </div>
+                <button id="coachCloseButton" type="button" class="w-9 h-9 rounded-full border border-default bg-overlay-weak hover:bg-overlay-strong transition focus:outline-none focus:ring-2 focus:ring-brand" aria-label="Close coach drawer">
+                    <svg class="w-4 h-4 mx-auto text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="coachContent" class="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-4"></div>
+            <div id="coachComposer" class="border-t border-default bg-ink-surface/95 backdrop-blur-sm px-4 sm:px-6 py-4">
+                <div id="coachPromptChips" class="mb-3 flex flex-wrap gap-2"></div>
+                <form id="coachForm" class="flex items-end gap-3">
+                    <label class="sr-only" for="coachInput">Ask Coach Tuli</label>
+                    <textarea id="coachInput" rows="1" class="flex-1 resize-none rounded-2xl border border-default bg-overlay-weak px-4 py-3 text-sm leading-snug text-text-strong placeholder:text-muted focus:border-electric-violet focus:outline-none focus:ring-2 focus:ring-electric-violet/40 transition" placeholder="Ask Coach Tuli for guidance..." autocomplete="off"></textarea>
+                    <button id="coachSendButton" type="submit" class="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-electric-violet to-cyan px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:cursor-not-allowed disabled:opacity-60">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l16 8-16 8v-5l10-3-10-3V4z"/>
                         </svg>
+                        <span>Send</span>
                     </button>
-                        </div>
-                <div id="coachContent" class="px-4 sm:px-6 py-6 space-y-4 max-h-[55vh] overflow-y-auto"></div>
-                        </div>
-                    </div>
+                </form>
+            </div>
+        </div>
     </aside>
 
     <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] space-y-3 w-full max-w-sm pointer-events-none"></div>
@@ -125,6 +136,7 @@
     const endpoints = {
         submit: "{% url 'lesson_card_submit' %}",
         spacing: "{% url 'lesson_spacing_schedule' %}",
+        coach: "{% url 'ai_coach_respond' %}",
     };
 
     const csrfToken = (() => {
@@ -164,7 +176,62 @@
         }, 2600);
     };
 
-    const formatOption = (value) => value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const formatOption = (value = '') => value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const escapeHtml = (value = '') =>
+        value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+    const PHASE_LOOKUP = {
+        A: { key: 'learn', label: 'Learn' },
+        B: { key: 'diagnose', label: 'Diagnose' },
+        C: { key: 'regulate', label: 'Regulate' },
+        D: { key: 'decide', label: 'Decide' },
+        E: { key: 'map', label: 'Map' },
+        F: { key: 'reflect', label: 'Reflect' },
+    };
+
+    const COACH_PROMPTS = {
+        learn: [
+            'What’s the headline for this moment, in your own words?',
+            'What signals tell you this situation matters?',
+            'What would success look like when this moment is over?',
+        ],
+        diagnose: [
+            'What feels most at stake right now—pressure, visibility, or irreversibility?',
+            'Where could things break down if you do nothing?',
+            'What early signal would tell you pressure is rising?',
+        ],
+        regulate: [
+            'What helps you reset when the stakes feel high?',
+            'How is your energy or focus showing up right now?',
+            'What quick ritual steadies you before you move?',
+        ],
+        decide: [
+            'What narrow decision needs to be made next?',
+            'Which lever gives you the most control here?',
+            'What would “good enough” look like for this next move?',
+        ],
+        map: [
+            'What’s one concrete action you can capture for later?',
+            'Who else needs to be in the loop, and why?',
+            'Which detail should you make sure to note for future you?',
+        ],
+        reflect: [
+            'What surprised you about this loop?',
+            'What did you try that’s worth repeating next time?',
+            'Where did you feel momentum—or friction?',
+        ],
+        default: [
+            'What feels unclear about this moment?',
+            'Where do you want the coach to focus?',
+            'What’s the next question on your mind?',
+        ],
+    };
 
     const CARD_RENDERERS = {
         ScenarioTaggerCard(card) {
@@ -1039,6 +1106,10 @@
             this.coachContent = document.getElementById('coachContent');
             this.coachTitle = document.getElementById('coachTitle');
             this.coachSubtitle = document.getElementById('coachSubtitle');
+            this.coachPromptChips = document.getElementById('coachPromptChips');
+            this.coachForm = document.getElementById('coachForm');
+            this.coachInput = document.getElementById('coachInput');
+            this.coachSendButton = document.getElementById('coachSendButton');
 
             this.currentStart = performance.now();
             this.completedCount = this.sessionState.completed_cards ? this.sessionState.completed_cards.length : 0;
@@ -1046,6 +1117,9 @@
             this.currentCard = null;
             this.currentCollector = null;
             this.busy = false;
+            this.coachFeed = null;
+            this.coachConversation = [];
+            this.currentPhaseKey = null;
 
             this.bindEvents();
             this.renderRail();
@@ -1058,6 +1132,31 @@
             this.skipButton.addEventListener('click', () => this.handleSkip());
             this.coachButton.addEventListener('click', () => this.toggleCoach(true));
             this.coachClose.addEventListener('click', () => this.toggleCoach(false));
+            if (this.coachForm) {
+                this.coachForm.addEventListener('submit', (evt) => {
+                    evt.preventDefault();
+                    this.handleCoachSubmit();
+                });
+            }
+            if (this.coachPromptChips) {
+                this.coachPromptChips.addEventListener('click', (evt) => {
+                    const button = evt.target.closest('button[data-prompt]');
+                    if (!button) return;
+                    evt.preventDefault();
+                    this.useCoachPrompt(button.dataset.prompt || '');
+                });
+            }
+            if (this.coachInput) {
+                const autoSize = () => this.autoSizeCoachInput();
+                this.coachInput.addEventListener('input', autoSize);
+                autoSize();
+                this.coachInput.addEventListener('keydown', (evt) => {
+                    if (evt.key === 'Enter' && !evt.shiftKey) {
+                        evt.preventDefault();
+                        this.handleCoachSubmit();
+                    }
+                });
+            }
             document.addEventListener('keydown', (evt) => {
                 if (evt.key === 'Escape') this.toggleCoach(false);
             });
@@ -1210,6 +1309,12 @@
         renderCoachCard(card) {
             if (!this.coachContent || !this.coachTitle || !this.coachSubtitle) return;
             const templateName = card.template_id || 'CoachSheetTip';
+            const phaseInfo = this.getPhaseInfo(card);
+            const phaseKey = phaseInfo.key;
+            if (phaseKey !== this.currentPhaseKey) {
+                this.coachConversation = [];
+            }
+            this.currentPhaseKey = phaseKey;
             this.coachContent.innerHTML = '';
             this.coachTitle.textContent = `Coach · ${formatOption(templateName.replace(/Card$/, ''))}`;
             const insights = [];
@@ -1234,15 +1339,162 @@
             nudge.className = 'px-4 py-4 border border-default rounded-2xl bg-overlay-weak space-y-2 text-sm text-muted';
             nudge.textContent = 'Complete the card, capture the reflection, and your progress ring fills automatically.';
             this.coachContent.appendChild(nudge);
-            this.coachSubtitle.textContent = `You're in the ${formatOption(card.exercise_id || 'A')} block`;
+            this.coachSubtitle.textContent = `You're in the ${phaseInfo.label} phase`;
+            const feed = document.createElement('div');
+            feed.dataset.coachFeed = 'true';
+            feed.className = 'space-y-3';
+            this.coachContent.appendChild(feed);
+            this.coachFeed = feed;
+            if (this.coachConversation.length) {
+                this.coachConversation.forEach((message) => {
+                    this.appendCoachMessage(message.role, message.text, message.meta, false);
+                });
+            }
+            this.populateCoachPrompts(phaseKey);
+            this.autoSizeCoachInput();
+        }
+
+        getPhaseInfo(card) {
+            const exerciseId = (card?.exercise_id || '').toString();
+            const prefix = exerciseId.charAt(0).toUpperCase();
+            const fallback = PHASE_LOOKUP.A;
+            const info = PHASE_LOOKUP[prefix] || fallback;
+            return { ...info, exerciseId };
+        }
+
+        populateCoachPrompts(phaseKey) {
+            if (!this.coachPromptChips) return;
+            const prompts = COACH_PROMPTS[phaseKey] || COACH_PROMPTS.default;
+            this.coachPromptChips.innerHTML = '';
+            prompts.forEach((prompt) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.prompt = prompt;
+                button.className =
+                    'inline-flex items-center gap-2 rounded-full border border-default bg-overlay-weak px-3 py-1.5 text-xs font-semibold text-muted hover:border-electric-violet/60 hover:text-electric-violet transition focus:outline-none focus:ring-2 focus:ring-brand';
+                button.textContent = prompt;
+                this.coachPromptChips.appendChild(button);
+            });
+        }
+
+        useCoachPrompt(prompt) {
+            if (!this.coachInput || !prompt) return;
+            const trimmed = prompt.trim();
+            if (!trimmed) return;
+            const existing = this.coachInput.value.trim();
+            this.coachInput.value = existing ? `${existing}\n${trimmed}` : trimmed;
+            this.autoSizeCoachInput();
+            this.coachInput.focus();
+            this.coachInput.setSelectionRange(this.coachInput.value.length, this.coachInput.value.length);
+        }
+
+        autoSizeCoachInput() {
+            if (!this.coachInput) return;
+            this.coachInput.style.height = 'auto';
+            const maxHeight = 160;
+            const nextHeight = Math.min(this.coachInput.scrollHeight, maxHeight);
+            this.coachInput.style.height = `${nextHeight}px`;
+        }
+
+        appendCoachMessage(role, text, meta = {}, record = true) {
+            if (!this.coachContent) return;
+            if (!this.coachFeed) {
+                const feed = document.createElement('div');
+                feed.dataset.coachFeed = 'true';
+                feed.className = 'space-y-3';
+                this.coachContent.appendChild(feed);
+                this.coachFeed = feed;
+            }
+            const isUser = role === 'user';
+            const bubble = document.createElement('div');
+            bubble.className = `${isUser
+                ? 'ml-auto bg-gradient-to-r from-electric-violet to-cyan text-white shadow-lg shadow-electric-violet/40'
+                : 'mr-auto border border-default bg-overlay-weak text-text-strong shadow'} max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed`;
+            bubble.innerHTML = `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+            if (Array.isArray(meta.sources) && meta.sources.length) {
+                const sources = document.createElement('div');
+                sources.className = 'mt-2 flex flex-wrap gap-2';
+                meta.sources.forEach((source) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'inline-flex items-center rounded-full border border-default bg-overlay-weak px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted';
+                    chip.textContent = source;
+                    sources.appendChild(chip);
+                });
+                bubble.appendChild(sources);
+            }
+            this.coachFeed.appendChild(bubble);
+            this.coachContent.scrollTop = this.coachContent.scrollHeight;
+            if (record) {
+                this.coachConversation.push({ role, text, meta });
+            }
+        }
+
+        async handleCoachSubmit() {
+            if (!this.coachInput || !this.coachSendButton) return;
+            const message = this.coachInput.value.trim();
+            if (!message) {
+                showToast('Ask Coach Tuli something first.', 'error');
+                return;
+            }
+            this.appendCoachMessage('user', message);
+            this.coachInput.value = '';
+            this.autoSizeCoachInput();
+            this.coachSendButton.disabled = true;
+            this.coachSendButton.classList.add('opacity-60', 'cursor-not-allowed');
+            try {
+                const response = await fetch(this.endpoints.coach, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.csrfToken,
+                    },
+                    body: JSON.stringify({
+                        question: message,
+                        module: this.moduleCode,
+                    }),
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload?.error || 'Coach is unavailable.');
+                }
+                const answer =
+                    (payload?.answer || '').trim() ||
+                    'I’m here to help—try asking about the moment you’re working through.';
+                this.appendCoachMessage('coach', answer, {
+                    sources: Array.isArray(payload?.source_chips) ? payload.source_chips : [],
+                });
+                if (payload?.suggested_drill?.prompt) {
+                    this.appendCoachMessage('coach', payload.suggested_drill.prompt, {
+                        sources: payload.suggested_drill.chips || [],
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                this.appendCoachMessage('coach', 'I hit a snag getting that answer. Try again in a moment.', {}, true);
+                showToast(error.message || 'Coach is offline right now.', 'error');
+            } finally {
+                this.coachSendButton.disabled = false;
+                this.coachSendButton.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
         }
 
         toggleCoach(show) {
             if (!this.coachDrawer) return;
             if (show) {
                 this.coachDrawer.classList.remove('translate-y-full');
+                this.coachDrawer.classList.remove('sm:translate-x-full');
+                if (this.coachInput) {
+                    setTimeout(() => {
+                        this.coachInput.focus();
+                        this.autoSizeCoachInput();
+                        if (this.coachContent) {
+                            this.coachContent.scrollTop = this.coachContent.scrollHeight;
+                        }
+                    }, 180);
+                }
             } else {
                 this.coachDrawer.classList.add('translate-y-full');
+                this.coachDrawer.classList.add('sm:translate-x-full');
             }
         }
     }
