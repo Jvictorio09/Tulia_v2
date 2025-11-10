@@ -2,60 +2,70 @@
 
 {% block title %}District {{ district.number }} Overview{% endblock %}
 
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-[color:var(--text-muted)]">
+    <a href="{% url 'home' %}" class="focus-ring">Districts</a>
+    <i class="fa-solid fa-angles-right text-[10px]"></i>
+    <span>District {{ district.number }}</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="space-y-8">
-    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div>
-            <p class="text-sm uppercase tracking-widest text-muted mb-1">District {{ district.number }}</p>
-            <h1 class="text-3xl font-heading font-bold text-text-strong mb-3">{{ district.name }}</h1>
+<div class="space-y-10">
+    <section class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div class="space-y-3 max-w-2xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-muted)]">District {{ district.number }}</p>
+            <h1 class="text-[28px] sm:text-[32px] font-heading font-bold text-[color:var(--text-primary)] leading-tight tracking-[-0.01em]">
+                {{ district.name }}
+            </h1>
             {% if district.description %}
-            <p class="text-muted max-w-2xl">{{ district.description }}</p>
+            <p class="text-sm sm:text-base text-[color:var(--text-secondary)] leading-relaxed">{{ district.description }}</p>
             {% endif %}
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
             <a href="{% url 'district_venues' district.number %}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition {% if not base_access %}opacity-50 pointer-events-none{% endif %}">
-                <span>🗺️</span>
-                <span>Venues</span>
+               class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring {% if not base_access %}opacity-60 pointer-events-none{% endif %}">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>View Venues</span>
             </a>
             <a href="{% url 'home' %}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition">
-                <span>🏙️</span>
+               class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+                <i class="fa-solid fa-arrow-left"></i>
                 <span>Back to Districts</span>
             </a>
         </div>
-    </header>
+    </section>
 
     <section class="grid gap-6 lg:grid-cols-2">
-        <div class="border border-white/10 rounded-2xl overflow-hidden bg-white/5">
-            <div class="aspect-video bg-black/40 flex items-center justify-center">
+        <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft overflow-hidden">
+            <div class="aspect-video bg-[color:var(--bg-subtle)] flex items-center justify-center">
                 {% if district.overview_video_url %}
-                    <video controls class="w-full h-full object-cover">
-                        <source src="{{ district.overview_video_url }}">
-                        Your browser does not support the video tag.
-                    </video>
+                <video controls class="w-full h-full object-cover focus-ring">
+                    <source src="{{ district.overview_video_url }}">
+                    Your browser does not support the video tag.
+                </video>
                 {% else %}
-                    <div class="p-6 text-center text-muted">
-                        <p class="text-sm">Overview video coming soon.</p>
-                    </div>
+                <div class="p-6 text-center text-[color:var(--text-muted)]">
+                    <p class="text-sm font-medium">Overview video coming soon.</p>
+                </div>
                 {% endif %}
             </div>
             {% if district.overview_duration %}
-            <p class="text-xs text-muted px-4 py-3 border-t border-white/5">Duration: {{ district.overview_duration }} seconds</p>
+            <p class="text-xs text-[color:var(--text-muted)] px-4 py-3 border-t border-[color:var(--border-default)]">Duration: {{ district.overview_duration }} seconds</p>
             {% endif %}
         </div>
-        <div class="border border-white/10 rounded-2xl p-6 bg-white/5 flex flex-col">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-text-strong flex items-center gap-2">
-                    <span>📝</span>
+        <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[18px] font-heading font-semibold text-[color:var(--text-secondary)] flex items-center gap-2">
+                    <i class="fa-solid fa-circle-play text-[color:var(--accent-primary)]"></i>
                     <span>Transcript</span>
                 </h2>
                 {% if not district.overview_transcript %}
-                <span class="text-xs text-muted">Pending</span>
+                <span class="chip chip--locked text-xs">Pending</span>
                 {% endif %}
             </div>
             {% if district.overview_transcript %}
-            <div class="flex-1 overflow-y-auto pr-2 space-y-4 text-sm text-gray-200 leading-relaxed max-h-[420px]">
+            <div class="flex-1 overflow-y-auto pr-2 space-y-4 text-sm text-[color:var(--text-secondary)] leading-relaxed max-h-[420px]">
                 {% for paragraph in district.overview_transcript.splitlines %}
                     {% if paragraph %}
                     <p>{{ paragraph }}</p>
@@ -63,56 +73,68 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-muted">Transcript processing—check back soon.</p>
+            <p class="text-sm text-[color:var(--text-muted)]">Transcript processing—check back soon. You can still explore modules below.</p>
             {% endif %}
         </div>
     </section>
 
-    <section>
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-text-strong">Modules</h2>
+    <section class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-[20px] font-heading font-semibold text-[color:var(--text-primary)]">Modules</h2>
             {% if not base_access %}
-            <span class="text-xs uppercase tracking-widest text-muted">Preview only · complete prerequisites to unlock</span>
+            <span class="text-xs uppercase tracking-[0.24em] text-[color:var(--text-muted)] font-semibold">Preview only · complete prerequisites to unlock</span>
             {% endif %}
         </div>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-5 md:grid-cols-2">
             {% for module in module_cards %}
-            <article class="border border-white/10 rounded-2xl p-6 bg-white/5">
+            <article class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6 space-y-4 animate-hover">
                 <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-sm uppercase tracking-widest text-muted mb-1">Module {{ module.code }}</p>
-                        <h3 class="text-lg font-heading font-semibold text-text-strong mb-2">{{ module.name }}</h3>
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-muted)]">Module {{ module.code }}</p>
+                        <h3 class="text-[18px] font-heading font-semibold text-[color:var(--text-secondary)] leading-tight">{{ module.name }}</h3>
                         {% if module.description %}
-                        <p class="text-sm text-gray-400">{{ module.description }}</p>
+                        <p class="text-sm text-[color:var(--text-muted)]">{{ module.description }}</p>
                         {% endif %}
                     </div>
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full
-                        {% if module.status == 'complete' %}bg-emerald-500/20 text-emerald-300
-                        {% elif module.status == 'in_progress' %}bg-electric-violet/20 text-electric-violet
-                        {% elif module.status == 'available' %}bg-cyan/20 text-cyan
-                        {% else %}bg-white/10 text-muted{% endif %}">
-                        {{ module.status|title }}
+                    {% with module.status as status %}
+                    <span class="chip
+                        {% if status == 'in_progress' %} chip--progress
+                        {% elif status == 'complete' %} chip--complete
+                        {% elif status == 'available' %} chip--new
+                        {% else %} chip--locked{% endif %}">
+                        {% if status == 'in_progress' %}
+                            <i class="fa-solid fa-circle-notch"></i> In Progress
+                        {% elif status == 'complete' %}
+                            <i class="fa-solid fa-check-circle"></i> Complete
+                        {% elif status == 'available' %}
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Ready
+                        {% else %}
+                            <i class="fa-solid fa-lock"></i> Locked
+                        {% endif %}
                     </span>
+                    {% endwith %}
                 </div>
                 {% if module.unlock_hint %}
-                <p class="text-xs text-muted mt-2">Completing this module unlocks {{ module.unlock_hint }}.</p>
+                <div class="text-xs text-[color:var(--text-muted)] flex items-center gap-2">
+                    <i class="fa-solid fa-theater-masks text-[color:var(--accent-primary)]"></i>
+                    <span>Completing this module unlocks {{ module.unlock_hint }}.</span>
+                </div>
                 {% endif %}
-
-                <div class="mt-6 flex flex-wrap gap-3">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <a href="{% url 'module_learn' module.code %}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-electric-violet text-white font-semibold shadow-lg shadow-electric-violet/40 hover:bg-violet-600 transition
-                              {% if module.status == 'locked' or not base_access %}opacity-50 pointer-events-none{% endif %}">
-                        Watch Lesson
+                       class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring animate-press {% if module.status == 'locked' or not base_access %}opacity-60 pointer-events-none{% endif %}">
+                        <i class="fa-solid fa-circle-play"></i>
+                        <span>Watch Lesson</span>
                     </a>
                     <a href="{% url 'module_exercises' module.code %}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition
-                              {% if module.status not in ('in_progress', 'complete') %}opacity-50 pointer-events-none{% endif %}">
-                        Go to Exercises
+                       class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring {% if module.status != 'in_progress' and module.status != 'complete' %}opacity-60 pointer-events-none{% endif %}">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Go to Exercises</span>
                     </a>
                 </div>
             </article>
             {% empty %}
-            <div class="border border-dashed border-white/20 rounded-2xl p-8 text-center text-muted">
+            <div class="bg-[color:var(--bg-card)] border border-dashed border-[color:var(--border-default)] rounded-[var(--radius-card)] p-8 text-center text-[color:var(--text-muted)]">
                 No modules configured for this district yet.
             </div>
             {% endfor %}

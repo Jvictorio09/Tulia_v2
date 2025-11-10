@@ -1,146 +1,349 @@
 {% extends 'myApp/base.html' %}
-{% load app_filters %}
 
-{% block title %}Home - Tulia{% endblock %}
+{% block title %}SpeakProApp Map{% endblock %}
+
+{% block extra_css %}
+<style>
+  #districtTrail {
+    position: relative;
+    padding-left: 3.5rem;
+  }
+  #districtTrail::before {
+    content: "";
+    position: absolute;
+    left: 1.9rem;
+    top: 3.75rem;
+    bottom: 3.5rem;
+    width: 4px;
+    background: linear-gradient(180deg, rgba(91,124,255,0.45) 0%, rgba(91,124,255,0.08) 100%);
+    border-radius: 999px;
+  }
+  .trail-stop {
+    position: relative;
+  }
+  .trail-stop + .trail-stop {
+    margin-top: 2.75rem;
+  }
+  .trail-stop::before {
+    content: attr(data-index);
+    position: absolute;
+    left: -2.8rem;
+    top: 0.2rem;
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.65);
+    background: linear-gradient(135deg, rgba(91,124,255,1), rgba(91,124,255,0.75));
+    box-shadow: 0 10px 18px rgba(91,124,255,0.35);
+  }
+  .trail-stop--locked::before {
+    background: linear-gradient(135deg, rgba(102,112,133,0.9), rgba(102,112,133,0.68));
+    box-shadow: 0 10px 16px rgba(102,112,133,0.24);
+  }
+  .trail-stop--complete::before {
+    background: linear-gradient(135deg, rgba(22,179,100,1), rgba(22,179,100,0.82));
+    box-shadow: 0 12px 20px rgba(22,179,100,0.32);
+  }
+  .trail-stop--current::before {
+    animation: pulseMarker 2.6s ease-in-out infinite;
+  }
+  .trail-stop::after {
+    content: "";
+    position: absolute;
+    left: -1.99rem;
+    top: 3rem;
+    width: 2px;
+    height: calc(100% - 2.75rem);
+    background: linear-gradient(180deg, rgba(91,124,255,0.18), rgba(91,124,255,0));
+  }
+  .progress-fill {
+    width: var(--progress, 0%);
+    transition: width 220ms ease;
+  }
+  .trail-stop:last-child::after {
+    display: none;
+  }
+  @keyframes pulseMarker {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 10px 20px rgba(91,124,255,0.32);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 16px 26px rgba(91,124,255,0.38);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-[color:var(--text-muted)]">
+  <i class="fa-solid fa-route"></i>
+  <span>Learning Journey</span>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div>
-            <h1 class="text-3xl font-heading font-bold text-text-strong">Welcome back, {{ user.username }}!</h1>
-            <p class="text-muted max-w-2xl mt-2">Pick a district to continue your practice journey. Each district opens with a story-driven overview, followed by modules, AI coaching, and exercises that unlock new venues.</p>
+{% with display_name=user.first_name|default:user.username %}
+<div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 space-y-10">
+
+  <!-- Hero -->
+  <section class="rounded-[var(--radius-hero)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft overflow-hidden">
+    <div class="p-6 sm:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-[1fr,260px] gap-6 md:gap-10">
+      <div class="space-y-4">
+        <h1 class="font-heading font-bold tracking-[-0.02em] leading-[1.05] text-[28px] sm:text-[34px] md:text-[38px] text-[color:var(--text-primary)]">
+          Welcome back, {{ display_name }}.
+        </h1>
+        <p class="text-[15px] sm:text-[16px] leading-relaxed text-[color:var(--text-secondary)] max-w-2xl">
+          Follow the trail through districts. Watch overviews, explore modules with the AI coach, and unlock venues as you progress.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="{% url 'ai_chat' %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
+            <i class="fa-solid fa-robot"></i>
+            <span>Open AI Coach</span>
+          </a>
+          <a href="{% url 'profile' %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+            <i class="fa-solid fa-user"></i>
+            <span>Profile</span>
+          </a>
         </div>
-        <div class="flex gap-3">
-            <a href="{% url 'ai_chat' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition">
-                <span>🧠</span>
-                <span>Open AI Coach</span>
-            </a>
-            <a href="{% url 'profile' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition">
-                <span>👤</span>
-                <span>Profile</span>
-            </a>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-center text-xs text-[color:var(--text-muted)]">
+        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
+          <i class="fa-solid fa-bolt text-[color:var(--accent-primary)] text-lg"></i>
+          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.total_xp }}</p>
+          <span>XP</span>
         </div>
+        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
+          <i class="fa-solid fa-coins text-[color:var(--accent-warning)] text-lg"></i>
+          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.coins }}</p>
+          <span>Coins</span>
+        </div>
+        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
+          <i class="fa-solid fa-ticket text-[color:var(--accent-primary)] text-lg"></i>
+          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.tickets }}</p>
+          <span>Tickets</span>
+        </div>
+        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
+          <i class="fa-solid fa-fire text-[color:var(--accent-danger)] text-lg"></i>
+          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.current_streak }}</p>
+          <span>Day Streak</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Journey Trail -->
+  <section class="space-y-6">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-2 text-[color:var(--text-muted)] text-xs font-semibold tracking-[0.22em] uppercase">
+        <span>Districts</span>
+        <i class="fa-solid fa-angles-right text-[10px]"></i>
+        <span>Modules</span>
+        <i class="fa-solid fa-angles-right text-[10px]"></i>
+        <span>Exercises</span>
+        <i class="fa-solid fa-angles-right text-[10px]"></i>
+        <span>Venues</span>
+      </div>
+      {% if resume_module %}
+      <a href="{% url 'module_exercises' resume_module.code %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-xs font-semibold focus-ring">
+        <i class="fa-solid fa-play"></i>
+        <span>Resume Module {{ resume_module.code }}</span>
+      </a>
+      {% endif %}
     </header>
 
-    <section>
-        <div class="flex items-baseline justify-between mb-4">
-            <h2 class="text-xl font-semibold text-text-strong">Districts</h2>
-            <p class="text-xs text-muted uppercase tracking-widest">Districts → Modules → Exercises → Venues</p>
-        </div>
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {% for card in district_cards %}
-            <article class="border border-white/10 rounded-2xl p-6 bg-white/5 backdrop-blur">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-sm text-muted uppercase tracking-wide mb-1">District {{ card.district.number }}</p>
-                        <h3 class="text-2xl font-heading font-semibold text-text-strong mb-2">{{ card.district.name }}</h3>
-                    </div>
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full
-                        {% if card.status == 'complete' %}bg-emerald-500/20 text-emerald-300
-                        {% elif card.status == 'in_progress' %}bg-electric-violet/20 text-electric-violet
-                        {% elif card.status == 'available' %}bg-cyan/20 text-cyan
-                        {% else %}bg-white/10 text-muted{% endif %}">
-                        {{ card.status|title }}
-                    </span>
-                </div>
-                {% if card.district.description %}
-                <p class="text-sm text-gray-400 mb-4">{{ card.district.description }}</p>
-                {% endif %}
+    {% if district_cards %}
+    <ul id="districtTrail" class="space-y-0">
+      {% for card in district_cards %}
+      {% with status=card.status %}
+      <li class="trail-stop {% if status == 'complete' %}trail-stop--complete{% elif status == 'in_progress' %}trail-stop--current{% elif status == 'locked' %}trail-stop--locked{% endif %}" data-index="{{ card.district.number }}">
+        <article class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-5">
+          <div class="flex items-start justify-between gap-4">
+            <div class="space-y-1.5 sm:space-y-2">
+              <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-muted)]">
+                District {{ card.district.number }}
+              </p>
+              <h3 class="text-[18px] sm:text-[20px] font-heading font-semibold text-[color:var(--text-primary)] leading-tight">
+                {{ card.district.name }}
+              </h3>
+              {% if card.district.description %}
+              <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)] leading-relaxed">
+                {{ card.district.description }}
+              </p>
+              {% endif %}
+            </div>
+            <span class="chip {% if status == 'in_progress' %}chip--progress{% elif status == 'complete' %}chip--complete{% elif status == 'available' %}chip--new{% else %}chip--locked{% endif %}">
+              {% if status == 'in_progress' %}
+                <i class="fa-solid fa-circle-notch"></i> In Progress
+              {% elif status == 'complete' %}
+                <i class="fa-solid fa-check-circle"></i> Complete
+              {% elif status == 'available' %}
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> Ready
+              {% else %}
+                <i class="fa-solid fa-lock"></i> Locked
+              {% endif %}
+            </span>
+          </div>
 
-                {% if card.modules %}
-                <div class="space-y-3 mb-6">
-                    {% for module in card.modules %}
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-sm font-semibold text-text-strong">Module {{ module.code }} · {{ module.name }}</p>
-                            <p class="text-xs text-muted">
-                                {% if module.status == 'complete' %}
-                                    Completed — venue unlocked
-                                {% elif module.status == 'in_progress' %}
-                                    In progress — resume exercises
-                                {% elif module.status == 'available' %}
-                                    Ready to start{% if module.unlock_hint %} · unlocks {{ module.unlock_hint }}{% endif %}
-                                {% else %}
-                                    Locked until previous module is complete
-                                {% endif %}
-                            </p>
-                        </div>
-                        <span class="text-xs uppercase tracking-wide text-muted">{{ module.status|replace:"_, "|title }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+          <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr),200px]">
+            <div class="space-y-2">
+            <div class="h-2 rounded-full bg-[color:var(--bg-subtle)] overflow-hidden">
+              <div class="progress-fill h-full rounded-full bg-[color:var(--accent-primary)]" style="--progress: {{ card.progress_percent }}%"></div>
+              </div>
+              <div class="flex justify-between text-[11px] sm:text-xs text-[color:var(--text-muted)]">
+                <span>{{ card.completed_modules }} of {{ card.total_modules }} modules complete</span>
+                <span>
+                  {% if card.locked_venues > 0 %}
+                    {{ card.locked_venues }} venues locked
+                  {% else %}
+                    All venues unlocked
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a href="{% url 'district_overview' card.district.number %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-[999px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-xs font-semibold text-[color:var(--text-secondary)] focus-ring">
+                <i class="fa-solid fa-circle-play"></i>
+                <span>Overview</span>
+              </a>
+              <a href="{% url 'district_venues' card.district.number %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-[999px] border border-[color:var(--border-default)] text-xs font-semibold text-[color:var(--text-muted)] focus-ring {% if status == 'locked' %}opacity-60 pointer-events-none{% endif %}">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>Venues</span>
+              </a>
+            </div>
+          </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <a href="{% url 'district_overview' card.district.number %}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-electric-violet text-white font-semibold shadow-lg shadow-electric-violet/40 hover:bg-violet-600 transition">
-                        Explore Overview
-                    </a>
-                    <a href="{% url 'district_venues' card.district.number %}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition {% if not card.base_access and card.status == 'locked' %}opacity-50 pointer-events-none{% endif %}">
-                        View Venues
-                    </a>
+          <div class="space-y-3">
+            {% for module in card.modules %}
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] grid place-items-center text-[color:var(--accent-primary)] shrink-0">
+                  <i class="fa-solid fa-graduation-cap"></i>
                 </div>
-            </article>
-            {% empty %}
-            <div class="border border-dashed border-white/20 rounded-2xl p-8 text-center text-muted">
-                No districts configured yet. Please seed data.
+                <p class="text-[13px] sm:text-sm font-semibold text-[color:var(--text-secondary)] truncate">
+                  Module {{ module.code }} — {{ module.name }}
+                </p>
+              </div>
+              <span class="chip {% if module.status == 'in_progress' %}chip--progress{% elif module.status == 'complete' %}chip--complete{% elif module.status == 'available' %}chip--new{% else %}chip--locked{% endif %}">
+                {% if module.status == 'in_progress' %}
+                  <i class="fa-solid fa-circle-notch"></i> In Progress
+                {% elif module.status == 'complete' %}
+                  <i class="fa-solid fa-check-circle"></i> Complete
+                {% elif module.status == 'available' %}
+                  <i class="fa-solid fa-arrow-right-to-bracket"></i> Ready
+                {% else %}
+                  <i class="fa-solid fa-lock"></i> Locked
+                {% endif %}
+              </span>
             </div>
             {% endfor %}
-        </div>
-    </section>
+          </div>
 
-    {% if resume_module %}
-    <section class="border border-electric-violet/30 rounded-2xl p-6 bg-electric-violet/10 backdrop-blur">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-heading font-semibold text-text-strong mb-1">Resume Module {{ resume_module.code }}</h2>
-                <p class="text-sm text-muted">Jump back into the lesson to finish the learn stage or continue your exercises.</p>
+          <div class="flex flex-wrap gap-3">
+            {% if card.primary_module %}
+            {% with primary=card.primary_module %}
+            <a href="{% if primary.status == 'complete' %}{% url 'module_learn' primary.code %}{% elif primary.status == 'in_progress' %}{% url 'module_exercises' primary.code %}{% else %}{% url 'module_learn' primary.code %}{% endif %}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
+              {% if primary.status == 'in_progress' %}
+                <i class="fa-solid fa-play"></i><span>Resume Module {{ primary.code }}</span>
+              {% elif primary.status == 'complete' %}
+                <i class="fa-solid fa-rotate-right"></i><span>Review Module {{ primary.code }}</span>
+              {% else %}
+                <i class="fa-solid fa-arrow-right-to-bracket"></i><span>Start Module {{ primary.code }}</span>
+              {% endif %}
+            </a>
+            {% endwith %}
+            {% endif %}
+          </div>
+
+          {% if card.venue_names %}
+          <div class="text-[11px] sm:text-xs text-[color:var(--text-muted)] space-y-1">
+            <span class="font-semibold">Unlock sequence:</span>
+            <div class="flex flex-wrap gap-2">
+              {% for name in card.venue_names %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-[color:var(--text-secondary)]">
+                <i class="fa-solid fa-star text-[color:var(--accent-primary)] text-[11px]"></i>{{ name }}
+              </span>
+              {% endfor %}
             </div>
-            <div class="flex gap-3">
-                <a href="{% url 'module_learn' resume_module.code %}" class="px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition">Review Lesson</a>
-                <a href="{% url 'module_exercises' resume_module.code %}" class="px-4 py-2 rounded-lg bg-electric-violet text-white font-semibold shadow-lg shadow-electric-violet/40 hover:bg-violet-600 transition">Go to Exercises</a>
-            </div>
-        </div>
-    </section>
+          </div>
+          {% endif %}
+        </article>
+      </li>
+      {% endwith %}
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-6 text-center text-[color:var(--text-muted)]">
+      <p class="text-sm">You’ll start with District 1 after onboarding.</p>
+      <a href="{% url 'onboarding' %}" class="inline-flex items-center gap-2 mt-4 px-4 py-2.5 rounded-[999px] border border-[color:var(--border-default)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+        <i class="fa-solid fa-clipboard-list"></i><span>Review Onboarding</span>
+      </a>
+    </div>
     {% endif %}
+  </section>
 
-    <section class="grid gap-6 md:grid-cols-2">
-        <div id="daily-quest" class="border border-white/10 rounded-2xl p-6 bg-white/5">
-            <h3 class="text-lg font-semibold text-text-strong flex items-center gap-2 mb-3">
-                <span>📋</span>
-                <span>Daily Quest</span>
-            </h3>
-            {% if daily_quest and not daily_quest.completed %}
-            <p class="text-sm text-gray-300 mb-4">{{ daily_quest.description }}</p>
-            <div class="flex gap-4 text-sm font-semibold">
-                <span class="text-cyan">+{{ daily_quest.xp_reward }} XP</span>
-                <span class="text-amber-400">+{{ daily_quest.coin_reward }} coins</span>
-            </div>
-            {% else %}
-            <p class="text-sm text-muted">All set for today. Come back tomorrow for a new quest.</p>
-            {% endif %}
-        </div>
+  {% if resume_module %}
+  <section class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="space-y-1.5">
+      <h2 class="text-[18px] sm:text-[20px] font-heading font-semibold text-[color:var(--text-primary)]">Resume Module {{ resume_module.code }}</h2>
+      <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)]">Jump back in to keep your momentum. Lessons and exercises stay in sync.</p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <a href="{% url 'module_learn' resume_module.code %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[999px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+        <i class="fa-solid fa-circle-play"></i><span>Review Lesson</span>
+      </a>
+      <a href="{% url 'module_exercises' resume_module.code %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
+        <i class="fa-solid fa-play"></i><span>Resume Exercises</span>
+      </a>
+    </div>
+  </section>
+  {% endif %}
 
-        <div class="border border-white/10 rounded-2xl p-6 bg-white/5">
-            <h3 class="text-lg font-semibold text-text-strong flex items-center gap-2 mb-3">
-                <span>🎯</span>
-                <span>Milestone Challenge</span>
-            </h3>
-            {% if milestone_passed %}
-            <p class="text-sm text-emerald-300 mb-2">You passed the Level 1 milestone—District 1 venues remain open for free exploration.</p>
-            <a href="{% url 'district_venues' 1 %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-400/40 text-emerald-200 hover:bg-emerald-500/10 transition">
-                Visit District 1 Venues
-            </a>
-            {% elif all_modules_complete %}
-            <p class="text-sm text-muted mb-4">You’ve completed all modules. Lock in your gains with the milestone assessment.</p>
-            <a href="{% url 'milestone' 1 %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 transition">
-                Take Milestone Challenge
-            </a>
-            {% else %}
-            <p class="text-sm text-muted">Complete all modules in District 1 to unlock the milestone assessment.</p>
-            {% endif %}
-        </div>
-    </section>
+  <section class="grid gap-5 sm:gap-6 md:grid-cols-2">
+    <div id="daily-quest" class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-3">
+      <div class="flex items-center gap-2 text-[color:var(--text-secondary)]">
+        <i class="fa-solid fa-calendar-check text-[color:var(--accent-primary)]"></i>
+        <h3 class="text-[17px] sm:text-[18px] font-heading font-semibold">Daily Quest</h3>
+      </div>
+      {% if daily_quest and not daily_quest.completed %}
+      <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)] leading-relaxed">{{ daily_quest.description }}</p>
+      <div class="flex items-center gap-4 text-sm font-semibold">
+        <span class="text-[color:var(--accent-primary)]">+{{ daily_quest.xp_reward }} XP</span>
+        <span class="text-[color:var(--accent-warning)]">+{{ daily_quest.coin_reward }} coins</span>
+      </div>
+      {% else %}
+      <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)]">All set for today. Come back tomorrow for a new quest.</p>
+      {% endif %}
+    </div>
+
+    <div class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-3">
+      <div class="flex items-center gap-2 text-[color:var(--text-secondary)]">
+        <i class="fa-solid fa-flag-checkered text-[color:var(--accent-success)]"></i>
+        <h3 class="text-[17px] sm:text-[18px] font-heading font-semibold">Milestone Challenge</h3>
+      </div>
+      {% if milestone_passed %}
+      <p class="text-sm text-[color:var(--accent-success)] font-medium">Level 1 milestone complete — District 1 is open for free exploration.</p>
+      <a href="{% url 'district_venues' 1 %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-[999px] border border-[color:var(--accent-success)]/40 text-sm font-semibold text-[color:var(--accent-success)] focus-ring">
+        <i class="fa-solid fa-layer-group"></i><span>Visit District 1 Venues</span>
+      </a>
+      {% elif all_modules_complete %}
+      <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)]">You’ve completed every module. Take the milestone assessment to advance.</p>
+      <a href="{% url 'milestone' 1 %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-[999px] bg-[color:var(--accent-warning)] text-white text-sm font-semibold focus-ring">
+        <i class="fa-solid fa-flag"></i><span>Take Milestone Challenge</span>
+      </a>
+      {% else %}
+      <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)]">Complete every module in District 1 to unlock the milestone challenge.</p>
+      {% endif %}
+    </div>
+  </section>
 </div>
+{% endwith %}
 {% endblock %}

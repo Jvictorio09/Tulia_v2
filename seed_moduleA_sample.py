@@ -152,7 +152,7 @@ DISTRICT_1_DATA = {
         "Start here to build practical regulation skills, situational awareness, and "
         "adaptive messaging before moving into higher-pressure districts."
     ),
-    "overview_video_url": "https://cdn.tulia.dev/districts/1/overview.mp4",
+    "overview_video_url": "https://res.cloudinary.com/dcuswyfur/video/upload/v1762789570/SpeakProApp_-_Mastering_High-Stakes_Communication_sohlyo.mp4",
     "overview_transcript": (
         "Welcome to District 1 – Foundations. This district is your launchpad for mastering "
         "high-stakes communication. You will learn to read the room, regulate your state, and "
@@ -198,15 +198,114 @@ MODULES_DATA = [
         "description": MODULE_DESC,
         "order": 1,
         "xp_reward": MODULE_XP_REWARD,
-        "lesson_video_url": "https://cdn.tulia.dev/modules/A/lesson.mp4",
-        "lesson_transcript": (
-            "We begin by mapping the contours of high-stakes situations. Pressure, visibility, "
-            "and irreversibility help you gauge the heat of any upcoming moment.\n\n"
-            "Throughout this lesson we analyse real stories from executives who reframed fear "
-            "into focus by understanding their PIC profile and choosing the right lever.\n\n"
-            "Take notes on the scenarios that resonate with you—the exercises that follow will "
-            "ask you to apply these ideas to your own upcoming moment."
-        ),
+        "lesson_video_url": "https://res.cloudinary.com/dcuswyfur/video/upload/v1762789570/1._LEVEL_1_Module_A__Foundations_of_High-Stakes_Communication_svcioe.mp4",
+        "lesson_transcript": """0:00 All right, let's get into it.
+0:01 Today, we are tackling those make or break moments.
+0:05 You know the ones, the huge client pitch, that incredibly tough conversation you've been putting off, or the presentation that could literally define your career.
+0:12 We're talking about mastering high stakes communication.
+0:16 So picture this, you've been there, right?
+0:18 In the car, on your run, in the shower, you're genius.
+0:21 You've got the perfect comeback, the killer data point, the flawless argument.
+0:25 But then you're in the room, the pressure hits and poof.
+0:28 It's all gone.
+0:29 Your brain just kind of goes offline.
+0:30 It's a real thing.
+0:32 When we're stressed, our working memory basically tanks.
+0:35 So what do we do about it?
+0:37 Well, here's a hint.
+0:38 The answer is not memorising your lines better.
+0:41 See, a script is brittle.
+0:43 It shatters the second someone throws you a curveball question.
+0:46 What you actually need is an internal guide, something to orient you when things get chaotic.
+0:51 Forget the script.
+0:52 What you need is a compass.
+0:54 And that's what we're building today.
+0:56 The whole game is about making a fundamental shift, moving away from that knee jerk, often disastrous reaction and into a more thoughtful intentional response.
+1:06 This compass, it's the framework that helps you make that shift every single time.
+1:11 So here it is, your communication compass.
+1:14 It's built around four cardinal directions, four dimensions you have to keep in balance to stay on your feet when the pressure's on.
+1:21 We've got awareness, audience, style, and clarity.
+1:25 Let's break down how they all work together, starting with that vertical axis.
+1:29 OK, so think of this axis as your personal anchor.
+1:33 It's all about what's happening inside of you, and how that translates to the message you're actually putting out into the world.
+1:40 It's the direct line from your internal state to your external impact.
+1:44 And this slide just lays it all out, doesn't it?
+1:47 On the left, that's the reaction zone.
+1:49 That's what some psychologists call an amygdala hijack where your emotions basically take the steering wheel from your logical brain, but on the right, that's our goal.
+1:59 That's a conscious response.
+2:00 You're calm, you're observant, and you're coherent, which brings us to the south point of our compass, awareness.
+2:07 This is the bedrock.
+2:08 It's simply about taking a microsecond, just a beat, to check in with yourself.
+2:12 OK, what's going on with me right now?
+2:14 Am I feeling defensive?
+2:16 Is my heart racing?
+2:18 Just noticing it is the first and most important step to managing it.
+2:22 Because when you're grounded in that self-awareness, you can point yourself toward clarity.
+2:26 That's our North Star.
+2:27 And listen, clarity is not about dumbing things down.
+2:30 It's actually the opposite.
+2:32 It's about doing the hard work of structuring your thoughts so your audience doesn't have to struggle to understand you.
+2:38 And here's a super practical tool to get that clarity.
+2:41 It's the 3 by 3 framework.
+2:43 It's simple.
+2:44 First, what is the one single thing, the absolute core truth you need your audience to remember?
+2:50 Got it? OK.
+2:51 Second, what are the three pillars, the key pieces of data, the stories, the evidence that hold up that idea?
+2:59 And third, what do you want them to do now?
+3:02 It's like a pyramid for your message and it is rock solid.
+3:05 OK, so we've got ourselves grounded with that vertical axis.
+3:09 Now, let's pivot to the horizontal axis.
+3:12 This one is all about the dance, the dance between you and everyone else in the room.
+3:16 It's how you connect with people without completely losing who you are.
+3:20 Over on the west point we have style.
+3:22 This is your unique flavour, your authentic energy.
+3:25 This is not about putting on some kind of professional persona.
+3:29 It's about understanding your natural way of being.
+3:31 Are you a direct to the point person?
+3:33 Are you more analytical or maybe warm and relational?
+3:36 Knowing your default is the key.
+3:38 And directly opposite your style, on the east, is the audience, and this is so, so important.
+3:45 The best communicators I know, they're not just broadcasting a message at people.
+3:49 No way.
+3:50 They're creating meaning with people.
+3:53 That means you have to read the room, understand what the other person cares about, and adapt to what they truly need to hear.
+4:00 This chart here is a fantastic little cheat sheet for this.
+4:03 You can see a driver, they just want the bottom line, but an analytical person, they're going to need the data.
+4:08 An amiable person values harmony while an expressive is motivated by recognition.
+4:12 Now here's the really interesting part.
+4:14 Look at what happens under pressure.
+4:16 Our biggest strengths flip and become our weaknesses.
+4:19 That decisive driver, they become abrupt.
+4:21 The harmony-seeking amiable, they vanish to avoid conflict.
+4:25 Being aware of this in yourself and others is a total game changer.
+4:29 I absolutely love this quote because it just nails the entire challenge of this horizontal axis.
+4:36 Style is how authenticity meets context.
+4:39 It's not about being a chameleon and changing who you are.
+4:42 It's about being flexible enough to adapt how you express your authentic self to fit the situation you're in.
+4:50 So let's pull all of these threads together.
+4:52 You've got these four points on the compass, your inner awareness, your outer clarity, your authentic style, and your connection to the audience.
+4:59 These aren't separate skills you just check off a list.
+5:02 They're a living breathing system you use to navigate in real time.
+5:06 And when you get all four of those points working in harmony, that's when you achieve this state, conscious communication.
+5:14 You are present, you're perceptive of others, you're authentic to yourself, and you're crystal clear in your message.
+5:22 This is the goal.
+5:23 This is what it feels like to be on compass.
+5:26 OK, but how do you use this in the real world, right? In the heat of the moment.
+5:31 Well, think of it as a quick pre-flight checklist.
+5:34 Before you walk into that meeting or unmute yourself on that call, just ask yourself two simple questions.
+5:39 First, am I grounded before I speak?
+5:41 That covers your whole vertical axis.
+5:43 And second, am I balancing my own authenticity with empathy for them?
+5:48 That's your horizontal axis.
+5:50 That's it.
+5:51 And please remember this.
+5:53 The point of the compass isn't to become a perfect flawless communicator.
+5:57 That's not real.
+5:58 This is about being present.
+6:00 It's about having the awareness to notice when you've drifted off course and then having the tool to gently guide yourself back to centre.
+6:07 So, I'll leave you with a final thought to take with you.
+6:11 As you look at these four directions, that inner awareness, the outer clarity, your authentic style, and our connection to the audience, just ask yourself, which one of those is calling out for a little more of your attention right now?
+6:24 Thanks so much for tuning in.""",
         "lesson_duration": 540,
     },
     {
@@ -218,7 +317,7 @@ MODULES_DATA = [
         ),
         "order": 2,
         "xp_reward": 110,
-        "lesson_video_url": "https://cdn.tulia.dev/modules/B/lesson.mp4",
+        "lesson_video_url": "https://res.cloudinary.com/dcuswyfur/video/upload/v1762789563/2._LEVEL_1_Module_B__Audience_Psychology_Dynamics_Knowledge_Base_fgnxjh.mp4",
         "lesson_transcript": (
             "Influence is contextual. In Module B we step into rooms where power, incentives, "
             "and history collide. You will see how subtle tactical shifts change the outcome.\n\n"
@@ -237,7 +336,7 @@ MODULES_DATA = [
         ),
         "order": 3,
         "xp_reward": 110,
-        "lesson_video_url": "https://cdn.tulia.dev/modules/C/lesson.mp4",
+        "lesson_video_url": "https://res.cloudinary.com/dcuswyfur/video/upload/v1762789568/3._LEVEL_1_Module_C__Personal_Style_Awareness_Knowledge_Base_xdtbiz.mp4",
         "lesson_transcript": (
             "This module takes you inside fast-paced negotiations and Q&A sessions. Watch how the "
             "speaker applies rapid summarising, clarifying, and redirecting techniques to stay in flow.\n\n"
@@ -256,7 +355,7 @@ MODULES_DATA = [
         ),
         "order": 4,
         "xp_reward": 120,
-        "lesson_video_url": "https://cdn.tulia.dev/modules/D/lesson.mp4",
+        "lesson_video_url": "https://res.cloudinary.com/dcuswyfur/video/upload/v1762789564/4._LEVEL_1_Module_D__Clarity_Message_Design_Basics_Knowledge_Base_jts6kd.mp4",
         "lesson_transcript": (
             "We close the district by putting you on stage. You will watch a full rehearsal breakdown, "
             "see how to interpret AI feedback, and design your own spacing boosters.\n\n"

@@ -2,60 +2,91 @@
 
 {% block title %}District {{ district.number }} Venues{% endblock %}
 
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-[color:var(--text-muted)]">
+    <a href="{% url 'home' %}" class="focus-ring">Districts</a>
+    <i class="fa-solid fa-angles-right text-[10px]"></i>
+    <a href="{% url 'district_overview' district.number %}" class="focus-ring">District {{ district.number }}</a>
+    <i class="fa-solid fa-angles-right text-[10px]"></i>
+    <span>Venues</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="space-y-6">
-    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <p class="text-sm uppercase tracking-widest text-muted mb-1">District {{ district.number }}</p>
-            <h1 class="text-3xl font-heading font-bold text-text-strong mb-2">{{ district.name }} Venues</h1>
+<div class="space-y-8">
+    <header class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6 sm:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="space-y-2 max-w-2xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-muted)]">District {{ district.number }}</p>
+            <h1 class="text-[28px] font-heading font-bold text-[color:var(--text-primary)] leading-tight tracking-[-0.01em]">
+                {{ district.name }} Venues
+            </h1>
             {% if district.description %}
-            <p class="text-muted max-w-2xl">{{ district.description }}</p>
+            <p class="text-sm text-[color:var(--text-secondary)] leading-relaxed">{{ district.description }}</p>
             {% endif %}
         </div>
         <a href="{% url 'district_overview' district.number %}"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition">
-            ← Overview
+           class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Overview</span>
         </a>
     </header>
 
     <section class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {% for card in venue_cards %}
-        <article class="border border-white/10 rounded-2xl p-6 bg-white/5 flex flex-col gap-4">
+        <article class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6 flex flex-col gap-4 animate-hover">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-xl font-heading font-semibold text-text-strong">{{ card.venue.name }}</h2>
+                    <h2 class="text-[20px] font-heading font-semibold text-[color:var(--text-secondary)]">{{ card.venue.name }}</h2>
                     {% if card.venue.description %}
-                    <p class="text-sm text-gray-400 mt-1">{{ card.venue.description }}</p>
+                    <p class="text-sm text-[color:var(--text-muted)] mt-1">{{ card.venue.description }}</p>
                     {% endif %}
                 </div>
-                <span class="px-3 py-1 text-xs font-semibold rounded-full
-                    {% if card.unlocked %}bg-cyan/20 text-cyan{% else %}bg-white/10 text-muted{% endif %}">
-                    {% if card.unlocked %}Available{% else %}Locked{% endif %}
+                <span class="chip {% if card.unlocked %}chip--progress{% else %}chip--locked{% endif %}">
+                    {% if card.unlocked %}
+                        <i class="fa-solid fa-circle-check"></i> Available
+                    {% else %}
+                        <i class="fa-solid fa-lock"></i> Locked
+                    {% endif %}
                 </span>
             </div>
-            <div class="text-xs text-muted flex items-center gap-3">
-                <span>🎟 {{ card.venue.ticket_cost }} tickets</span>
-                <span>⭐ {{ card.venue.xp_reward }} XP</span>
-                <span>🪙 {{ card.venue.coin_reward }} coins</span>
+            <div class="text-xs text-[color:var(--text-muted)] flex items-center gap-4">
+                <span class="inline-flex items-center gap-1">
+                    <i class="fa-solid fa-ticket"></i>
+                    <span>{{ card.venue.ticket_cost }} tickets</span>
+                </span>
+                <span class="inline-flex items-center gap-1">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>{{ card.venue.xp_reward }} XP</span>
+                </span>
+                <span class="inline-flex items-center gap-1">
+                    <i class="fa-solid fa-coins"></i>
+                    <span>{{ card.venue.coin_reward }} coins</span>
+                </span>
             </div>
             <div class="mt-auto">
                 <a href="{% url 'venue_detail' card.venue.id %}"
-                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg {% if card.unlocked %}bg-electric-violet text-white hover:bg-violet-600{% else %}border border-white/10 text-muted cursor-not-allowed{% endif %} transition">
-                    {% if card.unlocked %}Enter Venue{% else %}Complete prerequisite module{% endif %}
+                   class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] text-sm font-semibold focus-ring {% if card.unlocked %}bg-[color:var(--accent-primary)] text-white animate-press{% else %}border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-[color:var(--text-muted)] cursor-not-allowed{% endif %}">
+                    {% if card.unlocked %}
+                        <i class="fa-solid fa-door-open"></i>
+                        <span>Enter Venue</span>
+                    {% else %}
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Complete prerequisite module</span>
+                    {% endif %}
                 </a>
             </div>
         </article>
         {% empty %}
-        <div class="border border-dashed border-white/20 rounded-2xl p-8 text-center text-muted">
+        <div class="bg-[color:var(--bg-card)] border border-dashed border-[color:var(--border-default)] rounded-[var(--radius-card)] p-8 text-center text-[color:var(--text-muted)]">
             No venues configured yet. Seed data to populate this district.
         </div>
         {% endfor %}
     </section>
 
     {% if full_access %}
-    <div class="border border-emerald-500/40 rounded-2xl p-6 bg-emerald-500/10 text-emerald-200 flex items-center gap-3">
-        <span>✅</span>
-        <span>You have full access to every venue in this district. Revisit any space whenever you like.</span>
+    <div class="border border-[color:var(--accent-success)]/40 rounded-[var(--radius-card)] p-6 bg-[rgba(22,179,100,0.08)] text-[color:var(--accent-success)] flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span class="text-sm font-medium">You have full access to every venue in this district. Revisit any space whenever you like.</span>
     </div>
     {% endif %}
 </div>

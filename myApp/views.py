@@ -475,12 +475,16 @@ def home(request):
     district_cards = []
     resume_module = None
 
+    user_venue_unlocks = UserVenueUnlock.objects.filter(user=request.user).select_related('venue')
+
     for district in districts:
         level = _get_level_for_district(district.number)
         module_qs = Module.objects.filter(level=level).order_by('order') if level else Module.objects.none()
         modules_data = []
         all_complete = bool(module_qs)
         any_started = False
+        completed_count = 0
+        total_modules = module_qs.count()
 
         for module in module_qs:
             status, progress = _module_status_for_user(request.user, module)
@@ -505,6 +509,8 @@ def home(request):
                 'progress': progress,
                 'unlock_hint': DISTRICT_MODULE_VENUE_MAP.get(district.number, {}).get(module.code.upper()),
             })
+            if status == "complete":
+                completed_count += 1
 
         base_access = (
             district.number == DISTRICT_DEFAULT_UNLOCK
@@ -521,6 +527,25 @@ def home(request):
         else:
             district_status = "locked"
 
+        primary_module = None
+        for module in modules_data:
+            if module['status'] == 'in_progress':
+                primary_module = module
+                break
+        if not primary_module:
+            for module in modules_data:
+                if module['status'] == 'available':
+                    primary_module = module
+                    break
+        if not primary_module and modules_data:
+            primary_module = modules_data[0]
+
+        venues = Venue.objects.filter(district=district).order_by('order')
+        total_venues = venues.count()
+        unlocked_venues = total_venues if _user_has_district_full_access(profile, district.number) else \
+            user_venue_unlocks.filter(venue__district=district).count()
+        locked_venues = max(total_venues - unlocked_venues, 0)
+
         district_cards.append({
             'district': district,
             'status': district_status,
@@ -528,6 +553,12 @@ def home(request):
             'base_access': base_access,
             'all_complete': all_complete,
             'any_started': any_started,
+            'total_modules': total_modules,
+            'completed_modules': completed_count,
+            'progress_percent': int(round((completed_count / total_modules) * 100)) if total_modules else 0,
+            'primary_module': primary_module,
+            'locked_venues': locked_venues if locked_venues > 0 else 0,
+            'venue_names': list(venues.values_list('name', flat=True)),
         })
 
     # Get Level 1 for milestone and quest context (fallback friendly)

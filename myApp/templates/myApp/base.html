@@ -3,273 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Speak Pro{% endblock %}</title>
-    
-    <!-- Fonts: Inter and Manrope -->
+    <title>{% block title %}SpeakProApp{% endblock %}</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        (function() {
-            const storageKey = 'speakPro.theme';
-            const root = document.documentElement;
-            let stored = null;
-            try {
-                stored = localStorage.getItem(storageKey);
-            } catch (e) {}
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const theme = stored || (prefersDark ? 'dark' : 'light');
-            root.dataset.theme = theme;
-        })();
-    </script>
-
-    <!-- Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.webawesome.com/728fdbee6f9240ca.js" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
-                extend: {
-                    colors: {
-                        'ink-bg': 'var(--color-ink-bg)',
-                        'ink-surface': 'var(--color-ink-surface)',
-                        'electric-violet': 'var(--color-electric-violet)',
-                        'cyan': 'var(--color-cyan)',
-                        'text-strong': 'var(--color-text-strong)',
-                        'text-muted': 'var(--color-text-muted)',
-                        'overlay-weak': 'var(--color-overlay-weak)',
-                        'overlay-strong': 'var(--color-overlay-strong)',
-                        'border-default': 'var(--color-border-default)',
-                    },
-                    borderColor: {
-                        'default': 'var(--color-border-default)',
-                    },
-                    ringColor: {
-                        'brand': 'var(--color-electric-violet)',
-                    },
-                    fontFamily: {
-                        'primary': ['Inter', 'sans-serif'],
-                        'heading': ['Manrope', 'sans-serif'],
-                    },
-                    boxShadow: {
-                        'brand-soft': '0 8px 24px rgba(15, 23, 42, 0.08)',
-                    },
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+                    heading: ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
                 }
             }
         }
     </script>
     <style>
         :root {
+            --bg-canvas: #F7F8FB;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #FBFCFF;
+            --text-primary: #0B1220;
+            --text-secondary: #3A4353;
+            --text-muted: #667085;
+            --accent-primary: #5B7CFF;
+            --accent-success: #16B364;
+            --accent-warning: #F79009;
+            --accent-danger: #D92D20;
+            --border-default: #E6EAF2;
+            --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+            --radius-small: 8px;
+            --radius-card: 16px;
+            --radius-hero: 24px;
             color-scheme: light;
-            --color-ink-bg: #0a0a0f;
-            --color-ink-surface: #141420;
-            --color-electric-violet: #8b5cf6;
-            --color-cyan: #06b6d4;
-            --color-text-strong: #f9fafb;
-            --color-text-muted: rgba(255, 255, 255, 0.65);
-            --color-overlay-weak: rgba(255, 255, 255, 0.05);
-            --color-overlay-strong: rgba(255, 255, 255, 0.12);
-            --color-border-default: rgba(255, 255, 255, 0.1);
         }
 
-        [data-theme="dark"] {
-            color-scheme: dark;
-            --color-ink-bg: #0a0a0f;
-            --color-ink-surface: #141420;
-            --color-electric-violet: #8b5cf6;
-            --color-cyan: #06b6d4;
-            --color-text-strong: #f9fafb;
-            --color-text-muted: rgba(255, 255, 255, 0.65);
-            --color-overlay-weak: rgba(255, 255, 255, 0.05);
-            --color-overlay-strong: rgba(255, 255, 255, 0.12);
-            --color-border-default: rgba(255, 255, 255, 0.1);
+        body {
+            background: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
         }
 
-        [data-theme="light"] {
-            color-scheme: light;
-            --color-ink-bg: #f7f8fb;
-            --color-ink-surface: #ffffff;
-            --color-electric-violet: #6d28d9;
-            --color-cyan: #0891b2;
-            --color-text-strong: #0f172a;
-            --color-text-muted: #64748b;
-            --color-overlay-weak: rgba(15, 23, 42, 0.05);
-            --color-overlay-strong: rgba(15, 23, 42, 0.1);
-            --color-border-default: #e5e7eb;
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-        body { font-family: 'Inter', sans-serif; color: var(--color-text-strong); }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
-
-        [data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.05) !important; }
-        [data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.1) !important; }
-        [data-theme="light"] .bg-white\/20 { background-color: rgba(15, 23, 42, 0.2) !important; }
-        [data-theme="light"] .border-white\/10 { border-color: #e5e7eb !important; }
-        [data-theme="light"] .border-white\/20 { border-color: #d1d5db !important; }
-        [data-theme="light"] .text-white\/60 { color: #64748b !important; }
-        [data-theme="light"] .text-white\/70 { color: #475569 !important; }
-        [data-theme="light"] .text-white\/80 { color: #334155 !important; }
-        [data-theme="light"] .text-gray-300 { color: #475569 !important; }
-        [data-theme="light"] .text-gray-400 { color: #64748b !important; }
-        [data-theme="light"] .hover\:text-white:hover { color: #1f2937 !important; }
-        [data-theme="light"] .shadow-electric-violet\/50 { box-shadow: 0 8px 24px rgba(109, 40, 217, 0.18) !important; }
-        [data-theme="light"] .shadow-electric-violet\/30 { box-shadow: 0 8px 16px rgba(109, 40, 217, 0.12) !important; }
-        [data-theme="light"] .bg-white { background-color: #ffffff !important; }
-    </style>
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="bg-ink-bg text-text-strong min-h-screen {% if user.is_authenticated %}authenticated{% endif %} {% block body_class %}{% endblock %}">
-    {% if user.is_authenticated %}
-    <!-- Add padding bottom for footer on mobile -->
-    <style>
-        body.authenticated {
-            padding-bottom: 64px;
+        a {
+            color: inherit;
         }
-        @media (min-width: 768px) {
-            body.authenticated {
-                padding-bottom: 0;
-                padding-left: 80px;
+
+        .shadow-soft {
+            box-shadow: var(--shadow-soft);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--radius-small);
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--border-default);
+            background-color: var(--bg-subtle);
+        }
+
+        .chip--progress {
+            color: var(--accent-primary);
+            border-color: rgba(91, 124, 255, 0.35);
+            background-color: rgba(91, 124, 255, 0.08);
+        }
+
+        .chip--locked {
+            color: var(--text-muted);
+        }
+
+        .chip--complete {
+            color: var(--accent-success);
+            border-color: rgba(22, 179, 100, 0.35);
+            background-color: rgba(22, 179, 100, 0.08);
+        }
+
+        .chip--new {
+            color: var(--accent-warning);
+            border-color: rgba(247, 144, 9, 0.4);
+            background-color: rgba(247, 144, 9, 0.1);
+        }
+
+        .bg-ink-bg { background-color: var(--bg-canvas) !important; }
+        .bg-ink-surface { background-color: var(--bg-card) !important; }
+        .bg-overlay-weak { background-color: var(--bg-subtle) !important; }
+        .bg-overlay-strong { background-color: rgba(11, 18, 32, 0.06) !important; }
+        .text-text-strong { color: var(--text-primary) !important; }
+        .text-text-secondary { color: var(--text-secondary) !important; }
+        .text-muted { color: var(--text-muted) !important; }
+        .border-default { border-color: var(--border-default) !important; }
+        .bg-white\/5 { background-color: var(--bg-subtle) !important; }
+        .bg-white\/10 { background-color: rgba(11, 18, 32, 0.06) !important; }
+        .border-white\/10 { border-color: var(--border-default) !important; }
+        .border-white\/20 { border-color: var(--border-default) !important; }
+
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid var(--border-default);
+            background: var(--bg-card);
+            border-radius: var(--radius-small);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            min-height: 36px;
+        }
+
+        .stat-chip .fa-solid {
+            color: var(--text-muted);
+        }
+
+        .focus-ring {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+        }
+
+        .focus-ring:focus-visible {
+            outline-color: var(--accent-primary);
+            outline-width: 2px;
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .animate-hover {
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+
+            .animate-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 28px rgba(16, 24, 40, 0.09);
+            }
+
+            .animate-press:active {
+                transform: scale(0.98);
             }
         }
     </style>
-    <nav class="bg-ink-surface border-b border-default sticky top-0 z-50 backdrop-blur-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-            <div class="flex justify-between items-center">
-                <a href="{% url 'home' %}" class="flex items-center">
-                    <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-10 sm:h-12 w-auto">
-                        <!-- Speech bubble with gradient border -->
-                        <defs>
-                            <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
-                                <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
-                            </linearGradient>
-                            <linearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
-                            </linearGradient>
-                            <filter id="shadow">
-                                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
-                            </filter>
-                        </defs>
-                        <!-- Main speech bubble shape -->
-                        <path d="M10 15 Q10 5 20 5 L100 5 Q110 5 110 15 L110 45 Q110 55 100 55 L35 55 L20 70 L20 55 Q10 55 10 45 Z" 
-                              fill="url(#bubbleGradient)" 
-                              filter="url(#shadow)"/>
-                        <!-- White inner bubble -->
-                        <path d="M15 18 Q15 12 20 12 L100 12 Q105 12 105 18 L105 42 Q105 48 100 48 L32 48 L20 60 L20 48 Q15 48 15 42 Z" 
-                              fill="white" 
-                              opacity="0.95"/>
-                        <!-- Tail of speech bubble -->
-                        <path d="M20 48 L15 55 L25 55 Z" 
-                              fill="url(#tailGradient)"/>
-                        <!-- Text: Speak -->
-                        <text x="60" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FF6B35" text-anchor="middle">Speak</text>
-                        <!-- Text: ProApp -->
-                        <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
-                    </svg>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% if user.is_authenticated %}pb-20 md:pb-0{% endif %} {% block body_class %}{% endblock %}">
+    {% if user.is_authenticated %}
+    <header class="sticky top-0 z-40 bg-[color:var(--bg-card)] border-b border-[color:var(--border-default)]">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3">
+                <a href="{% url 'home' %}" class="flex items-center gap-3 focus-ring">
+                    <div class="h-10 w-10 rounded-full bg-[color:var(--accent-primary)] text-white flex items-center justify-center shadow-soft">
+                        <i class="fa-solid fa-comments text-lg"></i>
+                    </div>
+                    <div class="hidden sm:flex flex-col leading-tight">
+                        <span class="text-[15px] font-semibold tracking-wide uppercase text-[color:var(--text-muted)]">SpeakProApp</span>
+                        <span class="text-sm text-[color:var(--text-secondary)]">Performance Communication</span>
+                    </div>
                 </a>
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <!-- Mobile: Compact stats -->
-                    <div class="flex gap-1 sm:hidden">
-                        <div class="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs">
-                            <span>⚡</span>
-                            <span class="font-semibold">{{ user.profile.total_xp }}</span>
-                        </div>
-                        <div class="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs">
-                            <span>🔥</span>
-                            <span class="font-semibold">{{ user.profile.current_streak }}</span>
-                        </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="{% url 'ai_chat' %}" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring animate-press">
+                        <i class="fa-solid fa-robot"></i>
+                        <span>Open AI Coach</span>
+                    </a>
+                    <a href="{% url 'ai_chat' %}" class="sm:hidden w-10 h-10 flex items-center justify-center rounded-full border border-[color:var(--border-default)] focus-ring" aria-label="AI Coach">
+                        <i class="fa-solid fa-robot text-[color:var(--text-secondary)]"></i>
+                    </a>
+                    <a href="{% url 'profile' %}" class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+                        <i class="fa-solid fa-user"></i>
+                        <span>{{ user.username }}</span>
+                    </a>
+                    <a href="{% url 'logout' %}" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-[8px] border border-[color:var(--border-default)] text-sm font-semibold text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)] focus-ring">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Log out</span>
+                    </a>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center justify-between">
+                <div>
+                    {% block header_title %}{% endblock %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="stat-chip">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>{{ user.profile.total_xp }} XP</span>
                     </div>
-                    <!-- Desktop: Full stats -->
-                    <div class="hidden sm:flex gap-3 lg:gap-6 items-center">
-                        <div class="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs lg:text-sm">
-                            <span>⚡</span>
-                            <span class="font-semibold">{{ user.profile.total_xp }}</span>
-                            <span class="text-gray-400 text-xs hidden lg:inline">XP</span>
-                        </div>
-                        <div class="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs lg:text-sm">
-                            <span>🪙</span>
-                            <span class="font-semibold">{{ user.profile.coins }}</span>
-                            <span class="text-gray-400 text-xs hidden lg:inline">Coins</span>
-                        </div>
-                        <div class="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs lg:text-sm">
-                            <span>🎫</span>
-                            <span class="font-semibold">{{ user.profile.tickets }}</span>
-                            <span class="text-gray-400 text-xs hidden lg:inline">Tickets</span>
-                        </div>
-                        <div class="flex items-center gap-2 px-3 lg:px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs lg:text-sm">
-                            <span>🔥</span>
-                            <span class="font-semibold">{{ user.profile.current_streak }}</span>
-                            <span class="text-gray-400 text-xs hidden lg:inline">Day Streak</span>
-                        </div>
+                    <div class="stat-chip">
+                        <i class="fa-solid fa-coins"></i>
+                        <span>{{ user.profile.coins }}</span>
                     </div>
-                    <button id="themeToggle" class="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full border border-default bg-overlay-weak text-muted hover:text-text-strong hover:bg-overlay-strong transition" type="button" aria-label="Toggle theme">
-                        <span class="sr-only">Toggle theme</span>
-                        <svg id="themeToggleIcon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-13.9l1.414 1.414M18.364 18.364l1.414 1.414"/>
-                            <circle cx="12" cy="12" r="4"/>
-                        </svg>
-                    </button>
-                    <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white transition text-sm sm:text-base hidden sm:inline">{{ user.username }}</a>
-                    <a href="{% url 'logout' %}" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-md text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/10 transition">Logout</a>
+                    <div class="stat-chip">
+                        <i class="fa-solid fa-ticket"></i>
+                        <span>{{ user.profile.tickets }}</span>
+                    </div>
+                    <div class="stat-chip">
+                        <i class="fa-solid fa-fire"></i>
+                        <span>{{ user.profile.current_streak }} day streak</span>
+                    </div>
+                </div>
+            </div>
+            <div class="md:hidden -mx-4 px-4 overflow-x-auto pb-1">
+                <div class="flex gap-2 min-w-max snap-x">
+                    <div class="stat-chip snap-start">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>{{ user.profile.total_xp }} XP</span>
+                    </div>
+                    <div class="stat-chip snap-start">
+                        <i class="fa-solid fa-coins"></i>
+                        <span>{{ user.profile.coins }}</span>
+                    </div>
+                    <div class="stat-chip snap-start">
+                        <i class="fa-solid fa-ticket"></i>
+                        <span>{{ user.profile.tickets }}</span>
+                    </div>
+                    <div class="stat-chip snap-start">
+                        <i class="fa-solid fa-fire"></i>
+                        <span>{{ user.profile.current_streak }} streak</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </nav>
+    </header>
     {% endif %}
-    
+
     {% block main_wrapper %}
-    <main class="{% block main_class %}max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 min-h-[calc(100vh-80px)]{% endblock %}">
+    <main class="{% block main_class %}max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 md:py-10{% endblock %}">
         {% if messages %}
-        <div class="mb-8">
+        <div class="mb-6">
             {% for message in messages %}
-            <div class="p-4 rounded-lg mb-4 bg-white/5 border {% if message.tags == 'success' %}border-green-500/30 bg-green-500/10{% elif message.tags == 'error' %}border-red-500/30 bg-red-500/10{% else %}border-white/10{% endif %}">
-                {{ message }}
+            <div class="flex items-start gap-3 rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-card)] px-4 py-3 shadow-soft">
+                <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation text-[color:var(--accent-danger)]{% elif message.tags == 'success' %}fa-circle-check text-[color:var(--accent-success)]{% else %}fa-circle-info text-[color:var(--accent-primary)]{% endif %} text-lg mt-0.5"></i>
+                <p class="text-sm font-medium text-[color:var(--text-secondary)]">{{ message }}</p>
             </div>
             {% endfor %}
         </div>
         {% endif %}
-        
+
         {% block content %}{% endblock %}
     </main>
     {% endblock %}
-    
+
     {% if user.is_authenticated %}
         {% include 'myApp/components/bottom_nav.html' %}
     {% endif %}
-    
+
     {% block extra_js %}{% endblock %}
+
     {% if user.is_authenticated %}
     <script>
         (function() {
-            const storageKey = 'speakPro.theme';
             const root = document.documentElement;
             const toggle = document.getElementById('themeToggle');
             const icon = document.getElementById('themeToggleIcon');
+            const storageKey = 'speakPro.theme';
 
-            function setTheme(theme, persist = true) {
+            function setTheme(theme) {
                 root.dataset.theme = theme;
-                if (persist) {
-                    try {
-                        localStorage.setItem(storageKey, theme);
-                    } catch (e) {}
-                }
+                try { localStorage.setItem(storageKey, theme); } catch (err) {}
                 if (icon) {
-                    if (theme === 'dark') {
-                        icon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
-                    } else {
-                        icon.innerHTML = '<path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-13.9l1.414 1.414M18.364 18.364l1.414 1.414"/><circle cx="12" cy="12" r="4"/>';
-                    }
+                    icon.innerHTML = theme === 'dark'
+                        ? '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />'
+                        : '<path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-13.9l1.414 1.414M18.364 18.364l1.414 1.414"/><circle cx="12" cy="12" r="4"/>';
                 }
             }
 
             if (toggle) {
                 toggle.addEventListener('click', function() {
-                    const nextTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
-                    setTheme(nextTheme);
+                    const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+                    setTheme(next);
                 });
-                setTheme(root.dataset.theme || 'light', false);
+                const stored = (() => {
+                    try { return localStorage.getItem(storageKey); }
+                    catch (err) { return null; }
+                })();
+                setTheme(stored || 'light');
             }
         })();
     </script>

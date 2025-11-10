@@ -1,35 +1,32 @@
 {% load app_filters %}
-<div class="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-    <nav class="bg-ink-surface/90 backdrop-blur-md border-t border-white/10">
-        <ul class="max-w-4xl mx-auto grid grid-cols-4 divide-x divide-white/5">
+<div class="fixed bottom-0 left-0 right-0 z-40 safe-area-bottom md:hidden">
+    <nav class="bg-[color:var(--bg-card)] border-t border-[color:var(--border-default)] shadow-soft">
+        <ul class="grid grid-cols-4">
             <li>
                 <a href="{% url 'home' %}"
-                   class="flex flex-col items-center gap-1 py-3 text-sm font-semibold transition
-                          {% if request.resolver_match.url_name in ('home', 'district_overview', 'district_venues') %}text-electric-violet{% else %}text-muted hover:text-text-strong{% endif %}">
-                    <span>🏙️</span>
+                   class="nav-item {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'district_overview' or request.resolver_match.url_name == 'district_venues' %}nav-item--active{% endif %}">
+                    <i class="fa-solid fa-layer-group"></i>
                     <span>Districts</span>
                 </a>
             </li>
             <li>
                 <a href="{% url 'ai_chat' %}"
-                   class="flex flex-col items-center gap-1 py-3 text-sm font-semibold transition
-                          {% if request.resolver_match.url_name == 'ai_chat' %}text-electric-violet{% else %}text-muted hover:text-text-strong{% endif %}">
-                    <span>🤖</span>
+                   class="nav-item {% if request.resolver_match.url_name == 'ai_chat' %}nav-item--active{% endif %}">
+                    <i class="fa-solid fa-robot"></i>
                     <span>AI Coach</span>
                 </a>
             </li>
             <li>
                 <a href="{% url 'home' %}#daily-quest"
-                   class="flex flex-col items-center gap-1 py-3 text-sm font-semibold transition text-muted hover:text-text-strong">
-                    <span>📋</span>
+                   class="nav-item">
+                    <i class="fa-solid fa-calendar-check"></i>
                     <span>Daily Quest</span>
                 </a>
             </li>
             <li>
                 <a href="{% url 'profile' %}"
-                   class="flex flex-col items-center gap-1 py-3 text-sm font-semibold transition
-                          {% if request.resolver_match.url_name == 'profile' %}text-electric-violet{% else %}text-muted hover:text-text-strong{% endif %}">
-                    <span>👤</span>
+                   class="nav-item {% if request.resolver_match.url_name == 'profile' %}nav-item--active{% endif %}">
+                    <i class="fa-solid fa-user"></i>
                     <span>Profile</span>
                 </a>
             </li>
@@ -40,5 +37,44 @@
 <style>
 .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    position: relative;
+    min-height: 60px;
+}
+
+.nav-item i {
+    font-size: 1rem;
+}
+
+.nav-item--active {
+    color: var(--accent-primary);
+}
+
+.nav-item--active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--accent-primary);
+}
+
+.nav-item:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
 }
 </style>
