@@ -4,33 +4,315 @@
 
 {% block extra_css %}
 <style>
+  .surface-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(108, 99, 255, 0.14);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .home-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-hero);
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.16) 0%, rgba(255, 179, 71, 0.12) 45%, rgba(255, 255, 255, 0.94) 100%);
+    border: 1px solid rgba(108, 99, 255, 0.18);
+    box-shadow: var(--shadow-soft);
+    isolation: isolate;
+  }
+
+  .home-hero::before,
+  .home-hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(0);
+    opacity: 0.75;
+    z-index: -1;
+  }
+
+  .home-hero::before {
+    width: 440px;
+    height: 440px;
+    top: -160px;
+    right: -140px;
+    background: radial-gradient(circle at center, rgba(108, 99, 255, 0.28) 0%, rgba(108, 99, 255, 0) 70%);
+  }
+
+  .home-hero::after {
+    width: 360px;
+    height: 360px;
+    bottom: -120px;
+    left: -120px;
+    background: radial-gradient(circle at center, rgba(76, 215, 165, 0.24) 0%, rgba(76, 215, 165, 0) 68%);
+  }
+
+  .home-hero__inner {
+    position: relative;
+    display: grid;
+    gap: clamp(1.75rem, 6vw, 3.5rem);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    padding: clamp(2rem, 5vw, 3.4rem);
+  }
+
+  @media (max-width: 960px) {
+    .home-hero__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .home-hero__copy {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 3vw, 1.75rem);
+  }
+
+  .home-hero__eyebrow {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-primary);
+    background: rgba(255, 255, 255, 0.64);
+    border: 1px solid rgba(108, 99, 255, 0.28);
+    box-shadow: 0 12px 26px rgba(108, 99, 255, 0.14);
+  }
+
+  .home-hero__title {
+    font-size: clamp(2.2rem, 5vw, 2.8rem);
+    line-height: 1.05;
+    color: var(--text-primary);
+  }
+
+  .home-hero__description {
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 36rem;
+    color: var(--text-secondary);
+  }
+
+  .home-hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+  }
+
+  .home-hero__hint {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+  }
+
+  .btn-hero {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    font-size: 0.94rem;
+    font-weight: 600;
+    padding: 0.85rem 1.6rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+  }
+
+  .btn-hero--primary {
+    background: linear-gradient(100deg, rgba(108, 99, 255, 0.95) 0%, rgba(76, 215, 165, 0.95) 100%);
+    color: #fff;
+    box-shadow: 0 20px 36px rgba(108, 99, 255, 0.28);
+    border: none;
+  }
+
+  .btn-hero--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 28px 48px rgba(76, 215, 165, 0.3);
+  }
+
+  .btn-hero--secondary {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(108, 99, 255, 0.32);
+    color: var(--text-secondary);
+    box-shadow: 0 16px 26px rgba(15, 22, 45, 0.08);
+  }
+
+  .btn-hero--secondary:hover {
+    background: rgba(255, 255, 255, 1);
+    color: var(--accent-primary);
+    transform: translateY(-2px);
+  }
+
+  .home-hero__journey {
+    position: relative;
+  }
+
+  .journey-track {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    padding-left: 3.4rem;
+  }
+
+  .journey-track::before {
+    content: "";
+    position: absolute;
+    left: 1.35rem;
+    top: 0.6rem;
+    bottom: 0.6rem;
+    width: 3px;
+    background: linear-gradient(180deg, rgba(108, 99, 255, 0.35) 0%, rgba(255, 179, 71, 0.18) 45%, rgba(108, 99, 255, 0.12) 100%);
+    border-radius: 999px;
+  }
+
+  .journey-track__step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(108, 99, 255, 0.14);
+    box-shadow: 0 18px 34px rgba(15, 22, 45, 0.08);
+  }
+
+  .journey-track__step::before {
+    content: "";
+    position: absolute;
+    left: -3.15rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: linear-gradient(160deg, rgba(108, 99, 255, 1), rgba(76, 215, 165, 0.85));
+    box-shadow: 0 8px 20px rgba(108, 99, 255, 0.25);
+  }
+
+  .journey-track__step:last-child::after {
+    content: "";
+    position: absolute;
+    left: -3.05rem;
+    bottom: -1.35rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(255, 179, 71, 0.38);
+    box-shadow: 0 6px 16px rgba(255, 179, 71, 0.35);
+  }
+
+  .journey-track__badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 1.25rem;
+    color: #fff;
+    box-shadow: 0 16px 32px rgba(108, 99, 255, 0.32);
+  }
+
+  .journey-track__badge--xp {
+    background: linear-gradient(140deg, rgba(108, 99, 255, 0.95), rgba(99, 181, 255, 0.95));
+  }
+
+  .journey-track__badge--coins {
+    background: linear-gradient(140deg, rgba(255, 179, 71, 0.95), rgba(255, 198, 125, 0.95));
+  }
+
+  .journey-track__badge--tickets {
+    background: linear-gradient(140deg, rgba(91, 104, 241, 0.95), rgba(108, 99, 255, 0.95));
+  }
+
+  .journey-track__badge--streak {
+    background: linear-gradient(140deg, rgba(255, 119, 83, 0.98), rgba(255, 179, 71, 0.95));
+  }
+
+  .journey-track__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .journey-track__label {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .journey-track__value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .journey-track__hint {
+    font-size: 0.8rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+  }
+
+  .journey-track__hint--soft {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  @media (max-width: 640px) {
+    .journey-track {
+      padding-left: 0;
+    }
+
+    .journey-track::before {
+      display: none;
+    }
+
+    .journey-track__step::before,
+    .journey-track__step:last-child::after {
+      display: none;
+    }
+
+    .journey-track__step {
+      flex-direction: row;
+    }
+  }
+
   #districtTrail {
     position: relative;
-    padding-left: 3.5rem;
+    padding-left: 3.6rem;
   }
+
   #districtTrail::before {
     content: "";
     position: absolute;
-    left: 1.9rem;
-    top: 3.75rem;
-    bottom: 3.5rem;
+    left: 1.8rem;
+    top: 3.1rem;
+    bottom: 3.1rem;
     width: 4px;
-    background: linear-gradient(180deg, rgba(91,124,255,0.45) 0%, rgba(91,124,255,0.08) 100%);
+    background: linear-gradient(180deg, rgba(108, 99, 255, 0.28) 0%, rgba(76, 215, 165, 0.24) 50%, rgba(108, 99, 255, 0.08) 100%);
     border-radius: 999px;
   }
+
   .trail-stop {
     position: relative;
   }
+
   .trail-stop + .trail-stop {
-    margin-top: 2.75rem;
+    margin-top: 2.9rem;
   }
+
   .trail-stop::before {
     content: attr(data-index);
     position: absolute;
-    left: -2.8rem;
-    top: 0.2rem;
-    width: 2.65rem;
-    height: 2.65rem;
+    left: -3.1rem;
+    top: 0.1rem;
+    width: 2.9rem;
+    height: 2.9rem;
     border-radius: 999px;
     display: flex;
     align-items: center;
@@ -38,45 +320,72 @@
     font-weight: 700;
     font-size: 0.95rem;
     color: #fff;
-    border: 2px solid rgba(255,255,255,0.65);
-    background: linear-gradient(135deg, rgba(91,124,255,1), rgba(91,124,255,0.75));
-    box-shadow: 0 10px 18px rgba(91,124,255,0.35);
+    border: 2px solid rgba(255, 255, 255, 0.65);
+    background: linear-gradient(135deg, rgba(108, 99, 255, 1), rgba(99, 181, 255, 0.9));
+    box-shadow: 0 16px 28px rgba(108, 99, 255, 0.28);
   }
+
   .trail-stop--locked::before {
-    background: linear-gradient(135deg, rgba(102,112,133,0.9), rgba(102,112,133,0.68));
-    box-shadow: 0 10px 16px rgba(102,112,133,0.24);
+    background: linear-gradient(135deg, rgba(110, 119, 150, 0.9), rgba(110, 119, 150, 0.65));
+    box-shadow: 0 14px 24px rgba(110, 119, 150, 0.2);
   }
+
   .trail-stop--complete::before {
-    background: linear-gradient(135deg, rgba(22,179,100,1), rgba(22,179,100,0.82));
-    box-shadow: 0 12px 20px rgba(22,179,100,0.32);
+    background: linear-gradient(135deg, rgba(76, 215, 165, 1), rgba(108, 99, 255, 0.8));
+    box-shadow: 0 18px 32px rgba(76, 215, 165, 0.28);
   }
+
   .trail-stop--current::before {
-    animation: pulseMarker 2.6s ease-in-out infinite;
+    animation: pulseMarker 3s ease-in-out infinite;
   }
+
   .trail-stop::after {
     content: "";
     position: absolute;
-    left: -1.99rem;
-    top: 3rem;
-    width: 2px;
-    height: calc(100% - 2.75rem);
-    background: linear-gradient(180deg, rgba(91,124,255,0.18), rgba(91,124,255,0));
+    left: -2rem;
+    top: 3.4rem;
+    width: 3px;
+    height: calc(100% - 2.9rem);
+    background: linear-gradient(180deg, rgba(108, 99, 255, 0.12), rgba(108, 99, 255, 0));
   }
-  .progress-fill {
-    width: var(--progress, 0%);
-    transition: width 220ms ease;
-  }
+
   .trail-stop:last-child::after {
     display: none;
   }
+
+  .trail-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(108, 99, 255, 0.14);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .progress-fill {
+    width: var(--progress, 0%);
+    transition: width 220ms ease;
+    background: linear-gradient(90deg, rgba(108, 99, 255, 1) 0%, rgba(76, 215, 165, 0.85) 100%);
+  }
+
   @keyframes pulseMarker {
     0%, 100% {
       transform: scale(1);
-      box-shadow: 0 10px 20px rgba(91,124,255,0.32);
+      box-shadow: 0 16px 30px rgba(108, 99, 255, 0.28);
     }
     50% {
-      transform: scale(1.06);
-      box-shadow: 0 16px 26px rgba(91,124,255,0.38);
+      transform: scale(1.08);
+      box-shadow: 0 22px 38px rgba(108, 99, 255, 0.32);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-hero,
+    .journey-track__step,
+    .trail-card {
+      transition: none;
+    }
+
+    .trail-stop--current::before {
+      animation: none;
     }
   }
 </style>
@@ -94,46 +403,78 @@
 <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 space-y-10">
 
   <!-- Hero -->
-  <section class="rounded-[var(--radius-hero)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft overflow-hidden">
-    <div class="p-6 sm:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-[1fr,260px] gap-6 md:gap-10">
-      <div class="space-y-4">
-        <h1 class="font-heading font-bold tracking-[-0.02em] leading-[1.05] text-[28px] sm:text-[34px] md:text-[38px] text-[color:var(--text-primary)]">
-          Welcome back, {{ display_name }}.
-        </h1>
-        <p class="text-[15px] sm:text-[16px] leading-relaxed text-[color:var(--text-secondary)] max-w-2xl">
-          Follow the trail through districts. Watch overviews, explore modules with the AI coach, and unlock venues as you progress.
+  <section class="home-hero">
+    <div class="home-hero__inner">
+      <div class="home-hero__copy">
+        <span class="home-hero__eyebrow">
+          <i class="fa-solid fa-star"></i>
+          Level up today
+        </span>
+        <h1 class="home-hero__title">Welcome back, {{ display_name }}!</h1>
+        <p class="home-hero__description">
+          Chart your course across districts, unlock vibrant venues, and keep refining your message with quick drills and the AI coach.
         </p>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <a href="{% url 'ai_chat' %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
+        <div class="home-hero__cta">
+          <a href="{% url 'ai_chat' %}" class="btn-hero btn-hero--primary focus-ring animate-press">
             <i class="fa-solid fa-robot"></i>
             <span>Open AI Coach</span>
           </a>
-          <a href="{% url 'profile' %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+          <a href="{% url 'profile' %}" class="btn-hero btn-hero--secondary focus-ring">
             <i class="fa-solid fa-user"></i>
-            <span>Profile</span>
+            <span>Profile & Rewards</span>
           </a>
         </div>
+        {% if resume_module %}
+        <p class="home-hero__hint">
+          <i class="fa-solid fa-forward"></i>
+          Resume Module {{ resume_module.code }} whenever you're ready.
+        </p>
+        {% endif %}
       </div>
-      <div class="grid grid-cols-2 gap-3 text-center text-xs text-[color:var(--text-muted)]">
-        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
-          <i class="fa-solid fa-bolt text-[color:var(--accent-primary)] text-lg"></i>
-          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.total_xp }}</p>
-          <span>XP</span>
-        </div>
-        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
-          <i class="fa-solid fa-coins text-[color:var(--accent-warning)] text-lg"></i>
-          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.coins }}</p>
-          <span>Coins</span>
-        </div>
-        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
-          <i class="fa-solid fa-ticket text-[color:var(--accent-primary)] text-lg"></i>
-          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.tickets }}</p>
-          <span>Tickets</span>
-        </div>
-        <div class="rounded-[12px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] px-4 py-3 shadow-soft">
-          <i class="fa-solid fa-fire text-[color:var(--accent-danger)] text-lg"></i>
-          <p class="mt-1 font-semibold text-[color:var(--text-secondary)]">{{ user.profile.current_streak }}</p>
-          <span>Day Streak</span>
+      <div class="home-hero__journey">
+        <div class="journey-track">
+          <div class="journey-track__step floating">
+            <span class="journey-track__badge journey-track__badge--xp">
+              <i class="fa-solid fa-bolt"></i>
+            </span>
+            <div class="journey-track__text">
+              <p class="journey-track__label">Total XP</p>
+              <p class="journey-track__value">{{ user.profile.total_xp }}</p>
+              {% if daily_quest and not daily_quest.completed %}
+              <span class="journey-track__hint">+{{ daily_quest.xp_reward }} XP available</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="journey-track__step floating">
+            <span class="journey-track__badge journey-track__badge--coins">
+              <i class="fa-solid fa-coins"></i>
+            </span>
+            <div class="journey-track__text">
+              <p class="journey-track__label">Coins</p>
+              <p class="journey-track__value">{{ user.profile.coins }}</p>
+              <span class="journey-track__hint journey-track__hint--soft">Spend them in unlocked venues</span>
+            </div>
+          </div>
+          <div class="journey-track__step floating">
+            <span class="journey-track__badge journey-track__badge--tickets">
+              <i class="fa-solid fa-ticket"></i>
+            </span>
+            <div class="journey-track__text">
+              <p class="journey-track__label">Tickets</p>
+              <p class="journey-track__value">{{ user.profile.tickets }}</p>
+              <span class="journey-track__hint journey-track__hint--soft">Save for milestone showcases</span>
+            </div>
+          </div>
+          <div class="journey-track__step floating">
+            <span class="journey-track__badge journey-track__badge--streak">
+              <i class="fa-solid fa-fire"></i>
+            </span>
+            <div class="journey-track__text">
+              <p class="journey-track__label">Streak</p>
+              <p class="journey-track__value">{{ user.profile.current_streak }} days</p>
+              <span class="journey-track__hint">Keep the flame alive!</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -164,7 +505,7 @@
       {% for card in district_cards %}
       {% with status=card.status %}
       <li class="trail-stop {% if status == 'complete' %}trail-stop--complete{% elif status == 'in_progress' %}trail-stop--current{% elif status == 'locked' %}trail-stop--locked{% endif %}" data-index="{{ card.district.number }}">
-        <article class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-5">
+        <article class="trail-card floating p-5 sm:p-6 space-y-5">
           <div class="flex items-start justify-between gap-4">
             <div class="space-y-1.5 sm:space-y-2">
               <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-muted)]">
@@ -195,7 +536,7 @@
           <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr),200px]">
             <div class="space-y-2">
             <div class="h-2 rounded-full bg-[color:var(--bg-subtle)] overflow-hidden">
-              <div class="progress-fill h-full rounded-full bg-[color:var(--accent-primary)]" style="--progress: {{ card.progress_percent }}%"></div>
+              <div class="progress-fill h-full rounded-full" style="--progress: {{ card.progress_percent }}%"></div>
               </div>
               <div class="flex justify-between text-[11px] sm:text-xs text-[color:var(--text-muted)]">
                 <span>{{ card.completed_modules }} of {{ card.total_modules }} modules complete</span>
@@ -281,9 +622,9 @@
       {% endfor %}
     </ul>
     {% else %}
-    <div class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-6 text-center text-[color:var(--text-muted)]">
+    <div class="trail-card floating p-6 text-center text-[color:var(--text-muted)]">
       <p class="text-sm">You’ll start with District 1 after onboarding.</p>
-      <a href="{% url 'onboarding' %}" class="inline-flex items-center gap-2 mt-4 px-4 py-2.5 rounded-[999px] border border-[color:var(--border-default)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+      <a href="{% url 'onboarding' %}" class="btn-hero btn-hero--secondary focus-ring mt-4">
         <i class="fa-solid fa-clipboard-list"></i><span>Review Onboarding</span>
       </a>
     </div>
@@ -291,16 +632,16 @@
   </section>
 
   {% if resume_module %}
-  <section class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+  <section class="trail-card floating p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <div class="space-y-1.5">
       <h2 class="text-[18px] sm:text-[20px] font-heading font-semibold text-[color:var(--text-primary)]">Resume Module {{ resume_module.code }}</h2>
       <p class="text-[13px] sm:text-sm text-[color:var(--text-muted)]">Jump back in to keep your momentum. Lessons and exercises stay in sync.</p>
     </div>
     <div class="flex flex-col sm:flex-row gap-3">
-      <a href="{% url 'module_learn' resume_module.code %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[999px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring">
+      <a href="{% url 'module_learn' resume_module.code %}" class="btn-hero btn-hero--secondary focus-ring">
         <i class="fa-solid fa-circle-play"></i><span>Review Lesson</span>
       </a>
-      <a href="{% url 'module_exercises' resume_module.code %}" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
+      <a href="{% url 'module_exercises' resume_module.code %}" class="btn-hero btn-hero--primary focus-ring animate-press">
         <i class="fa-solid fa-play"></i><span>Resume Exercises</span>
       </a>
     </div>
@@ -308,7 +649,7 @@
   {% endif %}
 
   <section class="grid gap-5 sm:gap-6 md:grid-cols-2">
-    <div id="daily-quest" class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-3">
+    <div id="daily-quest" class="trail-card floating p-5 sm:p-6 space-y-3">
       <div class="flex items-center gap-2 text-[color:var(--text-secondary)]">
         <i class="fa-solid fa-calendar-check text-[color:var(--accent-primary)]"></i>
         <h3 class="text-[17px] sm:text-[18px] font-heading font-semibold">Daily Quest</h3>
@@ -324,7 +665,7 @@
       {% endif %}
     </div>
 
-    <div class="rounded-[var(--radius-card)] bg-[color:var(--bg-card)] border border-[color:var(--border-default)] shadow-soft p-5 sm:p-6 space-y-3">
+    <div class="trail-card floating p-5 sm:p-6 space-y-3">
       <div class="flex items-center gap-2 text-[color:var(--text-secondary)]">
         <i class="fa-solid fa-flag-checkered text-[color:var(--accent-success)]"></i>
         <h3 class="text-[17px] sm:text-[18px] font-heading font-semibold">Milestone Challenge</h3>

@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="max-w-md mx-auto mt-12 sm:mt-20 px-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-6 sm:p-8">
-        <h1 class="text-2xl sm:text-3xl font-heading font-bold mb-4 sm:mb-6 text-center">Welcome to Speak Pro</h1>
+    <div class="bg-ink-surface border border-default rounded-2xl p-6 sm:p-8 shadow-soft">
+        <h1 class="text-2xl sm:text-3xl font-heading font-bold mb-4 sm:mb-6 text-center text-text-strong">Welcome to Speak Pro</h1>
         
         {% if error %}
-        <div class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+        <div class="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 text-sm">
             {{ error }}
         </div>
         {% endif %}
@@ -16,18 +16,18 @@
         <form method="post" class="space-y-6">
             {% csrf_token %}
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Username</label>
-                <input type="text" name="username" required class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
+                <label class="block text-sm font-semibold text-[color:var(--text-secondary)] mb-2">Username</label>
+                <input type="text" name="username" required class="w-full p-3 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-[color:var(--accent-primary)] focus:ring-2 focus:ring-[color:var(--accent-primary)]/20 transition">
             </div>
             <div>
-                <label class="block text-sm text-gray-400 mb-2">Password</label>
-                <input type="password" name="password" required class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30">
+                <label class="block text-sm font-semibold text-[color:var(--text-secondary)] mb-2">Password</label>
+                <input type="password" name="password" required class="w-full p-3 rounded-lg border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-[color:var(--accent-primary)] focus:ring-2 focus:ring-[color:var(--accent-primary)]/20 transition">
             </div>
-            <button type="submit" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition hover:-translate-y-0.5">Login</button>
+            <button type="submit" class="w-full px-6 py-3 bg-[color:var(--accent-primary)] text-white rounded-lg font-semibold shadow-soft hover:shadow-xl hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/30">Login</button>
         </form>
         
-        <p class="mt-6 text-center text-gray-400 text-sm">
-            Don't have an account? <a href="{% url 'signup' %}" class="text-electric-violet hover:text-cyan">Sign up</a>
+        <p class="mt-6 text-center text-[color:var(--text-muted)] text-sm">
+            Don't have an account? <a href="{% url 'signup' %}" class="text-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)]/80 font-semibold">Sign up</a>
         </p>
     </div>
 </div>

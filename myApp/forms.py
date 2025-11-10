@@ -8,7 +8,7 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
-            'class': 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
+            'class': 'w-full px-3 py-2 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
             'placeholder': 'Enter your email'
         }),
         help_text='Required. We\'ll use this to send you important updates.'
@@ -22,16 +22,16 @@ class CustomUserCreationForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         # Style the username field
         self.fields['username'].widget.attrs.update({
-            'class': 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
+            'class': 'w-full px-3 py-2 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
             'placeholder': 'Choose a username'
         })
         # Style the password fields
         self.fields['password1'].widget.attrs.update({
-            'class': 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
+            'class': 'w-full px-3 py-2 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
             'placeholder': 'Create a password'
         })
         self.fields['password2'].widget.attrs.update({
-            'class': 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
+            'class': 'w-full px-3 py-2 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-electric-violet focus:ring-2 focus:ring-electric-violet/30',
             'placeholder': 'Confirm your password'
         })
     

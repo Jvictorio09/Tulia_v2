@@ -1,31 +1,31 @@
 <div id="audienceMapTool" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-ink-surface border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="bg-ink-surface border border-default rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-soft">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl sm:text-2xl font-heading font-bold">Audience MAP</h2>
-            <button onclick="closeAudienceMap()" class="text-gray-400 hover:text-white">✕</button>
+            <h2 class="text-xl sm:text-2xl font-heading font-bold text-[color:var(--text-primary)]">Audience MAP</h2>
+            <button onclick="closeAudienceMap()" class="text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]">✕</button>
         </div>
         
         <div class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">M - Mindset</label>
-                    <textarea id="audienceMindset" placeholder="What do they think/feel?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm font-semibold text-[color:var(--text-secondary)] mb-2">M - Mindset</label>
+                    <textarea id="audienceMindset" placeholder="What do they think/feel?" class="w-full p-3 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-[color:var(--accent-primary)] focus:ring-2 focus:ring-[color:var(--accent-primary)]/20 h-24 transition"></textarea>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">A - Attention</label>
-                    <textarea id="audienceAttention" placeholder="What captures their focus?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm font-semibold text-[color:var(--text-secondary)] mb-2">A - Attention</label>
+                    <textarea id="audienceAttention" placeholder="What captures their focus?" class="w-full p-3 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-[color:var(--accent-primary)] focus:ring-2 focus:ring-[color:var(--accent-primary)]/20 h-24 transition"></textarea>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">P - Priorities</label>
-                    <textarea id="audiencePriorities" placeholder="What matters most to them?" class="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-electric-violet h-24"></textarea>
+                    <label class="block text-sm font-semibold text-[color:var(--text-secondary)] mb-2">P - Priorities</label>
+                    <textarea id="audiencePriorities" placeholder="What matters most to them?" class="w-full p-3 bg-[color:var(--bg-subtle)] border border-[color:var(--border-default)] rounded-lg text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:border-[color:var(--accent-primary)] focus:ring-2 focus:ring-[color:var(--accent-primary)]/20 h-24 transition"></textarea>
                 </div>
             </div>
             
-            <button onclick="generateAudienceMap()" class="w-full px-6 py-3 bg-electric-violet text-white rounded-lg font-semibold hover:bg-violet-600 shadow-lg shadow-electric-violet/50 transition">Generate MAP</button>
+            <button onclick="generateAudienceMap()" class="w-full px-6 py-3 bg-[color:var(--accent-primary)] text-white rounded-lg font-semibold shadow-soft hover:shadow-xl hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/30">Generate MAP</button>
             
-            <div id="audienceResult" class="hidden p-6 bg-white/5 border border-electric-violet/30 rounded-lg">
-                <h3 class="font-semibold mb-4">Your Audience Profile:</h3>
-                <div class="space-y-3 text-gray-300 text-sm" id="audienceOutput"></div>
+            <div id="audienceResult" class="hidden p-6 bg-[color:var(--bg-subtle)] border border-[color:var(--accent-primary)]/25 rounded-lg">
+                <h3 class="font-semibold mb-4 text-[color:var(--text-secondary)]">Your Audience Profile:</h3>
+                <div class="space-y-3 text-[color:var(--text-secondary)] text-sm" id="audienceOutput"></div>
             </div>
         </div>
     </div>

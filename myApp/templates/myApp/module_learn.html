@@ -2,6 +2,283 @@
 
 {% block title %}Module {{ module.code }} · Learn{% endblock %}
 
+{% block extra_css %}
+<style>
+  .module-stage {
+    position: relative;
+    border-radius: var(--radius-hero);
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.12), rgba(76, 215, 165, 0.08) 42%, rgba(255, 179, 71, 0.08));
+    padding: clamp(1.5rem, 3vw, 2.75rem);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .module-stage::before,
+  .module-stage::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(0);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: transform 0.6s ease;
+  }
+
+  .module-stage::before {
+    width: 520px;
+    height: 520px;
+    top: -240px;
+    right: -160px;
+    background: radial-gradient(circle, rgba(108, 99, 255, 0.22) 0%, rgba(108, 99, 255, 0) 70%);
+  }
+
+  .module-stage::after {
+    width: 440px;
+    height: 440px;
+    bottom: -200px;
+    left: -120px;
+    background: radial-gradient(circle, rgba(76, 215, 165, 0.18) 0%, rgba(76, 215, 165, 0) 74%);
+  }
+
+  .module-stage__inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  @media (min-width: 1200px) {
+    .module-stage__inner {
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    }
+  }
+
+  .module-stage__primary {
+    display: grid;
+    gap: clamp(1.25rem, 2.5vw, 2rem);
+  }
+
+  .module-stage--focus .module-stage__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .module-stage--focus .module-stage__aside {
+    display: none;
+  }
+
+  .video-stage {
+    position: relative;
+    border-radius: calc(var(--radius-card) + 6px);
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(108, 99, 255, 0.16);
+    box-shadow: 0 40px 80px -32px rgba(16, 24, 40, 0.25);
+    overflow: hidden;
+  }
+
+  .video-stage__frame {
+    position: relative;
+    background: radial-gradient(circle at top, rgba(108, 99, 255, 0.25), rgba(108, 99, 255, 0.05));
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+  }
+
+  .video-stage__badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(16, 24, 40, 0.65);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    backdrop-filter: blur(12px);
+  }
+
+  .video-stage__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-top: 1px solid rgba(108, 99, 255, 0.12);
+  }
+
+  .video-stage__stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .video-stage__stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(108, 99, 255, 0.1);
+    color: rgba(48, 57, 89, 0.95);
+    font-weight: 600;
+  }
+
+  .focus-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    border: 1px solid rgba(108, 99, 255, 0.22);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.5rem 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .focus-pill:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+  }
+
+  .focus-pill[aria-pressed="true"] {
+    background: rgba(108, 99, 255, 0.12);
+    color: var(--accent-primary);
+  }
+
+  .transcript-card {
+    position: relative;
+    border-radius: calc(var(--radius-card) + 4px);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(108, 99, 255, 0.16);
+    box-shadow: 0 32px 64px -36px rgba(16, 24, 40, 0.3);
+    overflow: hidden;
+  }
+
+  .transcript-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem 0.5rem;
+  }
+
+  .transcript-card__controls {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .transcript-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(108, 99, 255, 0.18);
+    background: rgba(108, 99, 255, 0.08);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+  }
+
+  .transcript-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(108, 99, 255, 0.18);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.9);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+
+  .transcript-button:hover {
+    background: rgba(108, 99, 255, 0.12);
+    color: var(--accent-primary);
+    transform: translateY(-1px);
+  }
+
+  .transcript-button[aria-pressed="true"] {
+    background: rgba(108, 99, 255, 0.16);
+    color: var(--accent-primary);
+  }
+
+  .transcript-card__body {
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  .transcript-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    scroll-behavior: smooth;
+  }
+
+  .transcript-scroll[data-transcript] {
+    --transcript-scale: 1;
+    font-size: calc(0.92rem * var(--transcript-scale));
+    line-height: 1.65;
+    color: var(--text-secondary);
+    transition: font-size 0.2s ease, background 0.2s ease;
+  }
+
+  .transcript-chunk {
+    position: relative;
+    padding: 0.85rem 0.9rem;
+    border-radius: 14px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .transcript-chunk:hover {
+    background: rgba(108, 99, 255, 0.06);
+    transform: translateX(4px);
+  }
+
+  .transcript-chunk--active {
+    background: rgba(108, 99, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(108, 99, 255, 0.24);
+  }
+
+  .transcript-empty {
+    padding: 1rem 1.5rem 1.75rem;
+    border-radius: 16px;
+    background: rgba(108, 99, 255, 0.08);
+    border: 1px dashed rgba(108, 99, 255, 0.2);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .module-stage--focus .video-stage {
+    box-shadow: 0 50px 110px -40px rgba(16, 24, 40, 0.33);
+    transform: scale(1.01);
+  }
+
+  @media (max-width: 1023px) {
+    .module-stage {
+      padding: 1.25rem;
+    }
+
+    .transcript-card__header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block header_title %}
 <div class="hidden md:flex items-center gap-2 text-sm font-semibold text-[color:var(--text-muted)]">
     <a href="{% url 'home' %}" class="focus-ring">Districts</a>
@@ -10,6 +287,73 @@
     <i class="fa-solid fa-angles-right text-[10px]"></i>
     <span>Module {{ module.code }}</span>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const stage = document.querySelector('.module-stage');
+    const focusToggle = document.getElementById('focusToggle');
+    const transcriptContainer = document.querySelector('[data-transcript]');
+    const transcriptButtons = document.querySelectorAll('.transcript-button');
+    const chunks = document.querySelectorAll('[data-transcript-chunk]');
+
+    if (focusToggle && stage) {
+        focusToggle.addEventListener('click', () => {
+            const isActive = stage.classList.toggle('module-stage--focus');
+            focusToggle.setAttribute('aria-pressed', String(isActive));
+            const icon = focusToggle.querySelector('i');
+            const label = focusToggle.querySelector('span');
+            if (icon) icon.className = isActive ? 'fa-solid fa-minimize' : 'fa-solid fa-maximize';
+            if (label) label.textContent = isActive ? 'Exit Focus' : 'Enter Focus';
+        });
+    }
+
+    if (transcriptContainer && chunks.length > 0) {
+        let scale = 1;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                entry.target.classList.toggle('transcript-chunk--active', entry.isIntersecting);
+            });
+        }, {
+            root: transcriptContainer,
+            threshold: 0.65
+        });
+
+        chunks.forEach(chunk => observer.observe(chunk));
+
+        transcriptButtons.forEach(btn => {
+            const action = btn.dataset.action;
+            btn.addEventListener('click', () => {
+                if (action === 'font-up') {
+                    scale = Math.min(scale + 0.1, 1.4);
+                } else if (action === 'font-down') {
+                    scale = Math.max(scale - 0.1, 0.8);
+                } else if (action === 'follow') {
+                    const isPressed = btn.getAttribute('aria-pressed') === 'true';
+                    btn.setAttribute('aria-pressed', String(!isPressed));
+                    transcriptContainer.dataset.follow = String(!isPressed);
+                    if (!isPressed) {
+                        const active = transcriptContainer.querySelector('.transcript-chunk--active');
+                        if (active) {
+                            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                    return;
+                }
+                transcriptContainer.style.setProperty('--transcript-scale', scale.toFixed(2));
+            });
+        });
+
+        transcriptContainer.addEventListener('click', (event) => {
+            const chunk = event.target.closest('[data-transcript-chunk]');
+            if (!chunk) return;
+            chunks.forEach(c => c.classList.remove('transcript-chunk--active'));
+            chunk.classList.add('transcript-chunk--active');
+        });
+    }
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -29,52 +373,93 @@
         </a>
     </header>
 
-    <section class="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div class="space-y-6">
-            <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft overflow-hidden">
-                <div class="aspect-video bg-[color:var(--bg-subtle)] flex items-center justify-center">
-                    {% if video_url %}
-                    <video controls class="w-full h-full object-cover focus-ring">
-                        <source src="{{ video_url }}">
-                        Your browser does not support the video tag.
-                    </video>
-                    {% else %}
-                    <div class="p-6 text-center text-[color:var(--text-muted)]">
-                        <p class="text-sm font-medium">Lesson video coming soon. Review the transcript and coach guidance below.</p>
-                    </div>
-                    {% endif %}
-                </div>
-                {% if module.lesson_duration %}
-                <p class="text-xs text-[color:var(--text-muted)] px-4 py-3 border-t border-[color:var(--border-default)]">Duration: {{ module.lesson_duration }} seconds</p>
-                {% endif %}
-            </div>
-
-            <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-[18px] font-heading font-semibold text-[color:var(--text-secondary)] flex items-center gap-2">
-                        <i class="fa-solid fa-file-lines text-[color:var(--accent-primary)]"></i>
-                        <span>Live Transcript</span>
-                    </h2>
-                    {% if not transcript %}
-                    <span class="chip chip--locked text-xs">Pending</span>
-                    {% endif %}
-                </div>
-                {% if transcript %}
-                <div class="space-y-4 text-sm text-[color:var(--text-secondary)] leading-relaxed max-h-[420px] overflow-y-auto pr-2">
-                    {% for paragraph in transcript.splitlines %}
-                        {% if paragraph %}
-                        <p>{{ paragraph }}</p>
+    <section class="module-stage">
+        <div class="module-stage__inner">
+            <div class="module-stage__primary">
+                <div class="video-stage">
+                    <div class="video-stage__frame">
+                        <div class="video-stage__badge">
+                            <i class="fa-solid fa-circle-play"></i>
+                            Lesson Focus
+                        </div>
+                        {% if video_url %}
+                        <video controls class="w-full h-full object-cover rounded-[calc(var(--radius-card)+4px)] focus-ring">
+                            <source src="{{ video_url }}">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% else %}
+                        <div class="p-6 text-center text-[color:var(--text-muted)]">
+                            <p class="text-sm font-medium">Lesson video coming soon. Review the transcript and coach guidance below.</p>
+                        </div>
                         {% endif %}
-                    {% endfor %}
+                    </div>
+                    <div class="video-stage__controls">
+                        <div class="video-stage__stats">
+                            {% if module.lesson_duration %}
+                            <span>
+                                <i class="fa-solid fa-clock"></i>
+                                {{ module.lesson_duration }} sec
+                            </span>
+                            {% endif %}
+                            <span><i class="fa-solid fa-headphones"></i> Immersive audio</span>
+                            <span><i class="fa-solid fa-person-rays"></i> Focus ready</span>
+                        </div>
+                        <button type="button" id="focusToggle" class="focus-pill focus-ring" aria-pressed="false">
+                            <i class="fa-solid fa-maximize"></i>
+                            <span>Enter Focus</span>
+                        </button>
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-sm text-[color:var(--text-muted)]">Transcript processing—check back soon. You can still ask the coach about this module.</p>
-                {% endif %}
-            </div>
-        </div>
 
-        <aside class="space-y-6">
-            <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6">
+                <div class="transcript-card">
+                    <div class="transcript-card__header">
+                        <div class="flex flex-col gap-1">
+                            <h2 class="text-[18px] font-heading font-semibold text-[color:var(--text-secondary)] flex items-center gap-2">
+                                <i class="fa-solid fa-file-lines text-[color:var(--accent-primary)]"></i>
+                                <span>Live Transcript</span>
+                            </h2>
+                            <span class="transcript-chip">
+                                <i class="fa-solid fa-wave-square"></i>
+                                Real-time capture
+                            </span>
+                        </div>
+                        <div class="transcript-card__controls">
+                            <button type="button" class="transcript-button focus-ring" data-action="font-down" title="Reduce transcript size">
+                                <i class="fa-solid fa-circle-minus"></i>
+                                <span class="sr-only">Reduce text</span>
+                                A-
+                            </button>
+                            <button type="button" class="transcript-button focus-ring" data-action="font-up" title="Increase transcript size">
+                                <i class="fa-solid fa-circle-plus"></i>
+                                <span class="sr-only">Increase text</span>
+                                A+
+                            </button>
+                            <button type="button" class="transcript-button focus-ring" data-action="follow" aria-pressed="false" title="Highlight active paragraph as you scroll">
+                                <i class="fa-solid fa-highlighter"></i>
+                                Follow
+                            </button>
+                        </div>
+                    </div>
+                    <div class="transcript-card__body">
+                        {% if transcript %}
+                        <div class="transcript-scroll" data-transcript data-follow="false">
+                            {% for paragraph in transcript.splitlines %}
+                                {% if paragraph %}
+                                <p class="transcript-chunk" data-transcript-chunk data-index="{{ forloop.counter0 }}">{{ paragraph }}</p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="transcript-empty">
+                            Transcript processing—check back soon. You can still ask the coach about this module.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <aside class="module-stage__aside space-y-6">
+                <div class="bg-[color:var(--bg-card)] border border-[color:var(--border-default)] rounded-[var(--radius-card)] shadow-soft p-6">
                 <h2 class="text-[18px] font-heading font-semibold text-[color:var(--text-secondary)] flex items-center gap-2 mb-3">
                     <i class="fa-solid fa-robot text-[color:var(--accent-primary)]"></i>
                     <span>AI Coach</span>
@@ -107,8 +492,9 @@
                     <i class="fa-solid fa-play"></i>
                     <span>Continue to Exercises</span>
                 </a>
-            </div>
-        </aside>
+                </div>
+            </aside>
+        </div>
     </section>
 </div>
 {% endblock %}

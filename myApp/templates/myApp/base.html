@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
-    <script src="https://kit.webawesome.com/728fdbee6f9240ca.js" crossorigin="anonymous"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,21 +22,21 @@
     </script>
     <style>
         :root {
-            --bg-canvas: #F7F8FB;
+            --bg-canvas: #F5F7FF;
             --bg-card: #FFFFFF;
-            --bg-subtle: #FBFCFF;
-            --text-primary: #0B1220;
-            --text-secondary: #3A4353;
-            --text-muted: #667085;
-            --accent-primary: #5B7CFF;
-            --accent-success: #16B364;
-            --accent-warning: #F79009;
-            --accent-danger: #D92D20;
-            --border-default: #E6EAF2;
-            --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
-            --radius-small: 8px;
-            --radius-card: 16px;
-            --radius-hero: 24px;
+            --bg-subtle: #EEF2FF;
+            --text-primary: #101632;
+            --text-secondary: #354062;
+            --text-muted: #6E7796;
+            --accent-primary: #6C63FF;
+            --accent-success: #4CD7A5;
+            --accent-warning: #FFB347;
+            --accent-danger: #EF4444;
+            --border-default: #E2E8FF;
+            --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 40px rgba(108, 99, 255, 0.08);
+            --radius-small: 10px;
+            --radius-card: 18px;
+            --radius-hero: 26px;
             color-scheme: light;
         }
 
@@ -45,6 +45,30 @@
             color: var(--text-primary);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -2;
+        }
+
+        body::before {
+            background:
+                radial-gradient(circle at 12% 18%, rgba(108, 99, 255, 0.16), transparent 55%),
+                radial-gradient(circle at 82% 12%, rgba(255, 179, 71, 0.18), transparent 60%);
+        }
+
+        body::after {
+            background:
+                radial-gradient(60% 60% at 18% 78%, rgba(76, 215, 165, 0.12), transparent 70%),
+                radial-gradient(50% 50% at 84% 72%, rgba(108, 99, 255, 0.12), transparent 68%);
+            opacity: 0.75;
         }
 
         h1, h2, h3, h4, h5, h6 {
@@ -73,8 +97,8 @@
 
         .chip--progress {
             color: var(--accent-primary);
-            border-color: rgba(91, 124, 255, 0.35);
-            background-color: rgba(91, 124, 255, 0.08);
+            border-color: rgba(108, 99, 255, 0.35);
+            background-color: rgba(108, 99, 255, 0.08);
         }
 
         .chip--locked {
@@ -83,14 +107,14 @@
 
         .chip--complete {
             color: var(--accent-success);
-            border-color: rgba(22, 179, 100, 0.35);
-            background-color: rgba(22, 179, 100, 0.08);
+            border-color: rgba(76, 215, 165, 0.35);
+            background-color: rgba(76, 215, 165, 0.12);
         }
 
         .chip--new {
             color: var(--accent-warning);
-            border-color: rgba(247, 144, 9, 0.4);
-            background-color: rgba(247, 144, 9, 0.1);
+            border-color: rgba(255, 179, 71, 0.4);
+            background-color: rgba(255, 179, 71, 0.12);
         }
 
         .bg-ink-bg { background-color: var(--bg-canvas) !important; }
@@ -110,17 +134,18 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            border: 1px solid var(--border-default);
-            background: var(--bg-card);
-            border-radius: var(--radius-small);
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
+            border: 1px solid rgba(108, 99, 255, 0.18);
+            background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(238,242,255,0.72));
+            border-radius: calc(var(--radius-small) + 2px);
+            padding: 0.55rem 0.85rem;
+            font-size: 0.85rem;
             font-weight: 600;
             min-height: 36px;
+            box-shadow: 0 10px 30px rgba(76, 97, 255, 0.08);
         }
 
         .stat-chip .fa-solid {
-            color: var(--text-muted);
+            color: var(--accent-primary);
         }
 
         .focus-ring {
@@ -147,13 +172,88 @@
             .animate-press:active {
                 transform: scale(0.98);
             }
+
+            .floating {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .floating:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 24px 45px rgba(108, 99, 255, 0.12);
+            }
+
+            @keyframes sparklePulse {
+                0%, 100% { opacity: 0.35; transform: scale(1); }
+                45% { opacity: 0.85; transform: scale(1.12); }
+                70% { opacity: 0.45; transform: scale(0.92); }
+            }
         }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.86);
+            backdrop-filter: blur(22px) saturate(125%);
+            border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+            box-shadow: 0 20px 40px rgba(16, 24, 40, 0.04);
+        }
+
+        .glass-bottom-nav {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(18px) saturate(130%);
+            border-top: 1px solid rgba(108, 99, 255, 0.18);
+            box-shadow: 0 -18px 40px rgba(15, 22, 45, 0.05);
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 35%, rgba(108,99,255,0.65) 100%);
+            border-radius: 999px;
+            opacity: 0.65;
+            animation: sparklePulse 3.2s ease-in-out infinite;
+        }
+
+        .sparkle--accent {
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 35%, rgba(255,179,71,0.65) 100%);
+        }
+
+        .bg-electric-violet { background-color: var(--accent-primary) !important; }
+        .bg-electric-violet\/10 { background-color: rgba(108, 99, 255, 0.1) !important; }
+        .bg-electric-violet\/15 { background-color: rgba(108, 99, 255, 0.15) !important; }
+        .text-electric-violet { color: var(--accent-primary) !important; }
+        .hover\:text-electric-violet:hover { color: var(--accent-primary) !important; }
+        .border-electric-violet { border-color: var(--accent-primary) !important; }
+        .border-electric-violet\/20 { border-color: rgba(108, 99, 255, 0.2) !important; }
+        .border-electric-violet\/30 { border-color: rgba(108, 99, 255, 0.3) !important; }
+        .border-electric-violet\/40 { border-color: rgba(108, 99, 255, 0.4) !important; }
+        .border-electric-violet\/60 { border-color: rgba(108, 99, 255, 0.6) !important; }
+        .hover\:border-electric-violet:hover { border-color: var(--accent-primary) !important; }
+        .hover\:border-electric-violet\/60:hover { border-color: rgba(108, 99, 255, 0.6) !important; }
+        .focus\:border-electric-violet:focus { border-color: var(--accent-primary) !important; }
+        .shadow-electric-violet\/30 { box-shadow: 0 12px 24px rgba(108, 99, 255, 0.18) !important; }
+        .shadow-electric-violet\/40 { box-shadow: 0 16px 30px rgba(108, 99, 255, 0.22) !important; }
+        .shadow-electric-violet\/50 { box-shadow: 0 20px 36px rgba(108, 99, 255, 0.26) !important; }
+        .shadow-electric-violet\/60 { box-shadow: 0 24px 42px rgba(108, 99, 255, 0.32) !important; }
+        .hover\:shadow-electric-violet\/60:hover { box-shadow: 0 24px 42px rgba(108, 99, 255, 0.32) !important; }
+        .from-electric-violet {
+            --tw-gradient-from: rgba(108, 99, 255, 1);
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(108, 99, 255, 0));
+        }
+        .from-electric-violet\/10 {
+            --tw-gradient-from: rgba(108, 99, 255, 0.1);
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(108, 99, 255, 0));
+        }
+        .focus\:ring-electric-violet\/30:focus { --tw-ring-color: rgba(108, 99, 255, 0.3) !important; }
+        .focus\:ring-electric-violet\/40:focus { --tw-ring-color: rgba(108, 99, 255, 0.4) !important; }
+        .ring-electric-violet\/60 { --tw-ring-color: rgba(108, 99, 255, 0.6) !important; }
+        .ring-electric-violet\/70 { --tw-ring-color: rgba(108, 99, 255, 0.7) !important; }
+        .hover\:bg-electric-violet\/15:hover { background-color: rgba(108, 99, 255, 0.15) !important; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% if user.is_authenticated %}pb-20 md:pb-0{% endif %} {% block body_class %}{% endblock %}">
     {% if user.is_authenticated %}
-    <header class="sticky top-0 z-40 bg-[color:var(--bg-card)] border-b border-[color:var(--border-default)]">
+    <header class="sticky top-0 z-40 glass-header">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-4 flex flex-col gap-3">
             <div class="flex items-center justify-between gap-3">
                 <a href="{% url 'home' %}" class="flex items-center gap-3 focus-ring">
