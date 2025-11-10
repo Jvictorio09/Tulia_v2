@@ -37,6 +37,9 @@ from myApp.models import (  # noqa: E402
     Level,
     Lesson,
     Module,
+    District,
+    Venue,
+    VenueTaskSheet,
 )
 
 
@@ -142,8 +145,170 @@ KBLOCKS = [
 ]
 
 
-def seed_level_and_module() -> Module:
-    """Create/align Level 1 and Module A."""
+DISTRICT_1_DATA = {
+    "number": 1,
+    "name": "District 1 – Foundations",
+    "description": (
+        "Start here to build practical regulation skills, situational awareness, and "
+        "adaptive messaging before moving into higher-pressure districts."
+    ),
+    "overview_video_url": "https://cdn.tulia.dev/districts/1/overview.mp4",
+    "overview_transcript": (
+        "Welcome to District 1 – Foundations. This district is your launchpad for mastering "
+        "high-stakes communication. You will learn to read the room, regulate your state, and "
+        "convert pressure into presence.\n\n"
+        "Each module includes a cinematic lesson with a live transcript, an embedded AI coach, "
+        "and an exercise circuit that unlocks new venues around the district. Complete all four "
+        "modules to earn full access to every space in District 1."
+    ),
+    "overview_duration": 480,
+    "venues": [
+        {
+            "order": 1,
+            "name": "Greek Amphitheatre",
+            "description": "Practice presence and projection with a supportive audience.",
+            "ticket_cost": 1,
+            "xp_reward": 25,
+            "coin_reward": 15,
+        },
+        {
+            "order": 2,
+            "name": "Roman Forum",
+            "description": "Navigate influence dynamics when everyone has a stake.",
+            "ticket_cost": 1,
+            "xp_reward": 30,
+            "coin_reward": 18,
+        },
+        {
+            "order": 3,
+            "name": "Medieval Market",
+            "description": "Adapt quickly in noisy, fast-changing conversations.",
+            "ticket_cost": 1,
+            "xp_reward": 35,
+            "coin_reward": 20,
+        },
+    ],
+}
+
+
+MODULES_DATA = [
+    {
+        "code": "A",
+        "name": MODULE_NAME,
+        "description": MODULE_DESC,
+        "order": 1,
+        "xp_reward": MODULE_XP_REWARD,
+        "lesson_video_url": "https://cdn.tulia.dev/modules/A/lesson.mp4",
+        "lesson_transcript": (
+            "We begin by mapping the contours of high-stakes situations. Pressure, visibility, "
+            "and irreversibility help you gauge the heat of any upcoming moment.\n\n"
+            "Throughout this lesson we analyse real stories from executives who reframed fear "
+            "into focus by understanding their PIC profile and choosing the right lever.\n\n"
+            "Take notes on the scenarios that resonate with you—the exercises that follow will "
+            "ask you to apply these ideas to your own upcoming moment."
+        ),
+        "lesson_duration": 540,
+    },
+    {
+        "code": "B",
+        "name": "Module B — Audience Dynamics & Influence",
+        "description": (
+            "Decode your stakeholders, anticipate resistance, and reshape your narrative to earn "
+            "trust in the moments that matter."
+        ),
+        "order": 2,
+        "xp_reward": 110,
+        "lesson_video_url": "https://cdn.tulia.dev/modules/B/lesson.mp4",
+        "lesson_transcript": (
+            "Influence is contextual. In Module B we step into rooms where power, incentives, "
+            "and history collide. You will see how subtle tactical shifts change the outcome.\n\n"
+            "Pay close attention to the framing cues, mirroring patterns, and question ladders "
+            "demonstrated in the live scenarios. These moves will be available inside the AI coach.\n\n"
+            "By the end you will have a checklist to quickly calibrate any audience before you speak."
+        ),
+        "lesson_duration": 600,
+    },
+    {
+        "code": "C",
+        "name": "Module C — Adaptive Delivery & Flow",
+        "description": (
+            "Build conversational agility so you can pivot, respond, and keep momentum even when "
+            "meetings swerve off-script."
+        ),
+        "order": 3,
+        "xp_reward": 110,
+        "lesson_video_url": "https://cdn.tulia.dev/modules/C/lesson.mp4",
+        "lesson_transcript": (
+            "This module takes you inside fast-paced negotiations and Q&A sessions. Watch how the "
+            "speaker applies rapid summarising, clarifying, and redirecting techniques to stay in flow.\n\n"
+            "You will learn three reset phrases, a concise scaffolding for responses, and how to surface "
+            "shared goals when conversations drift.\n\n"
+            "Capture your own adaptive phrases as you listen—they will feed the exercises immediately after."
+        ),
+        "lesson_duration": 570,
+    },
+    {
+        "code": "D",
+        "name": "Module D — Integrated Playback & Stakes Map",
+        "description": (
+            "Synthesize everything: rehearse hard moments end-to-end, gather feedback, and commit to a "
+            "spacing plan that keeps skills refreshed."
+        ),
+        "order": 4,
+        "xp_reward": 120,
+        "lesson_video_url": "https://cdn.tulia.dev/modules/D/lesson.mp4",
+        "lesson_transcript": (
+            "We close the district by putting you on stage. You will watch a full rehearsal breakdown, "
+            "see how to interpret AI feedback, and design your own spacing boosters.\n\n"
+            "Focus on the review rubric and the deliberate practice loop—it unlocks free exploration across "
+            "District 1 once you complete the exercises.\n\n"
+            "Leave this module with a clear commitment: when will you revisit, who will you rehearse with, "
+            "and what stakes map will you refresh first?"
+        ),
+        "lesson_duration": 620,
+    },
+]
+
+
+VENUE_TASK_SHEETS = {
+    "Greek Amphitheatre": [
+        {
+            "order": 1,
+            "title": "Presence Warmup",
+            "description": "Guided breath and intention-setting before stepping on stage.",
+            "exercises": [
+                {"type": "breath_control", "duration_sec": 90},
+                {"type": "intention_statement", "prompt": "Who are you speaking for?"},
+            ],
+        },
+    ],
+    "Roman Forum": [
+        {
+            "order": 1,
+            "title": "Influence Drill",
+            "description": "Role-play stakeholder objections and reframe responses.",
+            "exercises": [
+                {"type": "objection_handling", "rounds": 3},
+                {"type": "reframing", "prompt": "Restate their benefit in one line."},
+            ],
+        },
+    ],
+    "Medieval Market": [
+        {
+            "order": 1,
+            "title": "Agility Circuit",
+            "description": "Practice rapid summaries and adaptive language amid fast changes.",
+            "exercises": [
+                {"type": "rapid_summary", "count": 3},
+                {"type": "bridge_phrase", "prompt": "Use: 'What I’m hearing is…'"},
+            ],
+        },
+    ],
+}
+
+
+def seed_level_and_modules() -> Module:
+    """Create/align Level 1 and all District 1 modules, returning Module A."""
     level, _ = Level.objects.get_or_create(
         number=LEVEL_NUMBER,
         defaults=dict(
@@ -163,29 +328,35 @@ def seed_level_and_module() -> Module:
             setattr(level, k, v)
         level.save(update_fields=list(updates.keys()))
 
-    module, created = Module.objects.get_or_create(
-        level=level,
-        code=MODULE_CODE,
-        defaults=dict(
-            name=MODULE_NAME,
-            description=MODULE_DESC,
-            order=1,
-            xp_reward=MODULE_XP_REWARD,
-        ),
-    )
-    if not created:
-        m_updates = {}
-        if module.name != MODULE_NAME:
-            m_updates["name"] = MODULE_NAME
-        if module.description != MODULE_DESC:
-            m_updates["description"] = MODULE_DESC
-        if getattr(module, "xp_reward", None) != MODULE_XP_REWARD:
-            m_updates["xp_reward"] = MODULE_XP_REWARD
-        if m_updates:
-            for k, v in m_updates.items():
-                setattr(module, k, v)
-            module.save(update_fields=list(m_updates.keys()))
-    return module
+    module_lookup: dict[str, Module] = {}
+
+    for payload in MODULES_DATA:
+        defaults = dict(
+            name=payload["name"],
+            description=payload["description"],
+            order=payload["order"],
+            xp_reward=payload["xp_reward"],
+            lesson_video_url=payload["lesson_video_url"],
+            lesson_transcript=payload["lesson_transcript"],
+            lesson_duration=payload["lesson_duration"],
+        )
+        module, created = Module.objects.get_or_create(
+            level=level,
+            code=payload["code"],
+            defaults=defaults,
+        )
+        if not created:
+            updates = {}
+            for field, value in defaults.items():
+                if getattr(module, field) != value:
+                    updates[field] = value
+            if updates:
+                for field, value in updates.items():
+                    setattr(module, field, value)
+                module.save(update_fields=list(updates.keys()))
+        module_lookup[payload["code"]] = module
+
+    return module_lookup["A"]
 
 
 def seed_knowledge_blocks(module: Module) -> list[KnowledgeBlock]:
@@ -222,6 +393,75 @@ def seed_knowledge_blocks(module: Module) -> list[KnowledgeBlock]:
                 block.save(update_fields=list(kb_updates.keys()))
         blocks.append(block)
     return blocks
+
+
+def seed_district() -> District:
+    """Ensure District 1 exists with media metadata populated."""
+    data = DISTRICT_1_DATA
+    district, _ = District.objects.get_or_create(
+        number=data["number"],
+        defaults=dict(
+            name=data["name"],
+            description=data["description"],
+            unlock_requirement="Complete Level 1 milestone",
+            overview_video_url=data["overview_video_url"],
+            overview_transcript=data["overview_transcript"],
+            overview_duration=data["overview_duration"],
+        ),
+    )
+    updates = {}
+    for field in ["name", "description", "overview_video_url", "overview_transcript", "overview_duration"]:
+        if getattr(district, field) != data[field]:
+            updates[field] = data[field]
+    if updates:
+        for key, value in updates.items():
+            setattr(district, key, value)
+        district.save(update_fields=list(updates.keys()))
+    return district
+
+
+def seed_venues(district: District) -> None:
+    """Ensure venues and task sheets exist for District 1."""
+    for payload in DISTRICT_1_DATA["venues"]:
+        venue, _ = Venue.objects.get_or_create(
+            district=district,
+            name=payload["name"],
+            defaults=dict(
+                description=payload["description"],
+                ticket_cost=payload["ticket_cost"],
+                xp_reward=payload["xp_reward"],
+                coin_reward=payload["coin_reward"],
+                order=payload["order"],
+            ),
+        )
+        updates = {}
+        for field in ["description", "ticket_cost", "xp_reward", "coin_reward", "order"]:
+            if getattr(venue, field) != payload[field]:
+                updates[field] = payload[field]
+        if updates:
+            for key, value in updates.items():
+                setattr(venue, key, value)
+            venue.save(update_fields=list(updates.keys()))
+
+        sheets = VENUE_TASK_SHEETS.get(venue.name, [])
+        for sheet in sheets:
+            task_sheet, _ = VenueTaskSheet.objects.get_or_create(
+                venue=venue,
+                order=sheet["order"],
+                defaults=dict(
+                    title=sheet["title"],
+                    description=sheet["description"],
+                    exercises=sheet["exercises"],
+                ),
+            )
+            ts_updates = {}
+            for field in ["title", "description", "exercises"]:
+                if getattr(task_sheet, field) != sheet[field]:
+                    ts_updates[field] = sheet[field]
+            if ts_updates:
+                for key, value in ts_updates.items():
+                    setattr(task_sheet, key, value)
+                task_sheet.save(update_fields=list(ts_updates.keys()))
 
 
 def seed_lessons(module: Module, blocks: list[KnowledgeBlock]) -> list[Lesson]:
@@ -270,21 +510,28 @@ def ensure_superuser() -> None:
 
 
 def main() -> None:
-    module = seed_level_and_module()
+    module = seed_level_and_modules()
+    district = seed_district()
+    seed_venues(district)
     blocks = seed_knowledge_blocks(module)
     lessons = seed_lessons(module, blocks)
     ensure_superuser()
 
-    print("✅ Module A seed aligned with spec")
+    print("✅ District 1 scaffolding aligned with spec")
+    print(f" • District: {district.number} – {district.name}")
+    print(f"   - Venues: {Venue.objects.filter(district=district).count()} with task sheets")
     print(f" • Level: {module.level.number} – {module.level.name}")
     print(f" • Level milestone threshold: {module.level.milestone_threshold}")
     print(f" • Module: {module.code} – {module.name}")
+    other_modules = Module.objects.filter(level=module.level).exclude(code="A").order_by("order")
+    for mod in other_modules:
+        print(f"   - Module {mod.code} ready ({mod.lesson_video_url or 'no video'})")
     print(f" • KnowledgeBlocks: {len(blocks)} (A–F)")
     for b in blocks:
         print(f"   - #{b.order}: {b.title}  → seeds: {', '.join(b.exercise_seeds)}")
     print(f" • Lessons: {len(lessons)} (1 Mission Loop + {len(blocks)} section lessons)")
     print(" • Superuser: coach / coach123 (created if missing)")
-    print("\nRun `python manage.py runserver` and open /lesson/A to explore the flow.")
+    print("\nRun `python manage.py runserver` and open /module/A/learn/ to explore the flow.")
 
 
 if __name__ == "__main__":

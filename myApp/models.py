@@ -38,6 +38,7 @@ class UserProfile(models.Model):
     
     # District unlocks
     district_1_unlocked = models.BooleanField(default=False)
+    district_full_access = models.JSONField(default=dict, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -69,6 +70,9 @@ class Module(models.Model):
     description = models.TextField(blank=True)
     order = models.IntegerField()
     xp_reward = models.IntegerField(default=50)
+    lesson_video_url = models.URLField(blank=True)
+    lesson_transcript = models.TextField(blank=True)
+    lesson_duration = models.IntegerField(default=0)
     
     class Meta:
         unique_together = ['level', 'code']
@@ -163,6 +167,9 @@ class District(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     unlock_requirement = models.TextField(blank=True)  # e.g., "Complete Level 1 + Milestone ≥70%"
+    overview_video_url = models.URLField(blank=True)
+    overview_transcript = models.TextField(blank=True)
+    overview_duration = models.IntegerField(default=0)
     
     def __str__(self):
         return f"District {self.number}: {self.name}"
@@ -218,6 +225,20 @@ class VenueEntry(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.venue}"
+
+
+class UserVenueUnlock(models.Model):
+    """Track module-driven venue unlocks per user"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='venue_unlocks')
+    venue = models.ForeignKey(Venue, on_delete=models.CASCADE, related_name='user_unlocks')
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'venue']
+        ordering = ['-unlocked_at']
+
+    def __str__(self):
+        return f"{self.user.username} unlocked {self.venue}"
 
 
 class DailyQuest(models.Model):

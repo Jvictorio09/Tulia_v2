@@ -8,11 +8,13 @@ urlpatterns = [
     path('auth/logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
     path('onboarding/', views.onboarding, name='onboarding'),
-    path('lesson/<str:module_code>/', views.lesson_runner, name='lesson_runner'),
+    path('module/<str:module_code>/learn/', views.module_learn, name='module_learn'),
+    path('module/<str:module_code>/exercises/', views.lesson_runner, name='module_exercises'),
     path('milestone/<int:level_number>/', views.milestone, name='milestone'),
     path('milestone/<int:level_number>/submit/', views.milestone_submit, name='milestone_submit'),
-    path('district/<int:district_number>/', views.district_map, name='district_map'),
-    path('venue/<int:venue_id>/', views.venue_detail, name='venue_detail'),
+    path('district/<int:district_number>/', views.district_overview, name='district_overview'),
+    path('district/<int:district_number>/venues/', views.district_venues, name='district_venues'),
+    path('district/venue/<int:venue_id>/', views.venue_detail, name='venue_detail'),
     
     # AI webhook endpoints
     path('ai/lesson/orchestrate/', views.ai_lesson_orchestrate, name='ai_lesson_orchestrate'),

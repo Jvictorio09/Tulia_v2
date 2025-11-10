@@ -1,0 +1,63 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}District {{ district.number }} Venues{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-muted mb-1">District {{ district.number }}</p>
+            <h1 class="text-3xl font-heading font-bold text-text-strong mb-2">{{ district.name }} Venues</h1>
+            {% if district.description %}
+            <p class="text-muted max-w-2xl">{{ district.description }}</p>
+            {% endif %}
+        </div>
+        <a href="{% url 'district_overview' district.number %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition">
+            ← Overview
+        </a>
+    </header>
+
+    <section class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {% for card in venue_cards %}
+        <article class="border border-white/10 rounded-2xl p-6 bg-white/5 flex flex-col gap-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-heading font-semibold text-text-strong">{{ card.venue.name }}</h2>
+                    {% if card.venue.description %}
+                    <p class="text-sm text-gray-400 mt-1">{{ card.venue.description }}</p>
+                    {% endif %}
+                </div>
+                <span class="px-3 py-1 text-xs font-semibold rounded-full
+                    {% if card.unlocked %}bg-cyan/20 text-cyan{% else %}bg-white/10 text-muted{% endif %}">
+                    {% if card.unlocked %}Available{% else %}Locked{% endif %}
+                </span>
+            </div>
+            <div class="text-xs text-muted flex items-center gap-3">
+                <span>🎟 {{ card.venue.ticket_cost }} tickets</span>
+                <span>⭐ {{ card.venue.xp_reward }} XP</span>
+                <span>🪙 {{ card.venue.coin_reward }} coins</span>
+            </div>
+            <div class="mt-auto">
+                <a href="{% url 'venue_detail' card.venue.id %}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg {% if card.unlocked %}bg-electric-violet text-white hover:bg-violet-600{% else %}border border-white/10 text-muted cursor-not-allowed{% endif %} transition">
+                    {% if card.unlocked %}Enter Venue{% else %}Complete prerequisite module{% endif %}
+                </a>
+            </div>
+        </article>
+        {% empty %}
+        <div class="border border-dashed border-white/20 rounded-2xl p-8 text-center text-muted">
+            No venues configured yet. Seed data to populate this district.
+        </div>
+        {% endfor %}
+    </section>
+
+    {% if full_access %}
+    <div class="border border-emerald-500/40 rounded-2xl p-6 bg-emerald-500/10 text-emerald-200 flex items-center gap-3">
+        <span>✅</span>
+        <span>You have full access to every venue in this district. Revisit any space whenever you like.</span>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

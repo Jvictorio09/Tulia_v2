@@ -74,7 +74,7 @@ SEED_REGISTRY: Dict[str, SeedTarget] = {
         key="module_a_sample",
         import_path="seed_moduleA_sample",
         callable_name="main",
-        description="Seeds Module A scaffolding (levels, lessons, sample superuser).",
+        description="Seeds District 1 (levels, modules A–D, venues, sample superuser).",
     ),
     # Add additional entries like:
     # "module_b_sample": SeedTarget(

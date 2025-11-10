@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.conf import settings
+from django.contrib import messages
 import json
 import random
 import requests
@@ -22,7 +23,7 @@ from .models import (
     ExerciseAttempt, MilestoneAttempt, District, Venue,
     VenueTaskSheet, VenueEntry, DailyQuest, UserProgress,
     AnalyticsEvent, ExerciseSubmission, LessonSessionContext,
-    StakesMap, TelemetryEvent
+    StakesMap, TelemetryEvent, UserVenueUnlock
 )
 from .lesson_engine import LessonEngine, LessonContext, SeedLoader, SeedVersionError
 from .lesson_engine.contracts_registry import build_default_registry
@@ -104,6 +105,171 @@ def _parse_request_json(request):
     return payload, None
 
 
+DISTRICT_DEFAULT_UNLOCK = 1
+DISTRICT_MODULE_VENUE_MAP = {
+    1: {
+        "A": "Greek Amphitheatre",
+        "B": "Roman Forum",
+        "C": "Medieval Market",
+        "D": None,  # Module D grants full district access
+    },
+}
+
+
+def _get_level_for_district(district_number):
+    try:
+        return Level.objects.get(number=district_number)
+    except Level.DoesNotExist:
+        return None
+
+
+def _get_module_progress(user, module):
+    progress, _ = UserProgress.objects.get_or_create(user=user, module=module)
+    return progress
+
+
+def _module_prerequisites_complete(user, module):
+    modules = Module.objects.filter(level=module.level).order_by('order')
+    previous_modules = modules.filter(order__lt=module.order)
+    for previous in previous_modules:
+        if not UserProgress.objects.filter(user=user, module=previous, completed=True).exists():
+            return False
+    return True
+
+
+def _module_status_for_user(user, module):
+    progress = UserProgress.objects.filter(user=user, module=module).first()
+    if progress and progress.completed:
+        return "complete", progress
+    if progress and progress.started:
+        return "in_progress", progress
+    if _module_prerequisites_complete(user, module):
+        return "available", progress
+    return "locked", progress
+
+
+def _user_has_district_full_access(profile, district_number):
+    flags = profile.district_full_access or {}
+    return flags.get(str(district_number)) is True
+
+
+def _set_district_full_access(profile, district_number):
+    flags = profile.district_full_access or {}
+    if flags.get(str(district_number)):
+        return False
+    flags[str(district_number)] = True
+    profile.district_full_access = flags
+    profile.save(update_fields=['district_full_access'])
+    return True
+
+
+def _unlock_module_and_venues(user, module):
+    unlock_payload = {
+        "module": module.code,
+        "unlocks": [],
+    }
+
+    # Unlock the next module in sequence (implicitly via status, but surface for UI)
+    next_module = Module.objects.filter(
+        level=module.level,
+        order__gt=module.order
+    ).order_by('order').first()
+
+    if next_module:
+        unlock_payload["unlocks"].append({
+            "type": "module",
+            "code": next_module.code,
+            "name": next_module.name,
+        })
+        AnalyticsEvent.objects.create(
+            user=user,
+            event_type='module_unlocked_next',
+            event_data={'module': next_module.code}
+        )
+
+    district_number = module.level.number
+    venue_map = DISTRICT_MODULE_VENUE_MAP.get(district_number, {})
+    venue_name = venue_map.get(module.code.upper())
+
+    if venue_name:
+        venue = Venue.objects.filter(
+            district__number=district_number,
+            name__iexact=venue_name
+        ).first()
+        if venue:
+            _, created = UserVenueUnlock.objects.get_or_create(user=user, venue=venue)
+            if created:
+                unlock_payload["unlocks"].append({
+                    "type": "venue",
+                    "venue_id": venue.id,
+                    "name": venue.name,
+                })
+                AnalyticsEvent.objects.create(
+                    user=user,
+                    event_type='venue_unlocked',
+                    event_data={'venue_id': venue.id, 'venue_name': venue.name}
+                )
+
+    # Module D grants free navigation inside the district (full access)
+    if module.code.upper() == "D":
+        profile = user.profile
+        changed = _set_district_full_access(profile, district_number)
+        if not profile.district_1_unlocked and district_number == 1:
+            profile.district_1_unlocked = True
+            profile.save(update_fields=['district_1_unlocked'])
+            changed = True
+        if changed:
+            unlock_payload["unlocks"].append({
+                "type": "district_full_access",
+                "district": district_number,
+            })
+            AnalyticsEvent.objects.create(
+                user=user,
+                event_type='district_full_access_granted',
+                event_data={'district': district_number}
+            )
+
+    return unlock_payload
+
+
+def _finalize_module_completion(user, module, progress):
+    if progress.completed:
+        return None
+    progress.completed = True
+    progress.last_activity = timezone.now()
+    progress.save(update_fields=['completed', 'last_activity'])
+
+    AnalyticsEvent.objects.create(
+        user=user,
+        event_type='lesson_complete',
+        event_data={'module': module.code}
+    )
+
+    AnalyticsEvent.objects.create(
+        user=user,
+        event_type='module_completed',
+        event_data={'module': module.code}
+    )
+
+    unlock_payload = _unlock_module_and_venues(user, module)
+    return unlock_payload
+
+
+def _user_has_venue_access(user, venue):
+    profile = user.profile
+    if _user_has_district_full_access(profile, venue.district.number):
+        return True
+    return UserVenueUnlock.objects.filter(user=user, venue=venue).exists()
+
+
+def _module_code_for_venue(venue):
+    mapping = DISTRICT_MODULE_VENUE_MAP.get(venue.district.number, {})
+    for module_code, venue_name in mapping.items():
+        if venue_name and venue.name.lower() == venue_name.lower():
+            return module_code
+    return None
+
+
 def _append_meta_history(progress, key, payload, limit=10):
     meta = progress.meta or {}
     history = meta.get(key, [])
@@ -159,7 +325,7 @@ def _compute_next_stage(progress, completed_stage):
     return None
 
 
-def _build_submission_response(progress, next_stage, toast=None):
+def _build_submission_response(progress, next_stage, toast=None, unlocks=None):
     payload = {
         "ok": True,
         "progress": build_progress_payload(progress),
@@ -169,6 +335,8 @@ def _build_submission_response(progress, next_stage, toast=None):
     }
     if toast:
         payload["toast"] = toast
+    if unlocks:
+        payload["unlocks"] = unlocks
     return JsonResponse(payload)
 
 
@@ -292,87 +460,123 @@ def home(request):
         # Show landing page for unauthenticated users
         return render(request, 'landing/index.html')
     
-    if request.user.is_authenticated:
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        
-        # Assign A/B variant if not set
-        if not profile.ab_variant:
-            profile.ab_variant = random.choice(['A', 'B'])
-            profile.save()
-        
-        # Check if onboarding is needed
-        if not profile.onboarding_completed:
-            return redirect('onboarding')
-        
-        # Get user progress
-        try:
-            level_1 = Level.objects.get(number=1)
-            modules = Module.objects.filter(level=level_1).order_by('order')
-        except Level.DoesNotExist:
-            # If Level 1 doesn't exist, show a message
-            return render(request, 'myApp/home.html', {
-                'profile': profile,
-                'variant': profile.ab_variant,
-                'error': 'Level 1 not configured. Please run migrations and seed data.'
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    # Assign A/B variant if not set
+    if not profile.ab_variant:
+        profile.ab_variant = random.choice(['A', 'B'])
+        profile.save(update_fields=['ab_variant'])
+
+    # Require onboarding before showing dashboard
+    if not profile.onboarding_completed:
+        return redirect('onboarding')
+
+    districts = District.objects.all().order_by('number')
+    district_cards = []
+    resume_module = None
+
+    for district in districts:
+        level = _get_level_for_district(district.number)
+        module_qs = Module.objects.filter(level=level).order_by('order') if level else Module.objects.none()
+        modules_data = []
+        all_complete = bool(module_qs)
+        any_started = False
+
+        for module in module_qs:
+            status, progress = _module_status_for_user(request.user, module)
+            if status == "in_progress" and resume_module is None:
+                resume_module = {
+                    'code': module.code,
+                    'name': module.name,
+                    'id': module.id,
+                    'module': module,
+                }
+            if status != "complete":
+                all_complete = False
+            if status == "in_progress":
+                any_started = True
+
+            modules_data.append({
+                'id': module.id,
+                'code': module.code,
+                'name': module.name,
+                'description': module.description,
+                'status': status,
+                'progress': progress,
+                'unlock_hint': DISTRICT_MODULE_VENUE_MAP.get(district.number, {}).get(module.code.upper()),
             })
-        progress_data = {}
-        for module in modules:
-            progress, _ = UserProgress.objects.get_or_create(
-                user=request.user,
-                module=module
-            )
-            progress_data[module.code] = progress
-        
-        # Check if all modules completed
-        all_modules_complete = all(p.completed for p in progress_data.values())
+
+        base_access = (
+            district.number == DISTRICT_DEFAULT_UNLOCK
+            or _user_has_district_full_access(profile, district.number)
+            or (district.number == 1 and profile.district_1_unlocked)
+        )
+
+        if all_complete and module_qs:
+            district_status = "complete"
+        elif any_started:
+            district_status = "in_progress"
+        elif base_access:
+            district_status = "available"
+        else:
+            district_status = "locked"
+
+        district_cards.append({
+            'district': district,
+            'status': district_status,
+            'modules': modules_data,
+            'base_access': base_access,
+            'all_complete': all_complete,
+            'any_started': any_started,
+        })
+
+    # Get Level 1 for milestone and quest context (fallback friendly)
+    level_1 = Level.objects.filter(number=1).first()
+
+    all_modules_complete = False
+    milestone_passed = False
+    if level_1:
+        level_modules = Module.objects.filter(level=level_1).order_by('order')
+        progresses = UserProgress.objects.filter(user=request.user, module__in=level_modules)
+        all_modules_complete = level_modules.exists() and progresses.filter(completed=True).count() == level_modules.count()
         milestone_passed = MilestoneAttempt.objects.filter(
             user=request.user,
             level=level_1,
             pass_bool=True
         ).exists()
-        
-        # Get or create today's daily quest
-        today = date.today()
-        daily_quest, _ = DailyQuest.objects.get_or_create(
-            user=request.user,
-            date=today,
-            quest_type='complete_drill',
-            defaults={
-                'description': 'Complete one drill',
-                'xp_reward': 10,
-                'coin_reward': 5
-            }
-        )
-        
-        # Get district if unlocked
-        district_1 = None
-        if profile.district_1_unlocked:
-            try:
-                district_1 = District.objects.get(number=1)
-            except District.DoesNotExist:
-                pass
-        
-        context = {
-            'profile': profile,
-            'modules': modules,
-            'progress_data': progress_data,
-            'all_modules_complete': all_modules_complete,
-            'milestone_passed': milestone_passed,
-            'daily_quest': daily_quest,
-            'district_1': district_1,
-            'variant': profile.ab_variant,
+
+    today = date.today()
+    daily_quest, _ = DailyQuest.objects.get_or_create(
+        user=request.user,
+        date=today,
+        quest_type='complete_drill',
+        defaults={
+            'description': 'Complete one drill',
+            'xp_reward': 10,
+            'coin_reward': 5
         }
-        
-        # Track analytics
-        AnalyticsEvent.objects.create(
-            user=request.user,
-            event_type='home_view',
-            event_data={'variant': profile.ab_variant}
-        )
-        
-        return render(request, 'myApp/home.html', context)
-    else:
-        return redirect('login')
+    )
+
+    context = {
+        'profile': profile,
+        'district_cards': district_cards,
+        'resume_module': resume_module,
+        'daily_quest': daily_quest,
+        'milestone_passed': milestone_passed,
+        'all_modules_complete': all_modules_complete,
+        'variant': profile.ab_variant,
+    }
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='home_view',
+        event_data={
+            'variant': profile.ab_variant,
+            'view_mode': 'districts'
+        }
+    )
+
+    return render(request, 'myApp/home.html', context)
 
 
 @login_required
@@ -405,13 +609,101 @@ def onboarding(request):
 
 
 @login_required
-def lesson_runner(request, module_code):
-    """Module A lesson runner using the new card engine."""
+def district_overview(request, district_number):
+    """District overview: hero video, transcript, module list"""
+    district = get_object_or_404(District, number=district_number)
     profile = request.user.profile
-    level_1 = Level.objects.get(number=1)
-    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
 
-    progress, _ = UserProgress.objects.get_or_create(user=request.user, module=module)
+    level = _get_level_for_district(district.number)
+    modules = Module.objects.filter(level=level).order_by('order') if level else Module.objects.none()
+    module_cards = []
+    available_modules = []
+
+    for module in modules:
+        status, progress = _module_status_for_user(request.user, module)
+        prerequisites_complete = _module_prerequisites_complete(request.user, module)
+        module_cards.append({
+            'id': module.id,
+            'code': module.code,
+            'name': module.name,
+            'description': module.description,
+            'status': status,
+            'prerequisites_complete': prerequisites_complete,
+            'progress': progress,
+            'unlock_hint': DISTRICT_MODULE_VENUE_MAP.get(district.number, {}).get(module.code.upper()),
+            'lesson_video_url': module.lesson_video_url,
+        })
+        if status in ("available", "in_progress"):
+            available_modules.append(module.code)
+
+    base_access = (
+        district.number == DISTRICT_DEFAULT_UNLOCK
+        or _user_has_district_full_access(profile, district.number)
+        or (district.number == 1 and profile.district_1_unlocked)
+    )
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='district_view',
+        event_data={'district': district_number, 'mode': 'overview'}
+    )
+
+    context = {
+        'profile': profile,
+        'district': district,
+        'module_cards': module_cards,
+        'base_access': base_access,
+        'available_modules': available_modules,
+    }
+    return render(request, 'myApp/district_overview.html', context)
+
+
+@login_required
+def district_venues(request, district_number):
+    """List venues within a district with unlock states"""
+    district = get_object_or_404(District, number=district_number)
+    profile = request.user.profile
+    venues = Venue.objects.filter(district=district).order_by('order')
+    unlocked_ids = set(UserVenueUnlock.objects.filter(user=request.user, venue__district=district).values_list('venue_id', flat=True))
+    full_access = _user_has_district_full_access(profile, district.number)
+
+    venue_cards = []
+    for venue in venues:
+        unlocked = full_access or (venue.id in unlocked_ids)
+        venue_cards.append({
+            'venue': venue,
+            'unlocked': unlocked,
+            'status': 'available' if unlocked else 'locked',
+        })
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='district_view',
+        event_data={'district': district_number, 'mode': 'venues'}
+    )
+
+    context = {
+        'district': district,
+        'venue_cards': venue_cards,
+        'full_access': full_access,
+        'profile': profile,
+    }
+    return render(request, 'myApp/district_venues.html', context)
+
+
+@login_required
+def module_learn(request, module_code):
+    """Module learning page: video, transcript, AI coach context"""
+    profile = request.user.profile
+
+    level = Level.objects.filter(number=1).first()
+    module = get_object_or_404(Module, level=level, code=module_code.upper())
+
+    status, progress = _module_status_for_user(request.user, module)
+    if status == "locked":
+        return redirect('district_overview', district_number=module.level.number)
+
+    progress = _get_module_progress(request.user, module)
     if not progress.started:
         progress.started = True
         progress.last_activity = timezone.now()
@@ -421,6 +713,46 @@ def lesson_runner(request, module_code):
             event_type='lesson_start',
             event_data={'module': module.code}
         )
+
+    knowledge_blocks = module.knowledge_blocks.order_by('order')
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='module_learn_view',
+        event_data={'module': module.code}
+    )
+
+    context = {
+        'profile': profile,
+        'module': module,
+        'progress': progress,
+        'knowledge_blocks': knowledge_blocks,
+        'video_url': module.lesson_video_url,
+        'transcript': module.lesson_transcript,
+        'coach_context': {
+            'module_code': module.code,
+            'module_name': module.name,
+            'knowledge_blocks': list(knowledge_blocks.values('title', 'summary')),
+            'transcript_present': bool(module.lesson_transcript),
+        },
+    }
+    return render(request, 'myApp/module_learn.html', context)
+
+
+@login_required
+def lesson_runner(request, module_code):
+    """Module A lesson runner using the new card engine."""
+    profile = request.user.profile
+    level_1 = Level.objects.get(number=1)
+    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
+
+    status, _ = _module_status_for_user(request.user, module)
+    if status == "locked":
+        return redirect('district_overview', district_number=module.level.number)
+
+    progress = _get_module_progress(request.user, module)
+    if not progress.started:
+        return redirect('module_learn', module_code=module.code)
 
     session_ctx, _ = LessonSessionContext.objects.get_or_create(
         user=request.user,
@@ -481,6 +813,12 @@ def lesson_runner(request, module_code):
         "loop_index": progress.loop_index,
         "pass_type": progress.pass_type,
     }
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='module_exercises_view',
+        event_data={'module': module.code}
+    )
 
     context = {
         'module': module,
@@ -1140,7 +1478,10 @@ def lesson_transfer_submit(request):
         "title": "Transfer logged",
         "body": "Great—set a booster to revisit this in a day or two.",
     }
-    return _build_submission_response(progress, next_stage, toast=toast)
+    unlock_payload = None
+    if next_stage is None and progress.pass_type == 'main':
+        unlock_payload = _finalize_module_completion(request.user, module, progress)
+    return _build_submission_response(progress, next_stage, toast=toast, unlocks=unlock_payload)
 
 
 @login_required
@@ -1523,59 +1864,23 @@ def milestone_submit(request, level_number):
 
 
 @login_required
-def district_map(request, district_number):
-    """District map view"""
-    try:
-        district = District.objects.get(number=district_number)
-    except District.DoesNotExist:
-        # If district doesn't exist, redirect to home with message
-        from django.contrib import messages
-        messages.info(request, f'District {district_number} is not available yet. Please run: python manage.py seed_data')
-        return redirect('home')
-    
-    profile = request.user.profile
-    
-    if district_number == 1 and not profile.district_1_unlocked:
-        return redirect('home')
-    
-    venues = Venue.objects.filter(district=district).order_by('order')
-    
-    # Get user's venue entries
-    venue_entries = {}
-    for venue in venues:
-        entry = VenueEntry.objects.filter(
-            user=request.user,
-            venue=venue,
-            completed=False
-        ).first()
-        venue_entries[venue.id] = entry
-    
-    # Track analytics
-    AnalyticsEvent.objects.create(
-        user=request.user,
-        event_type='district_view',
-        event_data={'district': district_number}
-    )
-    
-    context = {
-        'district': district,
-        'venues': venues,
-        'venue_entries': venue_entries,
-        'profile': profile,
-    }
-    
-    return render(request, 'myApp/district_detail.html', context)
-
-
-@login_required
 def venue_detail(request, venue_id):
     """Venue detail with task sheets"""
     venue = get_object_or_404(Venue, id=venue_id)
     profile = request.user.profile
+
+    if not _user_has_venue_access(request.user, venue):
+        required_module = _module_code_for_venue(venue)
+        if required_module:
+            messages.info(request, f"Complete Module {required_module} to unlock {venue.name}.")
+        else:
+            messages.info(request, f"{venue.name} unlocks after completing this district's modules.")
+        return redirect('district_venues', district_number=venue.district.number)
     
     # Check if user has enough tickets
     if profile.tickets < venue.ticket_cost:
-        return redirect('district_map', district_number=venue.district.number)
+        messages.info(request, "You need more tickets to enter this venue.")
+        return redirect('district_venues', district_number=venue.district.number)
     
     # Get or create entry
     entry, created = VenueEntry.objects.get_or_create(

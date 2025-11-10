@@ -1,0 +1,102 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Module {{ module.code }} · Learn{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-muted mb-1">Module {{ module.code }}</p>
+            <h1 class="text-3xl font-heading font-bold text-text-strong mb-2">{{ module.name }}</h1>
+            {% if module.description %}
+            <p class="text-muted max-w-2xl">{{ module.description }}</p>
+            {% endif %}
+        </div>
+        <a href="{% url 'district_overview' module.level.number %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition">
+            ← District Overview
+        </a>
+    </header>
+
+    <section class="grid gap-6 xl:grid-cols-[2fr_1fr]">
+        <div class="space-y-6">
+            <div class="border border-white/10 rounded-2xl overflow-hidden bg-white/5">
+                <div class="aspect-video bg-black/40 flex items-center justify-center">
+                    {% if video_url %}
+                        <video controls class="w-full h-full object-cover">
+                            <source src="{{ video_url }}">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% else %}
+                        <div class="p-6 text-center text-muted">
+                            <p class="text-sm">Lesson video coming soon. Review the transcript and coach guidance below.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if module.lesson_duration %}
+                <p class="text-xs text-muted px-4 py-3 border-t border-white/5">Duration: {{ module.lesson_duration }} seconds</p>
+                {% endif %}
+            </div>
+
+            <div class="border border-white/10 rounded-2xl p-6 bg-white/5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-text-strong flex items-center gap-2">
+                        <span>📝</span>
+                        <span>Live Transcript</span>
+                    </h2>
+                    {% if not transcript %}
+                    <span class="text-xs text-muted">Pending</span>
+                    {% endif %}
+                </div>
+                {% if transcript %}
+                <div class="space-y-4 text-sm text-gray-200 leading-relaxed max-h-[420px] overflow-y-auto pr-2">
+                    {% for paragraph in transcript.splitlines %}
+                        {% if paragraph %}
+                        <p>{{ paragraph }}</p>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-muted">Transcript processing—check back soon. You can still ask the coach about this module.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <aside class="space-y-6">
+            <div class="border border-white/10 rounded-2xl p-6 bg-white/5">
+                <h2 class="text-lg font-semibold text-text-strong flex items-center gap-2 mb-3">
+                    <span>🤖</span>
+                    <span>AI Coach</span>
+                </h2>
+                <p class="text-sm text-muted mb-4">
+                    Ask the coach about the lesson, key ideas, or how to apply them. Your persona and module transcripts prime the responses.
+                </p>
+                <ul class="space-y-2 text-sm text-gray-300">
+                    {% for block in knowledge_blocks %}
+                    <li class="border border-white/5 rounded-lg px-3 py-2 bg-white/5">
+                        <span class="font-semibold text-text-strong">{{ block.title }}</span>
+                        <p class="text-xs text-muted">{{ block.summary|truncatewords:20 }}</p>
+                    </li>
+                    {% empty %}
+                    <li class="text-xs text-muted">Knowledge blocks will appear here once seeded.</li>
+                    {% endfor %}
+                </ul>
+                <a href="{% url 'ai_chat' %}"
+                   class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-electric-violet text-white font-semibold shadow-lg shadow-electric-violet/40 hover:bg-violet-600 transition w-full justify-center">
+                    Chat with Coach
+                </a>
+            </div>
+
+            <div class="border border-white/10 rounded-2xl p-6 bg-white/5 space-y-3">
+                <h2 class="text-lg font-semibold text-text-strong">Next Steps</h2>
+                <p class="text-sm text-muted">When you’re ready, continue to the interactive exercises. Completing them unlocks the next module and venue.</p>
+                <a href="{% url 'module_exercises' module.code %}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-electric-violet text-white font-semibold shadow-lg shadow-electric-violet/40 hover:bg-violet-600 transition w-full justify-center">
+                    Continue to Exercises
+                </a>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
