@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 import uuid
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -23,34 +24,9 @@ from .models import (
     ExerciseAttempt, MilestoneAttempt, District, Venue,
     VenueTaskSheet, VenueEntry, DailyQuest, UserProgress,
     AnalyticsEvent, ExerciseSubmission, LessonSessionContext,
-    StakesMap, TelemetryEvent, UserVenueUnlock
+    StakesMap, TelemetryEvent, UserVenueUnlock, LessonSession,
+    LessonStepResponse
 )
-from .lesson_engine import LessonEngine, LessonContext, SeedLoader, SeedVersionError
-from .lesson_engine.contracts_registry import build_default_registry
-
-
-MODULE_A_SEED_PATHS = [
-    "moduleA/scenarios.moduleA.json",
-    "moduleA/pic_sets.json",
-    "moduleA/actions_control_shift.json",
-    "moduleA/reframe_mantras.json",
-    "moduleA/load_examples.json",
-    "moduleA/d2_keypoint_sets.json",
-    "moduleA/lever_cards.json",
-    "moduleA/stakes_map_presets.json",
-]
-MODULE_A_FLOW_PATH = "moduleA/moduleA.flow.json"
-
-
-@lru_cache(maxsize=1)
-def get_module_a_bundle():
-    loader = SeedLoader()
-    packs, flow = loader.resolve_module_seeds(
-        "A",
-        MODULE_A_SEED_PATHS,
-        MODULE_A_FLOW_PATH,
-    )
-    return packs, flow
 
 
 @lru_cache(maxsize=1)
@@ -67,6 +43,101 @@ def get_ui_tokens():
         "version": data.get("version"),
         "values": data.get("items") or data.get("tokens") or {},
     }
+
+
+GUIDED_FLOW_FILES = {
+    "A": "moduleA.steps.json",
+}
+
+EXERCISE_WEBHOOK_URL = getattr(
+    settings,
+    "LESSON_EXERCISE_WEBHOOK_URL",
+    "https://katalyst-crm.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
+)
+
+
+class WebhookError(Exception):
+    """Raised when the external exercise webhook fails."""
+
+
+def _coerce_message_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    try:
+        return json.dumps(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _call_exercise_webhook(session, user, message: str) -> Tuple[Optional[str], Dict[str, Any], Dict[str, Any]]:
+    if not EXERCISE_WEBHOOK_URL:
+        return None, {}, {}
+
+    request_payload = {
+        "message": message,
+        "timestamp": timezone.now().isoformat(),
+        "userId": str(user.id),
+        "sessionId": str(session.id),
+    }
+
+    try:
+        response = requests.post(EXERCISE_WEBHOOK_URL, json=request_payload, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise WebhookError(str(exc)) from exc
+
+    try:
+        response_payload = response.json()
+    except ValueError as exc:
+        raise WebhookError("Exercise webhook returned invalid JSON.") from exc
+
+    output = response_payload.get("module1_test_response", {}).get("output")
+    if not isinstance(output, str):
+        output = None
+
+    return output, response_payload, request_payload
+
+
+@lru_cache(maxsize=8)
+def load_guided_flow(module_code: str) -> dict:
+    module_code = module_code.upper()
+    flow_file = GUIDED_FLOW_FILES.get(module_code)
+    if not flow_file:
+        return {}
+    flow_path = Path(settings.BASE_DIR) / "myApp" / "content" / "guided" / flow_file
+    if not flow_path.exists():
+        return {}
+    with flow_path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    steps = data.get("steps", [])
+    steps = sorted(steps, key=lambda s: s.get("order", 0))
+    index = {step["step_id"]: step for step in steps}
+    return {
+        "module_code": module_code,
+        "version": data.get("version", "v1"),
+        "steps": steps,
+        "index": index,
+    }
+
+
+def serialize_guided_step(step: dict) -> dict:
+    allowed_fields = {
+        "step_id",
+        "field_name",
+        "input_type",
+        "prompt_title",
+        "prompt_body",
+        "examples",
+        "validation",
+        "fa_icon",
+        "helper",
+        "progress",
+        "options",
+        "media",
+    }
+    return {key: value for key, value in step.items() if key in allowed_fields and value is not None}
 
 
 def get_stage_sequence(progress):
@@ -746,6 +817,8 @@ def module_learn(request, module_code):
         )
 
     knowledge_blocks = module.knowledge_blocks.order_by('order')
+    guided_flow = load_guided_flow(module.code)
+    first_step = guided_flow["steps"][0] if guided_flow and guided_flow.get("steps") else None
 
     AnalyticsEvent.objects.create(
         user=request.user,
@@ -766,366 +839,384 @@ def module_learn(request, module_code):
             'knowledge_blocks': list(knowledge_blocks.values('title', 'summary')),
             'transcript_present': bool(module.lesson_transcript),
         },
+        'guided_first_step': serialize_guided_step(first_step) if first_step else None,
+        'guided_flow_meta': {
+            'version': guided_flow.get('version'),
+            'total_steps': len(guided_flow.get('steps', [])),
+        } if guided_flow else {},
     }
     return render(request, 'myApp/module_learn.html', context)
 
 
 @login_required
-def lesson_runner(request, module_code):
-    """Module A lesson runner using the new card engine."""
+def module_guided(request, module_code):
+    """Dedicated guided lesson page with single-prompt flow."""
     profile = request.user.profile
-    level_1 = Level.objects.get(number=1)
-    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
 
-    status, _ = _module_status_for_user(request.user, module)
+    level = Level.objects.filter(number=1).first()
+    module = get_object_or_404(Module, level=level, code=module_code.upper())
+
+    status, progress = _module_status_for_user(request.user, module)
     if status == "locked":
         return redirect('district_overview', district_number=module.level.number)
 
     progress = _get_module_progress(request.user, module)
-    if not progress.started:
-        return redirect('module_learn', module_code=module.code)
 
-    session_ctx, _ = LessonSessionContext.objects.get_or_create(
-        user=request.user,
-        module=module,
-        defaults={
-            'loop_index': progress.loop_index,
-        },
-    )
-
-    try:
-        seed_packs, flow = get_module_a_bundle()
-    except SeedVersionError as exc:
-        return render(
-            request,
-            'myApp/lesson_runner.html',
-            {
-                'module': module,
-                'profile': profile,
-                'seed_error': str(exc),
-                'lesson_cards': [],
-                'session_state': {},
-                'flow_meta': {},
-                'progress_payload': {},
-                'ui_tokens': get_ui_tokens(),
-            },
-        )
-
-    registry = build_default_registry()
-    session_state = {
-        "current_scenario_ref": session_ctx.current_scenario_ref,
-        "last_lever_choice": session_ctx.last_lever_choice or progress.lever_choice,
-        "last_stakes_score": float(session_ctx.last_stakes_score)
-        if session_ctx.last_stakes_score is not None else None,
-        "loop_index": session_ctx.loop_index or progress.loop_index,
-        "cooldowns": session_ctx.cooldowns or {},
-    }
-
-    user_state = {
-        "ab_variant": profile.ab_variant,
-        "loop_index": progress.loop_index,
-        "pass_type": progress.pass_type,
-    }
-
-    engine = LessonEngine(registry, seed_packs, flow)
-    lesson_context = LessonContext(
-        module_code=module.code,
-        user_state=user_state,
-        session_context=session_state,
-    )
-    cards = engine.build_session_stack(lesson_context)
-
-    # Persist mutated session context
-    session_ctx.cooldowns = lesson_context.session_context.get("cooldowns", {})
-    session_ctx.loop_index = lesson_context.session_context.get("loop_index", progress.loop_index)
-    session_ctx.save(update_fields=['cooldowns', 'loop_index', 'updated_at'])
-
-    progress_payload = {
-        "loop_index": progress.loop_index,
-        "pass_type": progress.pass_type,
-    }
+    guided_flow = load_guided_flow(module.code)
+    first_step = guided_flow["steps"][0] if guided_flow and guided_flow.get("steps") else None
 
     AnalyticsEvent.objects.create(
         user=request.user,
-        event_type='module_exercises_view',
+        event_type='lesson_guided_view',
         event_data={'module': module.code}
     )
 
     context = {
-        'module': module,
         'profile': profile,
-        'flow_meta': {
-            'name': flow.name,
-            'version': flow.version,
-            'scoring': flow.scoring,
-        },
-        'lesson_cards': cards,
-        'session_state': lesson_context.session_context,
-        'progress_payload': progress_payload,
-        'ui_tokens': get_ui_tokens(),
+        'module': module,
+        'progress': progress,
+        'guided_first_step': serialize_guided_step(first_step) if first_step else None,
+        'guided_flow_meta': {
+            'version': guided_flow.get('version'),
+            'total_steps': len(guided_flow.get('steps', [])),
+        } if guided_flow else {},
+    }
+    return render(request, 'myApp/module_guided.html', context)
+
+
+def _ensure_guided_flow(module: Module) -> dict:
+    flow = load_guided_flow(module.code)
+    if not flow or not flow.get("steps"):
+        raise ValueError(f"Guided script missing for module {module.code}")
+    return flow
+
+
+def _update_progress_started(user, module):
+    progress = _get_module_progress(user, module)
+    if not progress.started:
+        progress.started = True
+        progress.last_activity = timezone.now()
+        progress.save(update_fields=['started', 'last_activity'])
+        AnalyticsEvent.objects.create(
+            user=user,
+            event_type='lesson_guided_start',
+            event_data={'module': module.code}
+        )
+    return progress
+
+
+def _build_guided_summary(session: LessonSession):
+    responses = session.responses.order_by('created_at')
+    fields = [
+        {
+            "step_id": response.step_id,
+            "field_name": response.field_name,
+            "value": response.value.get("value", response.value),
+            "recorded_at": response.created_at.isoformat(),
+        }
+        for response in responses
+    ]
+    return {
+        "steps_completed": len(fields),
+        "fields": fields,
     }
 
-    return render(request, 'myApp/lesson_runner.html', context)
 
+def _normalize_input(step, payload_value):
+    input_type = (step.get("input_type") or "").lower()
+    validation = step.get("validation") or {}
 
-def _compute_scores(scoring_conf, metrics):
-    completion_weight = int(scoring_conf.get('completion', 40))
-    accuracy_weight = int(scoring_conf.get('accuracy', 30))
-    reflection_weight = int(scoring_conf.get('reflection', 30))
+    if input_type in {"text", "textarea"}:
+        value = (payload_value or "").strip()
+        if validation.get("required") and not value:
+            raise ValueError("This field is required.")
+        min_length = validation.get("min_length")
+        if min_length and len(value) < int(min_length):
+            raise ValueError(f"Answer must be at least {min_length} characters.")
+        return value
 
-    completion_score = completion_weight if metrics.get('completion', True) else 0
-    accuracy_score = 0
-    accuracy_ratio = metrics.get('accuracy')
-    if isinstance(accuracy_ratio, (int, float)):
-        accuracy_score = int(max(0.0, min(1.0, float(accuracy_ratio))) * accuracy_weight)
-    reflection_score = reflection_weight if metrics.get('reflection') else 0
-    total_score = completion_score + accuracy_score + reflection_score
-    return completion_score, accuracy_score, reflection_score, total_score
+    if input_type == "select":
+        value = (payload_value or "").strip()
+        if validation.get("required") and not value:
+            raise ValueError("Please choose an option.")
+        options = step.get("options") or []
+        allowed = {opt.get("value") for opt in options}
+        if allowed and value not in allowed:
+            raise ValueError("Selection not recognised.")
+        return value
 
+    if input_type == "rating":
+        if payload_value in (None, ""):
+            raise ValueError("Rating is required.")
+        try:
+            value = int(payload_value)
+        except (TypeError, ValueError):
+            raise ValueError("Rating must be a number.")
+        min_value = validation.get("min_value")
+        max_value = validation.get("max_value")
+        if min_value is not None and value < int(min_value):
+            raise ValueError(f"Rating must be ≥ {min_value}.")
+        if max_value is not None and value > int(max_value):
+            raise ValueError(f"Rating must be ≤ {max_value}.")
+        return value
 
-def _update_session_context_for_template(session_state, template_id, payload, exercise_id, card_key):
-    completed = session_state.setdefault("completed_cards", [])
-    if card_key and card_key not in completed:
-        completed.append(card_key)
-    if template_id == "PersonalScenarioCapture":
-        scenario_ref = payload.get("scenario_ref") or f"scn_{uuid.uuid4().hex[:10]}"
-        session_state["current_scenario_ref"] = scenario_ref
-        scenarios = session_state.setdefault("scenarios", {})
-        scenarios[scenario_ref] = {
-            "text": payload.get("situation_text", ""),
-            "pressure": payload.get("pressure"),
-            "visibility": payload.get("visibility"),
-            "irreversibility": payload.get("irreversibility"),
-            "reflection": payload.get("reflection"),
-        }
-    elif template_id == "TernaryRatingCard":
-        p = float(payload.get("P", 0) or 0)
-        i = float(payload.get("I", 0) or 0)
-        control = float(payload.get("C", 1) or 1)
-        if control <= 0:
-            control = 1
-        stakes_score = round((p + i) / control, 2)
-        session_state["last_stakes_score"] = stakes_score
-    elif template_id == "LeverSelector3P":
-        lever = payload.get("selected_lever")
-        if lever:
-            session_state["last_lever_choice"] = lever
-    elif template_id == "StakesMapBuilder":
-        session_state["last_stakes_map"] = {
-            "pressure_points": payload.get("pressure_points", []),
-            "trigger": payload.get("trigger"),
-            "lever": payload.get("lever"),
-            "action_step": payload.get("action_step"),
-            "situation": payload.get("situation"),
-        }
-    return session_state
+    if input_type in {"confirm", "continue"}:
+        if payload_value in (True, "true", "True", "1", 1, None, ""):
+            return True
+        raise ValueError("Confirmation required.")
+
+    if input_type == "complete":
+        return True
+
+    return payload_value
 
 
 @login_required
 @require_http_methods(["POST"])
-def lesson_card_submit(request):
+def lesson_start(request):
     data, error = _parse_request_json(request)
     if error:
         return error
-
-    module_code = data.get("module_code")
-    card = data.get("card") or {}
-    payload = data.get("payload") or {}
-    metrics = data.get("metrics") or {}
+    module_code = (data.get("module") or "").upper()
     if not module_code:
-        return _json_error("module_code is required", code="missing_module")
-    template_id = card.get("template_id")
-    exercise_id = card.get("exercise_id")
-    if not template_id or not exercise_id:
-        return _json_error("template_id and exercise_id are required.", code="missing_card_meta")
-    card_key = card.get("card_key") or f"{exercise_id}::0"
+        return _json_error("module is required.", code='missing_module')
 
     level_1 = Level.objects.get(number=1)
-    module = get_object_or_404(Module, level=level_1, code=module_code.upper())
-    progress, _ = UserProgress.objects.get_or_create(user=request.user, module=module)
-    session_ctx, _ = LessonSessionContext.objects.get_or_create(
-        user=request.user,
-        module=module,
-        defaults={
-            'loop_index': progress.loop_index,
-        },
-    )
-
+    module = get_object_or_404(Module, level=level_1, code=module_code)
     try:
-        seed_packs, flow = get_module_a_bundle()
-    except SeedVersionError as exc:
-        return _json_error(str(exc), code="seed_version_error")
+        flow = _ensure_guided_flow(module)
+    except ValueError as exc:
+        return _json_error(str(exc), status=404, code='guided_unavailable')
 
-    registry = build_default_registry()
+    steps = flow["steps"]
+    first_step = steps[0]
 
-    session_state = {
-        "current_scenario_ref": session_ctx.current_scenario_ref,
-        "last_lever_choice": session_ctx.last_lever_choice or progress.lever_choice,
-        "last_stakes_score": float(session_ctx.last_stakes_score)
-        if session_ctx.last_stakes_score is not None else None,
-        "loop_index": session_ctx.loop_index or progress.loop_index,
-        "cooldowns": session_ctx.cooldowns or {},
-    }
-    session_state.update(session_ctx.data or {})
+    progress = _update_progress_started(request.user, module)
+    progress.last_activity = timezone.now()
+    progress.save(update_fields=['last_activity'])
 
-    payload["card_key"] = card_key
-
-    session_state = _update_session_context_for_template(
-        session_state,
-        template_id,
-        payload,
-        exercise_id=exercise_id,
-        card_key=card_key,
-    )
-
-    completion_score, accuracy_score, reflection_score, total_score = _compute_scores(flow.scoring, metrics)
-
-    duration_ms = int(data.get("time_on_card") or 0)
-    client_ts = _parse_client_ts(data.get("client_ts"))
-
-    ExerciseSubmission.objects.create(
+    session = LessonSession.objects.create(
         user=request.user,
         module=module,
-        knowledge_block=progress.current_knowledge_block,
-        loop_index=session_state.get("loop_index", progress.loop_index),
-        pass_type=progress.pass_type,
-        stage_key=template_id.lower(),
-        exercise_id=exercise_id,
-        template_id=template_id,
-        payload_version=flow.version,
-        payload=payload,
-        scores=metrics.get("scores") or {},
-        completion_score=completion_score,
-        accuracy_score=accuracy_score,
-        reflection_score=reflection_score,
-        total_score=total_score,
-        duration_ms=duration_ms,
-        ab_variant=request.user.profile.ab_variant,
-        client_ts=client_ts,
+        state="asking",
+        current_step_id=first_step["step_id"],
+        current_order=first_step.get("order", 1),
+        total_steps=len(steps),
+        flow_version=flow.get("version", "v1"),
+        context={"answers": {}},
     )
 
-    if template_id == "StakesMapBuilder":
-        map_payload = session_state.get("last_stakes_map", {})
-        if map_payload:
-            StakesMap.objects.create(
-                user=request.user,
-                module=module,
-                scenario_ref=session_state.get("current_scenario_ref", ""),
-                situation_text=map_payload.get("situation", ""),
-                pressure_points=map_payload.get("pressure_points", []),
-                trigger=map_payload.get("trigger", ""),
-                lever=map_payload.get("lever", ""),
-                action_step=map_payload.get("action_step", ""),
-            )
-
-    session_ctx.current_scenario_ref = session_state.get("current_scenario_ref", "") or ""
-    session_ctx.last_lever_choice = session_state.get("last_lever_choice") or ""
-    session_ctx.last_stakes_score = session_state.get("last_stakes_score")
-    session_ctx.cooldowns = session_state.get("cooldowns", {})
-    session_ctx.loop_index = session_state.get("loop_index", progress.loop_index)
-    session_ctx.data = {k: v for k, v in session_state.items() if k not in {"current_scenario_ref", "last_lever_choice", "last_stakes_score", "cooldowns", "loop_index"}}
-    session_ctx.save()
-
-    progress.last_activity = timezone.now()
-    progress.session_state = session_state
-    progress.save(update_fields=['last_activity', 'session_state'])
-
-    TelemetryEvent.objects.create(
+    AnalyticsEvent.objects.create(
         user=request.user,
-        module_code=module.code,
-        name=f"{template_id}.submitted",
-        properties_json={
-            "exercise_id": exercise_id,
-            "metrics": metrics,
-            "duration_ms": duration_ms,
-        },
-        ab_variant=request.user.profile.ab_variant,
+        event_type='lesson_guided_session_created',
+        event_data={'module': module.code, 'session_id': str(session.id)}
     )
-
-    user_state = {
-        "ab_variant": request.user.profile.ab_variant,
-        "loop_index": session_state.get("loop_index", progress.loop_index),
-        "pass_type": progress.pass_type,
-    }
-
-    engine = LessonEngine(registry, seed_packs, flow)
-    lesson_context = LessonContext(
-        module_code=module.code,
-        user_state=user_state,
-        session_context=session_state,
-    )
-    cards = engine.build_session_stack(lesson_context)
-
-    session_ctx.cooldowns = lesson_context.session_context.get("cooldowns", {})
-    session_ctx.loop_index = lesson_context.session_context.get("loop_index", progress.loop_index)
-    session_ctx.save(update_fields=['cooldowns', 'loop_index', 'updated_at'])
 
     return JsonResponse({
-        "ok": True,
-        "cards": cards,
-        "session_state": lesson_context.session_context,
-        "scores": {
-            "completion": completion_score,
-            "accuracy": accuracy_score,
-            "reflection": reflection_score,
-            "total": total_score,
-        },
+        "session_id": str(session.id),
+        "module": module.code,
+        "step": serialize_guided_step(first_step),
+        "state": session.state,
+        "total_steps": len(steps),
     })
 
 
 @login_required
 @require_http_methods(["POST"])
-def lesson_prime_submit(request):
+def lesson_answer(request):
     data, error = _parse_request_json(request)
     if error:
         return error
-    module_code = data.get('module_code')
-    block_id = data.get('block_id')
-    if not module_code or not block_id:
-        return _json_error("module_code and block_id are required.", code='missing_fields')
-    module, block, progress = _get_module_and_block(request.user, module_code, block_id)
+    session_id = data.get("session_id")
+    step_id = data.get("step_id")
+    field_name = data.get("field_name")
+    value = data.get("value")
+
+    if not session_id or not step_id or not field_name:
+        return _json_error("session_id, step_id, and field_name are required.", code='missing_fields')
+
+    session = get_object_or_404(LessonSession, id=session_id, user=request.user)
+    module = session.module
+
+    flow = load_guided_flow(module.code)
+    if not flow:
+        return _json_error("Guided script unavailable.", status=404, code='guided_unavailable')
+    steps = flow["steps"]
+    index = flow["index"]
+
+    current_step = index.get(step_id)
+    if not current_step:
+        return _json_error("Unknown step_id.", code='unknown_step')
+
+    if session.current_step_id != step_id:
+        return _json_error("Step order mismatch; refresh to resume.", code='step_out_of_order')
+
     try:
-        loop_index = int(data.get('loop_index', progress.loop_index))
-    except (TypeError, ValueError):
-        return _json_error("loop_index must be an integer.", code='invalid_loop')
-    valid, error_resp = _validate_loop_index(progress, loop_index)
-    if not valid:
-        return error_resp
-    valid, error_resp = _validate_stage(progress, 'prime')
-    if not valid:
-        return error_resp
-    focus_lever = data.get('focus_lever')
-    lever_options = {choice[0] for choice in UserProgress.LEVER_CHOICES}
-    if focus_lever and focus_lever not in lever_options:
-        return _json_error("Invalid focus lever.", code='invalid_lever')
-    intention = (data.get('intention') or "").strip()
-    payload = {
-        "intention": intention,
-        "focus_lever": focus_lever,
-    }
-    client_ts = _parse_client_ts(data.get('client_ts'))
-    _create_submission(
-        request.user,
-        module,
-        block,
-        progress,
-        'prime',
-        payload,
-        client_ts=client_ts,
-        lever_choice=focus_lever,
+        normalized_value = _normalize_input(current_step, value)
+    except ValueError as exc:
+        return _json_error(str(exc), code='validation_error')
+
+    LessonStepResponse.objects.create(
+        session=session,
+        step_id=step_id,
+        field_name=field_name,
+        value={"value": normalized_value},
     )
-    if not progress.lever_choice and focus_lever:
-        progress.lever_choice = focus_lever
-    _append_meta_history(progress, 'prime', payload)
-    next_stage = _compute_next_stage(progress, 'prime')
+
+    answers = session.context.get("answers", {})
+    answers[field_name] = normalized_value
+    session.context["answers"] = answers
+
+    current_index = next((idx for idx, step in enumerate(steps) if step["step_id"] == step_id), None)
+    next_step = steps[current_index + 1] if current_index is not None and current_index + 1 < len(steps) else None
+
+    session.state = "waiting"
+    session.save(update_fields=["context", "state", "updated_at"])
+
+    webhook_output: Optional[str] = None
+    webhook_payload: Dict[str, Any] = {}
+    webhook_request: Dict[str, Any] = {}
+    try:
+        message_text = _coerce_message_text(normalized_value)
+        webhook_output, webhook_payload, webhook_request = _call_exercise_webhook(session, request.user, message_text)
+    except WebhookError:
+        session.state = "asking"
+        session.save(update_fields=["state", "updated_at"])
+        return _json_error(
+            "We hit a snag processing that answer. Try again in a moment.",
+            status=502,
+            code='webhook_failed',
+        )
+
+    if webhook_payload:
+        trace = session.context.get("webhook_trace", [])
+        trace.append(
+            {
+                "step_id": step_id,
+                "field_name": field_name,
+                "request": webhook_request,
+                "response": {
+                    "module1_test_response": webhook_payload.get("module1_test_response")
+                },
+                "recorded_at": timezone.now().isoformat(),
+            }
+        )
+        session.context["webhook_trace"] = trace[-5:]
+    if webhook_output is not None:
+        session.context["last_webhook_output"] = webhook_output
+
+    progress = _get_module_progress(request.user, module)
     progress.last_activity = timezone.now()
-    progress.save()
-    return _build_submission_response(progress, next_stage)
+    progress.save(update_fields=['last_activity'])
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type='lesson_guided_step_submitted',
+        event_data={'module': module.code, 'session_id': str(session.id), 'step_id': step_id}
+    )
+
+    if not next_step:
+        session.state = "completed"
+        session.current_step_id = ""
+        session.save(update_fields=['state', 'current_step_id', 'context', 'updated_at'])
+        summary = _build_guided_summary(session)
+        unlocks = _finalize_module_completion(request.user, module, progress)
+        AnalyticsEvent.objects.create(
+            user=request.user,
+            event_type='lesson_guided_complete',
+            event_data={'module': module.code, 'session_id': str(session.id)}
+        )
+        payload = {
+            "completed": True,
+            "summary": summary,
+            "state": session.state,
+        }
+        if unlocks:
+            payload["unlocks"] = unlocks
+        return JsonResponse(payload)
+
+    if next_step.get("input_type") == "complete":
+        session.current_step_id = next_step["step_id"]
+        session.current_order = next_step.get("order", session.current_order + 1)
+        session.state = "transitioning"
+        session.save(update_fields=['current_step_id', 'current_order', 'state', 'context', 'updated_at'])
+        summary = _build_guided_summary(session)
+        session.state = "completed"
+        session.save(update_fields=['state', 'updated_at'])
+        AnalyticsEvent.objects.create(
+            user=request.user,
+            event_type='lesson_guided_complete',
+            event_data={'module': module.code, 'session_id': str(session.id)}
+        )
+        unlocks = _finalize_module_completion(request.user, module, progress)
+        payload = {
+            "completed": True,
+            "completion_step": serialize_guided_step(next_step),
+            "summary": summary,
+            "state": session.state,
+        }
+        if webhook_output is not None:
+            payload["completion_step"]["prompt_body"] = webhook_output
+        if unlocks:
+            payload["unlocks"] = unlocks
+        return JsonResponse(payload)
+
+    session.current_step_id = next_step["step_id"]
+    session.current_order = next_step.get("order", session.current_order + 1)
+    session.state = "transitioning"
+    session.save(update_fields=['current_step_id', 'current_order', 'state', 'context', 'updated_at'])
+    session.state = "asking"
+    session.save(update_fields=['state', 'updated_at'])
+
+    next_payload = serialize_guided_step(next_step)
+    if webhook_output is not None:
+        next_payload["prompt_body"] = webhook_output
+
+    return JsonResponse({
+        "next_step": next_payload,
+        "session_id": str(session.id),
+        "state": session.state,
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def lesson_resume(request):
+    session_id = request.GET.get("session_id")
+    if not session_id:
+        return _json_error("session_id is required.", code='missing_session')
+    session = get_object_or_404(LessonSession, id=session_id, user=request.user)
+    module = session.module
+    flow = load_guided_flow(module.code)
+    if not flow:
+        return _json_error("Guided script unavailable.", status=404, code='guided_unavailable')
+    index = flow["index"]
+
+    if session.state == "completed":
+        summary = _build_guided_summary(session)
+        return JsonResponse({
+            "completed": True,
+            "summary": summary,
+            "state": session.state,
+        })
+
+    current_step = index.get(session.current_step_id)
+    if not current_step:
+        return _json_error("Active step not found; restart session.", status=409, code='step_not_found')
+
+    return JsonResponse({
+        "session_id": str(session.id),
+        "step": serialize_guided_step(current_step),
+        "state": session.state,
+        "total_steps": session.total_steps,
+    })
+
 
 
 @login_required
 @require_http_methods(["POST"])
 def lesson_teach_submit(request):
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     data, error = _parse_request_json(request)
     if error:
         return error
@@ -1169,9 +1260,7 @@ def lesson_teach_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_diagnose_submit(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:
@@ -1240,9 +1329,7 @@ def lesson_diagnose_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_control_shift_submit(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:
@@ -1289,6 +1376,7 @@ def lesson_control_shift_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_perform_text_submit(request):
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     data, error = _parse_request_json(request)
     if error:
         return error
@@ -1349,9 +1437,7 @@ def lesson_perform_text_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_perform_voice_submit(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:
@@ -1407,9 +1493,7 @@ def lesson_perform_voice_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_review_submit(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:
@@ -1466,9 +1550,7 @@ def lesson_review_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_transfer_submit(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:
@@ -1518,9 +1600,7 @@ def lesson_transfer_submit(request):
 @login_required
 @require_http_methods(["POST"])
 def lesson_spacing_schedule(request):
-    data, error = _parse_request_json(request)
-    if error:
-        return error
+    return _json_error("Legacy lesson endpoint removed.", status=410, code='legacy_endpoint')
     module_code = data.get('module_code')
     block_id = data.get('block_id')
     if not module_code or not block_id:

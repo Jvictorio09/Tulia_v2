@@ -1,180 +1,198 @@
 # Lesson Runner Overview
 
-This document captures the current intent, structure, and next-phase direction of the `lesson_runner`. Use it as the single source of truth when shipping UI, content, or data changes to the multi-pass learning arc.
+Single-screen guided sessions have replaced the legacy multi-template deck. Every module now advances through one prompt at a time with a lightweight AI copilot. This document describes the current architecture, contracts, and UX guidelines for the Level 1 guided lesson experience.
 
 ---
 
-## 1. Intent & Experience Pillars
+## 1. Purpose & Experience Pillars
 
-**Tulia’s promise** is calm focus, structured insight, and emotional safety. Our enhancement wraps that pedagogy in micro-dopamine loops and gentle-game delight.
-
-| Layer | Tulia baseline | Guided enhancement |
-| --- | --- | --- |
-| Cognitive | Mastery through reflection | Mastery through play + tight feedback |
-| Emotional | Compassionate, self-aware tone | “Gentle-game” energy (mascot praise, soft glow wins) |
-| Behavioural | 10-minute focused loops | 10-minute missions / quests |
-
-Guiding mantra: _Less app → more journey_. Every click should feel like forward momentum.
+- **Focus first** – the learner sees one prompt, one input, one clear next action.
+- **Calm momentum** – soft transitions, micro-headers, and progress breadcrumbs reinforce steady progress rather than high-pressure gamification.
+- **AI-assisted** – each submission is routed through the external webhook to fetch the next prompt copy or micro-coaching.
 
 ---
 
-## 2. System Snapshot
+## 2. System Map
 
-- **Template**: `myApp/templates/myApp/lesson_runner.html`
-- **View**: `lesson_runner()` wires module meta, progress payload, content tiles, coach guardrails.
-- **JS Orchestration**: `LessonRunnerMachine` (inline class) sequences stages, submits payloads, hydrates the coach sidekick, and now tracks mission context (scenario, PIC, lever).
-- **Shared components**: signal sentence, 3×3 builder, style radar. Each now receives state via `window.lessonRunnerContext` for smart prefills.
-
----
-
-## 3. Mission Loop Overview
-
-Reframe the legacy Teach → Drill → Review → Checkpoint into an eight-step “Mission Loop.” Each knowledge block runs 2–3 loops (`loop_index`), then unlocks a return pass (`pass_type = return`).
-
-| Legacy exercise | Mission name | Emoji | Emotional beat |
-| --- | --- | --- | --- |
-| Prime | **Prime Intent** | 🪄 | Grounded curiosity |
-| A1 Stakes Detector | **Spot the Heat** | 🔎 | Curious diagnosis |
-| B1 PIC Rating | **Decode the Pressure** | 📊 | Clarity |
-| B2 Control Shift | **Take the Lever** | ⚡ | Agency |
-| C1–C2 Reset drills | **Reset Mode** | 🧘 | Calm confidence |
-| Perform (text/voice) | **Perform Mission** | 🎙️ | Momentum |
-| Review (AI + reflect) | **Insight Check** | 🌟 | Encouraged mastery |
-| A2 / Transfer | **Next Mission** | 🎯 | Anticipation |
-| Spacing return pass | **Booster Loop** | 🔁 | Consistency |
-
-_Optional flavor tiles_: “Brain vs Heart Test” (Load lab), “Your Player Map” (Stakes map) surface as boosters inside Diagnose & Review.
+- **Template**: `myApp/templates/myApp/module_guided.html` renders the prompt stage, helper drawer, answer bar, and toast surface.
+- **Frontend runtime**: inline ES module orchestrates the state machine, validation, helper content, and safe-area layout.
+- **Endpoints**:
+  - `POST /lesson/start` → bootstrap a session.
+  - `POST /lesson/answer` → persist the answer, relay it to the webhook, and return the next prompt.
+  - `GET /lesson/resume` → reload a session after a refresh.
+- **Guided content**: `myApp/content/guided/<module>.steps.json` lists ordered steps with metadata (title, body, helper, validation, icons).
+- **Webhook**: `https://katalyst-crm.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a` is the single integration point for copy hand-offs.
 
 ---
 
-## 4. Stage Blueprint
+## 3. Prompt Flow & State Machine
 
-### 0 · Prime Intent 🪄
-- Inputs: intention sentence, focus lever chip (Preparation / Presence / Perspective).
-- Output: `focus_lever`, `intention_text`. Animates with soft glow & supportive copy “You’ve set your focus.”
+Frontend and backend share the same lifecycle vocabulary:
 
-### 1 · Spot the Heat 🔎
-- UI: scenario textarea (prefilled from Transfer), quick binary chips (“Who’s in the room?”), PIC sliders appear after the story stub.
-- Data: `scenario_text`, `pic.{pressure,visibility,irreversibility}`. Reward: tiny “Curiosity +5” gem sparkle.
+1. `idle` – no session loaded.
+2. `asking` – prompt visible and ready for input.
+3. `waiting` – submission in-flight while the webhook processes.
+4. `transitioning` – UI fades between prompts.
+5. `completed` – transcript saved; recap card replaces the prompt.
 
-### 2 · Decode the Pressure 📊
-- UI: slider confirmations, short explanation cards (“Pressure = consequences if…”) pulled from coach sheet if needed.
-- Data: `pic.control`, `load_label` (Emotional / Cognitive / Mixed). Emotion: clarity.
-
-### 3 · Take the Lever ⚡
-- UI: lever cards with micro illustration, CTA “What’s the move?” text input.
-- Data: `lever_choice`, `action_plan`. Reward: progress ring tick + “Lever locked in.”
-
-### 4 · Reset Mode 🧘 (optional wrapper)
-- UI: quick body reset slider (“Tension → Ease”), 30-second breathing animation.
-- Data: `body_reset_before`, `body_reset_after`.
-
-### 5 · Perform Mission 🎙️
-- Sub-stages: **Text Pass** (word counter, timer), **Voice Pass** (link upload placeholder).
-- Data: `text`, `audio_ref`, `duration_ms`.
-- Reward: confetti bursts + XP sound.
-
-### 6 · Insight Check 🌟
-- UI: AI rubric chips (Clarity, Audience, Control). Self-explain prompt: “What made that feel right?”
-- Data: `scores`, `self_explain`, `accept_suggestions`.
-- Reward: “Insight +1” gem & friendly mascot reaction.
-
-### 7 · Next Mission 🎯
-- UI: upcoming moment form (title, date/time), optional PIC sliders for preview, lever suggestion.
-- Data: `next_moment`, `desired_outcome`, `return_pass_at` (calculated). Buttons schedule 24h / 48h / 72h boosters.
-
-### Booster Loop 🔁
-- Triggered by scheduler; includes micro re-teach tile, voice-only perform, insight check. Light UI with ambient background to reinforce quick-hit practice.
+The backend persists `waiting`, `transitioning`, `asking`, and `completed` so that resume calls mirror the real state.
 
 ---
 
-## 5. Visual & Interaction System (Calm × Duolingo × Notion)
+## 4. UI Regions
 
-- **Card surfaces**: white (`bg-ink-surface`) with generous rounding, soft shadows, thin borders for clarity.
-- **Ambient animation**: breathing gradients, subtle particles on stage completion, confetti for major milestones.
-- **Mascot**: Coach Tuli (friendly speech bubble avatar) positioned near the coach toggle; reacts with captions (“Nice catch!”, “Deep breath first…”).
-- **Color rhythm**:
-  - Awareness phases (Prime, Diagnose): calm purples/blues.
-  - Action phases (Lever, Perform): vivid violets/cyans.
-  - Reflection/mastery (Review, Transfer): warm greens/golds.
-- **Sound design**: soft chimes for progression, airy tone for insight, no harsh error sounds (use “Try another angle” copy instead).
-- **Layout**: buttons anchored low-center for thumb reach; single action per card.
+- **Prompt Stage**: centered card with micro-header (step count, progress bar), headline/body copy, optional icon, and example list.
+- **Helper Drawer**: lightbulb affordance that slides in static context tips (`helper.title`, `helper.bullets`).
+- **Footer Answer Bar**: safe-area padded form with a single input, primary action icon (Font Awesome), inline validation with `fa-circle-info`, and spinner treatment during waits.
+- **Toast Rail**: top-center stack for success/error notifications (webhook errors always surface here).
+
+Transitions use subtle fade/translate CSS; “focus mode” overlays were removed.
 
 ---
 
-## 6. Motivation & Progress Architecture
+## 5. API Contracts
 
-| Trigger | Immediate reward | Reinforcement |
-| --- | --- | --- |
-| Submit any stage | +XP toast, gentle sound, progress ring tick | Stage label lights up
-| Complete loop | Badge card + quote + shareable summary | Unlocks next mission tile
-| Return consecutive days | Streak flame + “Keep your calm streak alive” nudge | Calendar highlights streak
-| Record reflection | “Insight +1” gem counter updates | Feeds personalised coach tips
+### POST `/lesson/start`
 
-Re-use Tulia scoring (50 pts per exercise) but surface it visibly: progress ring around mascot, XP meter in header.
+**Request**
+```json
+{ "module": "A" }
+```
+
+**Response**
+```json
+{
+  "session_id": "b5d3e3ae-b18c-4d96-95bc-770c2ac7f8ab",
+  "module": "A",
+  "state": "asking",
+  "total_steps": 8,
+  "step": {
+    "step_id": "moment_snapshot",
+    "prompt_title": "...",
+    "prompt_body": "...",
+    "input_type": "textarea",
+    "validation": { "required": true, "min_length": 35 },
+    "helper": { "title": "...", "bullets": ["...", "..."] },
+    "progress": { "current": 1, "total": 8 }
+  }
+}
+```
+
+### POST `/lesson/answer`
+
+**Request**
+```json
+{
+  "session_id": "b5d3e3ae-b18c-4d96-95bc-770c2ac7f8ab",
+  "step_id": "moment_snapshot",
+  "field_name": "moment_snapshot",
+  "value": "Presenting Q4 results…"
+}
+```
+
+**Webhook payload (derived)**  
+`{ "message": "Presenting Q4 results…", "timestamp": "...", "userId": "42", "sessionId": "b5d3e3ae-..." }`
+
+**Response (happy path)**
+```json
+{
+  "session_id": "b5d3e3ae-b18c-4d96-95bc-770c2ac7f8ab",
+  "state": "asking",
+  "next_step": {
+    "step_id": "stakes_intensity",
+    "prompt_title": "...",
+    "prompt_body": "How intense does it feel right now?",
+    "input_type": "select",
+    "...": "..."
+  }
+}
+```
+
+**Response (final step)**
+```json
+{
+  "completed": true,
+  "state": "completed",
+  "summary": {
+    "steps_completed": 8,
+    "fields": [
+      { "step_id": "moment_snapshot", "field_name": "moment_snapshot", "value": "...", "recorded_at": "..." }
+    ]
+  }
+}
+```
+
+Errors return `{ "ok": false, "error": { "code": "...", "message": "..." } }`. `code = webhook_failed` always pairs with a 502 and triggers the top toast.
+
+### GET `/lesson/resume?session_id=<uuid>`
+
+- Completed sessions return summary + `state = completed`.
+- Active sessions return the current step, total count, and persisted state.
 
 ---
 
-## 7. Copy & Tone Guidelines
+## 6. Step Definition Schema
 
-- Replace academic directives with conversational prompts.
-- Examples:
-  - Instruction → “Tap what makes this moment feel intense.”
-  - Feedback → “Exactly — pressure + visibility = that board-meeting buzz.”
-  - Reflection → “What made this choice feel right?”
-- Always celebrate awareness: “Interesting! That tension is data we can use.”
+Every entry in `<module>.steps.json` supports:
 
----
+| Field | Purpose |
+| --- | --- |
+| `step_id` | Stable identifier used in transcripts. |
+| `order` | Render ordering. |
+| `field_name` | Storage key for transcripts. |
+| `input_type` | `text`, `textarea`, `select`, `rating`, `confirm`, `complete`, etc. |
+| `prompt_title` / `prompt_body` | Copy shown in the stage. |
+| `examples` | Optional bulleted examples. |
+| `validation` | Object containing `required`, `min_length`, `min_value`, etc. |
+| `options` | Array for select inputs (`value`, `label`). |
+| `helper` | Optional { `title`, `bullets` }. |
+| `fa_icon` | Icon hint rendered beside the heading. |
+| `progress` | `{ "current": n, "total": m }` for the micro-header bar. |
 
-## 8. Personalisation Hooks
-
-- Store tone words (“tense”, “steady”, “amped”); surface them in future encouragement (“You called it tense last time—how does it feel now?”).
-- Track lever mix; when one lever dominates, spawn a challenge mission (“Try Perspective this round?”).
-- Pause/resume: display “Resume Loop 2 of 3” overlay with calming animation.
-
----
-
-## 9. Accessibility & Flow
-
-- One-handed mobile first: CTAs centred near bottom, 48px targets.
-- Support keyboard navigation & screen readers (aria-live on rewards, descriptive labels).
-- Provide voice entry option for reflections where feasible.
-- Cache micro drills for offline continuity; resume handshake on reconnect.
+We only keep legacy seed packs that power helper bullets or examples; scoring seeds and guard rules were retired with the multi-template engine.
 
 ---
 
-## 10. Implementation Roadmap
+## 7. Data Capture & Storage
 
-1. **Storyboard mission cards** – map each legacy exercise to new copy, emoji, reward moment.
-2. **Refresh copy deck** – align micro-copy with new tone.
-3. **Mascot system** – create React-ish helper (or Django include) that swaps reactions via data attributes.
-4. **Scoring + streak surface** – expose aggregated XP, insight gems, and streak to the header JSON.
-5. **Animation primitives** – CSS utility classes for glow, confetti, ambient gradients.
-6. **User testing** – A/B “reflective vs playful” tone with 10 users; watch for focus/comfort.
-7. **Ship Module A** – deliver full mission loop with boosters; track KPIs (completion %, reflection depth, return rate).
-
----
-
-## 11. QA Checklist
-
-- Loop 1 runs end-to-end with mission framing and rewards firing.
-- Scenario text carries into Diagnose, Lever, Transfer without duplicate typing.
-- Booster scheduling writes `return_pass_at` and surfaces in header.
-- Coach sheet swaps stage-aware content + mascot reactions.
-- Progress ring, XP meter, and streak flame update correctly.
-- Focus states, keyboard flows, and screen readers succeed across stages.
+- `LessonSession` retains state (`asking`, `waiting`, `transitioning`, `completed`), current step, total steps, flow version, and a `context` dict.
+- `LessonStepResponse` rows hold the minimal transcript (`session_id`, `step_id`, `field_name`, JSON value, timestamp).
+- `session.context["answers"]` caches last known values; `webhook_trace` keeps the five most recent webhook request/response pairs for debugging.
+- Analytics events:
+  - `lesson_guided_start`
+  - `lesson_guided_step_submitted`
+  - `lesson_guided_complete`
 
 ---
 
-## 12. Creative Seed (Shareable Prompt)
+## 8. Accessibility, Motion, & Mobile
 
-Use this seed with designers, writers, or generative tools:
-
-> **Context**: “Design a calm-yet-playful mission loop for an adult communication coach called Tulia. Learners complete 10-minute quests to master high-stakes conversations. Keep the tone compassionate, but reward awareness with gentle dopamine (soft chimes, Coach Tuli mascot, progress rings). Stage names: Prime Intent 🪄, Spot the Heat 🔎, Decode the Pressure 📊, Take the Lever ⚡, Reset Mode 🧘, Perform Mission 🎙️, Insight Check 🌟, Next Mission 🎯, Booster Loop 🔁. One action per screen, accessible controls, color rhythm (cool purples for awareness, vibrant violets for action, warm greens for mastery). No red error states—use encouraging re-frames. Surface XP, streaks, and ‘Insight +1’ gems after each reflection. Aim for Calm × Duolingo × Notion vibes.”
-
-Include module-specific content (concept tile summaries, real user scenarios, AI rubric copy) when handing off to content or motion teams.
+- `aria-live="polite"` on the prompt container to announce new copy for screen readers.
+- Keyboard-friendly focus order: helper toggle → prompt → input → submit.
+- Inputs default to 48px tap targets; footer respects `env(safe-area-inset-bottom)` to avoid keyboard overlap.
+- Transitions: 180–220 ms fade/translate, no motion on validation errors.
 
 ---
 
-_Last updated: 2025-11-08_
+## 9. QA Checklist
+
+- Start, answer, resume endpoints respond with the expected state values.
+- Frontend state machine visits `idle → asking → waiting → transitioning → asking` for each step; `completed` only after the final response.
+- Webhook failures show the top toast and keep the learner on the same prompt.
+- Transcript rows persist with accurate timestamps and field names.
+- Helper drawer closes and reopens without losing tip content.
+- Mobile keyboards do not cover the answer bar; safe-area padding verified on iOS and Android.
+- Validation copy uses the Font Awesome info icon and clears once the value is fixed.
+
+---
+
+## 10. Future Enhancements
+
+- Allow the webhook to return structured helper additions (`helper_append`) as well as prompt copy.
+- Expand module registry (`GUIDED_FLOW_FILES`) once Module B–D scripts are authored.
+- Persist webhook latency metrics for observability.
+
+---
+
+_Last updated: 2025-11-11_
 

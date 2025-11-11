@@ -1,0 +1,233 @@
+{
+  "module_code": "A",
+  "version": "guided-1.1.0",
+  "steps": [
+    {
+      "step_id": "moment_snapshot",
+      "order": 1,
+      "field_name": "moment_snapshot",
+      "input_type": "textarea",
+      "prompt_title": "What moment are you stepping into?",
+      "prompt_body": "Describe the real high-stakes moment coming up. Who’s in the room and what outcome matters most?",
+      "examples": [
+        "Presenting Q4 results to the exec staff and defending the forecast.",
+        "Resetting a tense project review with a key client stakeholder."
+      ],
+      "validation": {
+        "required": true,
+        "min_length": 35
+      },
+      "fa_icon": "fa-compass",
+      "helper": {
+        "title": "Keep it specific",
+        "bullets": [
+          "Name the audience or decision maker.",
+          "Call out the moment that makes your pulse jump."
+        ]
+      },
+      "progress": {
+        "current": 1,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "stakes_intensity",
+      "order": 2,
+      "field_name": "stakes_intensity",
+      "input_type": "select",
+      "prompt_title": "How intense does it feel right now?",
+      "prompt_body": "Choose the option that matches your gut feel when you picture this moment.",
+      "options": [
+        {
+          "value": "steady",
+          "label": "Steady — the stakes are real but I can stay regulated."
+        },
+        {
+          "value": "elevated",
+          "label": "Elevated — I feel the pressure and need a plan."
+        },
+        {
+          "value": "spiking",
+          "label": "Spiking — it’s hard to focus when I imagine it."
+        }
+      ],
+      "validation": {
+        "required": true
+      },
+      "fa_icon": "fa-gauge-high",
+      "helper": {
+        "title": "Why we ask",
+        "bullets": [
+          "The coach tailors the next steps to your pressure level.",
+          "Own the feeling before it owns you."
+        ]
+      },
+      "progress": {
+        "current": 2,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "stakes_trigger",
+      "order": 3,
+      "field_name": "stakes_trigger",
+      "input_type": "textarea",
+      "prompt_title": "What makes it feel high-stakes?",
+      "prompt_body": "Name the trigger or risk that raises the stakes for you. Keep it short and sharp.",
+      "examples": [
+        "Board members question last quarter’s miss.",
+        "Client sponsor doubts we can hit the new timeline."
+      ],
+      "validation": {
+        "required": true,
+        "min_length": 20
+      },
+      "fa_icon": "fa-bullseye",
+      "helper": {
+        "title": "Pressure framing",
+        "bullets": [
+          "Pressure: what happens if this goes sideways?",
+          "Visibility: who’s watching?",
+          "Irreversibility: is there a redo?"
+        ]
+      },
+      "progress": {
+        "current": 3,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "lever_select",
+      "order": 4,
+      "field_name": "control_lever",
+      "input_type": "select",
+      "prompt_title": "Pick the lever you’ll lean on",
+      "prompt_body": "Choose the 3P lever that will give you the most control right now.",
+      "options": [
+        { "value": "preparation", "label": "Preparation – tighten content, anticipate questions." },
+        { "value": "presence", "label": "Presence – ground your body, pace, and tone." },
+        { "value": "perspective", "label": "Perspective – tune into what your audience needs." }
+      ],
+      "validation": {
+        "required": true
+      },
+      "fa_icon": "fa-sliders",
+      "helper": {
+        "title": "Quick scan",
+        "bullets": [
+          "Preparation: clarity beats volume.",
+          "Presence: your nervous system is the message.",
+          "Perspective: decode their agenda before the room opens."
+        ]
+      },
+      "progress": {
+        "current": 4,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "lever_action",
+      "order": 5,
+      "field_name": "lever_action",
+      "input_type": "textarea",
+      "prompt_title": "Spell out the move you’ll take",
+      "prompt_body": "Write the single action you’ll do in the next 24 hours that ladders to that lever.",
+      "examples": [
+        "Preparation – rehearse the opening story with my mentor tonight.",
+        "Presence – block five minutes pre-meeting for a 2-4 breath cycle.",
+        "Perspective – call the sponsor to confirm the decision criteria."
+      ],
+      "validation": {
+        "required": true,
+        "min_length": 25
+      },
+      "fa_icon": "fa-lightbulb",
+      "helper": {
+        "title": "Make it concrete",
+        "bullets": [
+          "Start with a verb: draft, rehearse, align, breathe.",
+          "Limit it to something you can actually complete."
+        ]
+      },
+      "progress": {
+        "current": 5,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "mantra_select",
+      "order": 6,
+      "field_name": "reframe_mantra",
+      "input_type": "select",
+      "prompt_title": "Lock your reframe mantra",
+      "prompt_body": "Pick the line you’ll replay right before you enter the room.",
+      "options": [
+        { "value": "steady_signal", "label": "“A steady signal calms the room.”" },
+        { "value": "curiosity_first", "label": "“Lead with curiosity, the answers follow.”" },
+        { "value": "i_prepared", "label": "“I’ve prepared for this moment—trust the reps.”" },
+        { "value": "custom", "label": "I’ll write my own mantra." }
+      ],
+      "validation": {
+        "required": true
+      },
+      "fa_icon": "fa-wave-square",
+      "helper": {
+        "title": "Why mantra?",
+        "bullets": [
+          "Short phrases interrupt spirals.",
+          "Repeat it while you breathe to anchor presence."
+        ]
+      },
+      "progress": {
+        "current": 6,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "confidence_rating",
+      "order": 7,
+      "field_name": "confidence_rating",
+      "input_type": "rating",
+      "prompt_title": "How ready do you feel now?",
+      "prompt_body": "Give yourself a quick 1–5 rating after setting the plan.",
+      "validation": {
+        "required": true,
+        "min_value": 1,
+        "max_value": 5
+      },
+      "fa_icon": "fa-star",
+      "helper": {
+        "title": "No wrong number",
+        "bullets": [
+          "This helps track progress over time.",
+          "Lower scores flag where the coach can lean in."
+        ]
+      },
+      "progress": {
+        "current": 7,
+        "total": 8
+      }
+    },
+    {
+      "step_id": "wrap_commit",
+      "order": 8,
+      "field_name": "wrap_commit",
+      "input_type": "confirm",
+      "prompt_title": "Save and continue",
+      "prompt_body": "We’ll save your snapshot, lever, action, mantra, and confidence rating. Ready to lock it in?",
+      "fa_icon": "fa-circle-check",
+      "helper": {
+        "title": "What you’ll get",
+        "bullets": [
+          "A recap inside the coach tab.",
+          "Context for future nudges before the moment."
+        ]
+      },
+      "progress": {
+        "current": 8,
+        "total": 8
+      }
+    }
+  ]
+}
+

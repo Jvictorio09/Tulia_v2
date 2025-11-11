@@ -493,7 +493,7 @@
         <span>Venues</span>
       </div>
       {% if resume_module %}
-      <a href="{% url 'module_exercises' resume_module.code %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-xs font-semibold focus-ring">
+      <a href="{% url 'module_learn' resume_module.code %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-xs font-semibold focus-ring">
         <i class="fa-solid fa-play"></i>
         <span>Resume Module {{ resume_module.code }}</span>
       </a>
@@ -590,7 +590,7 @@
           <div class="flex flex-wrap gap-3">
             {% if card.primary_module %}
             {% with primary=card.primary_module %}
-            <a href="{% if primary.status == 'complete' %}{% url 'module_learn' primary.code %}{% elif primary.status == 'in_progress' %}{% url 'module_exercises' primary.code %}{% else %}{% url 'module_learn' primary.code %}{% endif %}"
+            <a href="{% url 'module_learn' primary.code %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-[999px] bg-[color:var(--accent-primary)] text-white text-sm font-semibold focus-ring">
               {% if primary.status == 'in_progress' %}
                 <i class="fa-solid fa-play"></i><span>Resume Module {{ primary.code }}</span>
@@ -641,8 +641,8 @@
       <a href="{% url 'module_learn' resume_module.code %}" class="btn-hero btn-hero--secondary focus-ring">
         <i class="fa-solid fa-circle-play"></i><span>Review Lesson</span>
       </a>
-      <a href="{% url 'module_exercises' resume_module.code %}" class="btn-hero btn-hero--primary focus-ring animate-press">
-        <i class="fa-solid fa-play"></i><span>Resume Exercises</span>
+      <a href="{% url 'module_learn' resume_module.code %}" class="btn-hero btn-hero--primary focus-ring animate-press">
+        <i class="fa-solid fa-play"></i><span>Resume Guided Script</span>
       </a>
     </div>
   </section>

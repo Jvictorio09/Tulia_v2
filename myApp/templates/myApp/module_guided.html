@@ -1,0 +1,687 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Guided Practice · Module {{ module.code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body {
+    background: radial-gradient(circle at top, #eef2ff 0%, #f8fafc 55%, #ffffff 100%);
+    min-height: 100vh;
+  }
+
+  .hero-card {
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 1.75rem;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    box-shadow: 0 18px 48px -18px rgba(79, 70, 229, 0.25);
+  }
+
+  .prompt-card {
+    background: white;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 18px 45px -22px rgba(15, 23, 42, 0.18);
+    padding: 1.75rem;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .prompt-card[data-state="entering"] {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .prompt-card[data-state="visible"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .helper-panel {
+    width: 320px;
+  }
+
+  .answer-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 3.25rem;
+    padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.12);
+    z-index: 40;
+  }
+
+  .rating-pill {
+    transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
+  }
+
+  @media (max-width: 1023px) {
+    .helper-panel {
+      display: none;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .answer-bar {
+      bottom: 2rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-zinc-500">
+  <a href="{% url 'module_learn' module.code %}" class="focus-ring">Module {{ module.code }}</a>
+  <i class="fa-solid fa-angles-right text-[10px]"></i>
+  <span>Guided Practice</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="pb-40">
+  <section class="hero-card max-w-5xl mx-auto mt-6 px-6 py-6 sm:px-8 sm:py-8 space-y-4">
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">Module {{ module.code }}</p>
+        <h1 class="text-2xl md:text-3xl font-heading font-bold text-slate-900">One Screen · One Prompt</h1>
+        <p class="text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl">
+          Capture your plan in eight guided steps. We’ll save every answer, surface helper tips, and pull in fresh copy from the coach webhook after each submission.
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button id="start-guided" type="button" class="inline-flex items-center gap-2 px-4 py-3 rounded-full bg-indigo-500 text-white text-sm font-semibold shadow-md hover:bg-indigo-600 focus-ring">
+          <i class="fa-solid fa-play"></i>
+          <span>Start Session</span>
+        </button>
+        <button id="resume-guided" type="button" class="hidden inline-flex items-center gap-2 px-4 py-3 rounded-full border border-indigo-200 text-sm font-semibold text-indigo-600 hover:text-indigo-700 focus-ring">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Resume Saved</span>
+        </button>
+      </div>
+    </div>
+    {% if guided_flow_meta.total_steps %}
+    <p class="text-xs text-indigo-400 font-semibold uppercase tracking-[0.24em]">
+      {{ guided_flow_meta.total_steps }} steps · Flow version {{ guided_flow_meta.version }}
+    </p>
+    {% endif %}
+  </section>
+
+  <section class="max-w-5xl mx-auto mt-10">
+    <div class="flex flex-col xl:flex-row gap-8">
+      <div class="flex-1 min-w-0 space-y-6">
+        <div id="prompt-stage" class="prompt-card space-y-5 border border-zinc-100" aria-live="polite">
+          <div id="micro-header" class="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 hidden">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-route"></i>
+              <span id="step-index"></span>
+            </div>
+            <div class="h-1 w-28 bg-slate-100 rounded-full overflow-hidden">
+              <div id="progress-bar" class="h-full bg-indigo-500 rounded-full" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-[0.2em]" id="step-label"></p>
+            <h2 class="text-xl md:text-2xl font-semibold text-slate-900" id="prompt-title">Tap “Start Session” to begin.</h2>
+            <p class="text-base md:text-lg text-slate-600 leading-relaxed" id="prompt-body">
+              We’ll display one prompt at a time and automatically pull the next message from the exercise webhook after you submit.
+            </p>
+          </div>
+          <div id="prompt-examples" class="hidden space-y-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-[0.18em]">Examples</p>
+            <ul id="prompt-examples-list" class="text-sm text-slate-600 space-y-1.5"></ul>
+          </div>
+        </div>
+
+        <div id="completion-card" class="hidden bg-white border border-zinc-100 shadow-md rounded-2xl p-6 md:p-8 space-y-4">
+          <h3 class="text-xl font-semibold text-slate-900 flex items-center gap-3">
+            <i class="fa-solid fa-flag-checkered text-indigo-500"></i>
+            Guided session completed
+          </h3>
+          <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+            Great work. Your transcript is saved—jump into the coach or revisit whenever you’re ready.
+          </p>
+          <div id="completion-summary" class="text-sm text-slate-600 space-y-1.5"></div>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <a href="{% url 'ai_chat' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500 text-white text-sm font-semibold focus-ring">
+              <i class="fa-solid fa-robot"></i>
+              Coach follow-up
+            </a>
+            <button id="restart-guided" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 text-sm font-semibold text-slate-700 hover:text-slate-900 focus-ring">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+              Restart guided script
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="helper-panel bg-white border border-zinc-100 shadow-md rounded-2xl p-6 space-y-4 hidden xl:block">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-400"></i>
+            Helper Panel
+          </h3>
+          <button id="helper-close" class="text-xs text-slate-400 hover:text-slate-600 focus-ring" type="button" aria-label="Hide helper panel">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="helper-empty" class="text-sm text-slate-500">
+          Tips appear when a step includes helper bullets or examples.
+        </div>
+        <div id="helper-content" class="hidden space-y-3">
+          <div>
+            <p id="helper-title" class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"></p>
+          </div>
+          <ul id="helper-bullets" class="text-sm text-slate-600 space-y-2"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div id="answer-bar" class="answer-bar hidden">
+  <form id="answer-form" class="max-w-5xl mx-auto flex items-end gap-3">
+    {% csrf_token %}
+    <div class="flex-1 min-w-0 space-y-2" id="input-wrapper">
+      <label id="input-label" class="text-xs font-semibold text-slate-500 uppercase tracking-[0.2em] hidden"></label>
+      <div id="input-control"></div>
+      <p id="validation-hint" class="hidden text-xs text-rose-500 flex items-center gap-1">
+        <i class="fa-solid fa-circle-info"></i><span></span>
+      </p>
+    </div>
+    <button id="submit-button" type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500 text-white font-semibold text-sm rounded-full shadow-md hover:bg-indigo-600 focus-ring min-w-[3rem]">
+      <i id="submit-icon" class="fa-solid fa-paper-plane"></i>
+      <span id="submit-label" class="hidden sm:inline">Submit</span>
+    </button>
+  </form>
+</div>
+
+<div id="error-toast" class="hidden fixed top-5 right-5 max-w-sm bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl shadow-lg flex items-start gap-3 z-50">
+  <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+  <div>
+    <p class="text-sm font-semibold">Something went wrong</p>
+    <p id="error-message" class="text-xs text-rose-600 mt-0.5">Please try again.</p>
+  </div>
+  <button id="error-dismiss" class="ml-auto text-xs text-rose-500 hover:text-rose-700 focus-ring" type="button">Dismiss</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const moduleCode = "{{ module.code }}";
+  const startEndpoint = "{% url 'lesson_start' %}";
+  const answerEndpoint = "{% url 'lesson_answer' %}";
+  const resumeEndpoint = "{% url 'lesson_resume' %}";
+  const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+  const storageKey = `guidedSession:${moduleCode}`;
+
+  const state = {
+    sessionId: null,
+    step: null,
+    submitting: false,
+    totalSteps: 0,
+    status: "idle",
+  };
+
+  const answerBar = document.getElementById("answer-bar");
+  const startButton = document.getElementById("start-guided");
+  const resumeButton = document.getElementById("resume-guided");
+  const restartButton = document.getElementById("restart-guided");
+
+  const promptCard = document.getElementById("prompt-stage");
+  const titleEl = document.getElementById("prompt-title");
+  const bodyEl = document.getElementById("prompt-body");
+  const stepIndex = document.getElementById("step-index");
+  const progressBar = document.getElementById("progress-bar");
+  const microHeader = document.getElementById("micro-header");
+  const examplesContainer = document.getElementById("prompt-examples");
+  const examplesList = document.getElementById("prompt-examples-list");
+  const helperEmpty = document.getElementById("helper-empty");
+  const helperContent = document.getElementById("helper-content");
+  const helperTitle = document.getElementById("helper-title");
+  const helperBullets = document.getElementById("helper-bullets");
+  const helperClose = document.getElementById("helper-close");
+
+  const completionCard = document.getElementById("completion-card");
+  const completionSummary = document.getElementById("completion-summary");
+
+  const answerForm = document.getElementById("answer-form");
+  const inputControl = document.getElementById("input-control");
+  const inputLabel = document.getElementById("input-label");
+  const submitButton = document.getElementById("submit-button");
+  const submitIcon = document.getElementById("submit-icon");
+  const submitLabel = document.getElementById("submit-label");
+  const validationHint = document.getElementById("validation-hint");
+  const validationText = validationHint.querySelector("span");
+
+  const errorToast = document.getElementById("error-toast");
+  const errorMessage = document.getElementById("error-message");
+  const errorDismiss = document.getElementById("error-dismiss");
+
+  const ICONS = {
+    text: "fa-paper-plane",
+    textarea: "fa-paper-plane",
+    select: "fa-paper-plane",
+    rating: "fa-star",
+    confirm: "fa-chevron-right",
+    continue: "fa-chevron-right",
+    complete: "fa-flag-checkered"
+  };
+
+  function setGuidedVisibility(active) {
+    if (active) {
+      answerBar.classList.remove("hidden");
+      promptCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      answerBar.classList.add("hidden");
+    }
+  }
+
+  setGuidedVisibility(false);
+  setStateStatus("idle");
+
+  helperClose?.addEventListener("click", () => {
+    helperClose.closest(".helper-panel")?.classList.add("hidden");
+  });
+
+  errorDismiss.addEventListener("click", () => errorToast.classList.add("hidden"));
+
+  function showError(message) {
+    errorMessage.textContent = message || "Please try again.";
+    errorToast.classList.remove("hidden");
+    setStateStatus("asking");
+  }
+
+  function setStateStatus(nextStatus) {
+    state.status = nextStatus;
+    promptCard.dataset.machineState = nextStatus;
+    answerBar.dataset.machineState = nextStatus;
+    document.documentElement.dataset.lessonState = nextStatus;
+  }
+
+  function setSubmitting(on) {
+    state.submitting = on;
+    submitButton.disabled = on;
+    const icon = on ? "fa-spinner fa-spin" : (ICONS[state.step?.input_type] || "fa-paper-plane");
+    submitIcon.className = `fa-solid ${icon}`;
+  }
+
+  function clearHelper() {
+    helperContent.classList.add("hidden");
+    helperEmpty.classList.remove("hidden");
+    helperBullets.innerHTML = "";
+    helperTitle.textContent = "";
+  }
+
+  function renderHelper(helper) {
+    if (!helper || (!helper.title && !(helper.bullets || []).length)) {
+      clearHelper();
+      return;
+    }
+    helperEmpty.classList.add("hidden");
+    helperContent.classList.remove("hidden");
+    helperTitle.textContent = helper.title || "";
+    helperBullets.innerHTML = "";
+    (helper.bullets || []).forEach(bullet => {
+      const li = document.createElement("li");
+      li.textContent = bullet;
+      helperBullets.appendChild(li);
+    });
+  }
+
+  function renderExamples(examples) {
+    examplesList.innerHTML = "";
+    if (!examples || !examples.length) {
+      examplesContainer.classList.add("hidden");
+      return;
+    }
+    examples.forEach(example => {
+      const li = document.createElement("li");
+      li.className = "flex items-start gap-2";
+      li.innerHTML = `<i class="fa-solid fa-circle-small text-indigo-400 mt-1"></i><span>${example}</span>`;
+      examplesList.appendChild(li);
+    });
+    examplesContainer.classList.remove("hidden");
+  }
+
+  function renderProgress(step) {
+    const progress = step.progress || {};
+    const current = progress.current || 1;
+    const total = progress.total || state.totalSteps || 1;
+    state.totalSteps = total;
+    stepIndex.textContent = `Step ${current} of ${total}`;
+    const width = Math.max(5, Math.min(100, Math.round((current / total) * 100)));
+    progressBar.style.width = width + "%";
+    microHeader.classList.remove("hidden");
+  }
+
+  function createInput(step) {
+    inputControl.innerHTML = "";
+    validationHint.classList.add("hidden");
+    inputLabel.classList.add("hidden");
+
+    const type = (step.input_type || "text").toLowerCase();
+    let control;
+
+    if (type === "textarea") {
+      control = document.createElement("textarea");
+      control.className = "w-full min-h-[120px] rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400";
+      control.name = step.field_name;
+      control.placeholder = step.prompt_placeholder || "Type your answer here…";
+    } else if (type === "select") {
+      control = document.createElement("select");
+      control.className = "w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 bg-white";
+      control.name = step.field_name;
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "Choose one…";
+      control.appendChild(defaultOption);
+      (step.options || []).forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        control.appendChild(option);
+      });
+    } else if (type === "rating") {
+      const wrap = document.createElement("div");
+      wrap.className = "flex items-center gap-2";
+      wrap.dataset.value = "";
+      const max = Number(step.validation?.max_value || 5);
+      const min = Number(step.validation?.min_value || 1);
+      for (let value = min; value <= max; value++) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rating-pill inline-flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:border-indigo-400 hover:text-indigo-500 focus-ring";
+        button.dataset.value = value;
+        button.innerHTML = `<i class="fa-solid fa-star"></i><span class="sr-only">${value}</span>`;
+        button.addEventListener("click", () => {
+          wrap.querySelectorAll(".rating-pill").forEach(pill => pill.classList.remove("bg-indigo-500", "text-white", "border-indigo-500"));
+          button.classList.add("bg-indigo-500", "text-white", "border-indigo-500");
+          wrap.dataset.value = value;
+        });
+        wrap.appendChild(button);
+      }
+      wrap.id = "input-control-el";
+      wrap.name = step.field_name;
+      inputControl.appendChild(wrap);
+      control = wrap;
+    } else {
+      control = document.createElement("input");
+      control.type = "text";
+      control.name = step.field_name;
+      control.placeholder = step.prompt_placeholder || "Type your answer here…";
+      control.className = "w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400";
+    }
+
+    if (type !== "rating") {
+      control.id = "input-control-el";
+      inputControl.appendChild(control);
+    }
+
+    if (step.validation?.required) {
+      inputLabel.textContent = "Required";
+      inputLabel.classList.remove("hidden");
+    }
+  }
+
+  function renderStep(step) {
+    state.step = step;
+    setGuidedVisibility(true);
+    completionCard.classList.add("hidden");
+    submitButton.classList.remove("hidden");
+    answerForm.classList.remove("hidden");
+    resumeButton.classList.add("hidden");
+
+    clearHelper();
+    renderHelper(step.helper);
+    renderExamples(step.examples);
+    renderProgress(step);
+
+    promptCard.dataset.state = "entering";
+    requestAnimationFrame(() => {
+      promptCard.dataset.state = "visible";
+    });
+
+    titleEl.textContent = step.prompt_title || "Next prompt";
+    bodyEl.textContent = step.prompt_body || "";
+
+    createInput(step);
+    const iconClass = ICONS[step.input_type] || "fa-paper-plane";
+    submitIcon.className = `fa-solid ${iconClass}`;
+    submitLabel.textContent = step.input_type === "confirm" ? "Continue" : "Submit";
+    setStateStatus("asking");
+  }
+
+  function renderCompletion(summary, completionStep) {
+    state.step = null;
+    submitButton.classList.add("hidden");
+    answerForm.classList.add("hidden");
+    answerBar.classList.add("hidden");
+    completionSummary.innerHTML = "";
+    const fields = summary?.fields || [];
+    if (fields.length) {
+      fields.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "flex items-start gap-2 text-sm text-slate-600";
+        row.innerHTML = `<i class="fa-solid fa-circle-check text-indigo-400 mt-1"></i><div><span class="font-semibold text-slate-700">${item.field_name.replace(/_/g, " ")}</span><p class="text-sm text-slate-500">${item.value}</p></div>`;
+        completionSummary.appendChild(row);
+      });
+    } else {
+      completionSummary.innerHTML = "<p class=\"text-sm text-slate-600\">Transcript saved.</p>";
+    }
+    completionCard.classList.remove("hidden");
+    promptCard.dataset.state = "visible";
+    resumeButton.classList.add("hidden");
+    startButton.textContent = "Restart Session";
+    setStateStatus("completed");
+    if (completionStep) {
+      titleEl.textContent = completionStep.prompt_title || "Great work!";
+      bodyEl.textContent = completionStep.prompt_body || "";
+    }
+  }
+
+  function getCurrentValue() {
+    if (!state.step) return null;
+    const type = (state.step.input_type || "text").toLowerCase();
+    const control = document.getElementById("input-control-el");
+    if (!control) return null;
+    if (type === "textarea" || type === "text" || type === "select") {
+      return control.value;
+    }
+    if (type === "rating") {
+      return control.dataset.value;
+    }
+    if (type === "confirm" || type === "continue") {
+      return true;
+    }
+    return control.value;
+  }
+
+  function clearStoredSession() {
+    sessionStorage.removeItem(storageKey);
+    resumeButton.classList.add("hidden");
+  }
+
+  function setStoredSession(sessionId, showButton = false) {
+    sessionStorage.setItem(storageKey, sessionId);
+    if (showButton) {
+      resumeButton.classList.remove("hidden");
+    }
+  }
+
+  async function startGuidedSession() {
+    startButton.disabled = true;
+    startButton.classList.add("opacity-60");
+    completionCard.classList.add("hidden");
+    setStateStatus("waiting");
+    try {
+      const response = await fetch(startEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify({ module: moduleCode }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error?.message || "Unable to start session.");
+      }
+      state.sessionId = data.session_id;
+      setStoredSession(state.sessionId, false);
+      state.totalSteps = data.total_steps || data.step?.progress?.total || 0;
+      setStateStatus("transitioning");
+      renderStep(data.step);
+      startButton.textContent = "Restart Session";
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      startButton.disabled = false;
+      startButton.classList.remove("opacity-60");
+      if (!state.step && state.status !== "completed") {
+        setStateStatus("idle");
+      }
+    }
+  }
+
+  async function resumeGuidedSession(sessionId) {
+    if (!sessionId) {
+      startGuidedSession();
+      return;
+    }
+    resumeButton.disabled = true;
+    resumeButton.classList.add("opacity-60");
+    setStateStatus("waiting");
+    try {
+      const response = await fetch(`${resumeEndpoint}?session_id=${encodeURIComponent(sessionId)}`);
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error?.message || "Unable to resume session.");
+      }
+      state.sessionId = sessionId;
+      if (data.completed) {
+        clearStoredSession();
+        renderCompletion(data.summary, data.completion_step);
+      } else if (data.step) {
+        state.totalSteps = data.total_steps || data.step?.progress?.total || state.totalSteps;
+        setStateStatus(data.state || "transitioning");
+        renderStep(data.step);
+        setStoredSession(sessionId, false);
+      }
+      startButton.textContent = "Restart Session";
+    } catch (err) {
+      showError(err.message);
+      clearStoredSession();
+    } finally {
+      resumeButton.disabled = false;
+      resumeButton.classList.remove("opacity-60");
+      if (!state.step && state.status !== "completed") {
+        setStateStatus("idle");
+      }
+    }
+  }
+
+  async function submitStep() {
+    if (!state.step || state.submitting) return;
+    if (!state.sessionId) {
+      showError("Session expired. Start again to continue.");
+      clearStoredSession();
+      return;
+    }
+    const type = (state.step.input_type || "text").toLowerCase();
+    const value = getCurrentValue();
+
+    if ((type === "text" || type === "textarea") && state.step.validation?.required && !value?.trim()) {
+      validationText.textContent = "This field is required.";
+      validationHint.classList.remove("hidden");
+      return;
+    }
+    if (type === "rating" && !value) {
+      validationText.textContent = "Select a rating.";
+      validationHint.classList.remove("hidden");
+      return;
+    }
+
+    validationHint.classList.add("hidden");
+    setStateStatus("waiting");
+    setSubmitting(true);
+
+    try {
+      const payload = {
+        session_id: state.sessionId,
+        step_id: state.step.step_id,
+        field_name: state.step.field_name,
+        value,
+      };
+      const response = await fetch(answerEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        const errorMessage = data.error?.message || "Unable to save answer.";
+        const errorCode = data.error?.code;
+        if (response.status >= 500 || errorCode === "webhook_failed") {
+          showError(errorMessage);
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (data.completed) {
+        setStateStatus(data.state || "completed");
+        renderCompletion(data.summary, data.completion_step);
+        clearStoredSession();
+        state.sessionId = null;
+      } else if (data.next_step) {
+        state.sessionId = data.session_id || state.sessionId;
+        setStateStatus("transitioning");
+        renderStep(data.next_step);
+        if (data.state && data.state !== "transitioning") {
+          setStateStatus(data.state);
+        }
+        setStoredSession(state.sessionId, false);
+      }
+    } catch (err) {
+      validationText.textContent = err.message;
+      validationHint.classList.remove("hidden");
+      setStateStatus("asking");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  answerForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitStep();
+  });
+
+  startButton.addEventListener("click", () => {
+    state.sessionId = null;
+    startGuidedSession();
+  });
+
+  resumeButton.addEventListener("click", () => {
+    const stored = sessionStorage.getItem(storageKey);
+    resumeGuidedSession(stored);
+  });
+
+  restartButton?.addEventListener("click", () => {
+    clearStoredSession();
+    state.sessionId = null;
+    completionCard.classList.add("hidden");
+    startGuidedSession();
+  });
+
+  const storedSession = sessionStorage.getItem(storageKey);
+  if (storedSession) {
+    resumeButton.classList.remove("hidden");
+  }
+})();
+</script>
+{% endblock %}
+

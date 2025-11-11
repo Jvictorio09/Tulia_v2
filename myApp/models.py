@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 import json
+import uuid
 
 
 class UserProfile(models.Model):
@@ -388,6 +389,57 @@ class LessonSessionContext(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - Session {self.module.code}"
+
+
+class LessonSession(models.Model):
+    """Guided script session state (one prompt at a time)."""
+
+    STATE_CHOICES = [
+        ("idle", "Idle"),
+        ("asking", "Asking"),
+        ("waiting", "Waiting"),
+        ("transitioning", "Transitioning"),
+        ("completed", "Completed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="guided_sessions")
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="guided_sessions")
+    state = models.CharField(max_length=16, choices=STATE_CHOICES, default="asking")
+    current_step_id = models.CharField(max_length=64, blank=True)
+    current_order = models.IntegerField(default=0)
+    total_steps = models.IntegerField(default=0)
+    flow_version = models.CharField(max_length=32, blank=True)
+    context = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "module", "state"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} – Session {self.module.code} ({self.id})"
+
+
+class LessonStepResponse(models.Model):
+    """Transcript row for guided script sessions."""
+
+    session = models.ForeignKey(LessonSession, on_delete=models.CASCADE, related_name="responses")
+    step_id = models.CharField(max_length=64)
+    field_name = models.CharField(max_length=128)
+    value = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["session", "step_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.session_id}::{self.step_id}"
 
 
 class StakesMap(models.Model):

@@ -126,10 +126,10 @@
                         <i class="fa-solid fa-circle-play"></i>
                         <span>Watch Lesson</span>
                     </a>
-                    <a href="{% url 'module_exercises' module.code %}"
-                       class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring {% if module.status != 'in_progress' and module.status != 'complete' %}opacity-60 pointer-events-none{% endif %}">
+                    <a href="{% url 'module_learn' module.code %}"
+                       class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[8px] border border-[color:var(--border-default)] bg-[color:var(--bg-subtle)] text-sm font-semibold text-[color:var(--text-secondary)] focus-ring {% if module.status == 'locked' or not base_access %}opacity-60 pointer-events-none{% endif %}">
                         <i class="fa-solid fa-play"></i>
-                        <span>Go to Exercises</span>
+                        <span>Open Guided Script</span>
                     </a>
                 </div>
             </article>

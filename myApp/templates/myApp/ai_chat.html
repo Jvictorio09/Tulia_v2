@@ -5,61 +5,170 @@
 
 {% block extra_head %}
 <style>
-    body.authenticated nav:first-of-type {
-        display: none !important;
-    }
-    body.authenticated {
-        background: var(--color-ink-bg) !important;
-        padding-bottom: 64px !important;
-    }
-    @media (min-width: 768px) {
-        body.authenticated {
-            padding-bottom: 0 !important;
-            padding-left: 80px !important;
-        }
-    }
+  /* ===== Theme polish (keeps your tokens, adds subtle depth) ===== */
+  :root{
+    --g-brand: linear-gradient(135deg,#ede9fe,#cffafe);
+    --g-pane: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    --g-bg: radial-gradient(1200px 800px at 20% -10%, rgba(124,58,237,.18), transparent 60%),
+            radial-gradient(900px 700px at 80% 120%, rgba(6,182,212,.16), transparent 60%),
+            var(--color-ink-bg);
+    --glass: rgba(255,255,255,.06);
+    --glass-stroke: rgba(148,163,184,.18);
+    --muted: rgba(226,232,240,.7);
+  }
+
+  body.authenticated nav:first-of-type { display:none !important; }
+  body.authenticated { background: var(--g-bg) !important; padding-bottom: 64px !important; }
+  @media (min-width:768px){
+    body.authenticated { padding-bottom:0 !important; padding-left:80px !important; }
+  }
+
+  /* Header subtle shine */
+  .hdr {
+    background: color-mix(in oklab, var(--color-ink-surface) 92%, transparent);
+  }
+  .hdr:after{
+    content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), transparent);
+  }
+
+  /* Message bubbles */
+  .bubble{ border-radius:18px; }
+  .bubble-user{
+    background: linear-gradient(140deg, rgba(237,233,254,.95), rgba(207,250,254,.96));
+    box-shadow: 0 12px 30px rgba(124,58,237,.18);
+    border: 1px solid rgba(148,163,184,.24);
+    color: #0f172a;
+  }
+  .bubble-bot{
+    background: var(--g-pane);
+    border: 1px solid var(--glass-stroke);
+    box-shadow: 0 8px 24px rgba(2,6,23,.22);
+    color: #0f172a;
+  }
+
+  .bubble-bot p,
+  .bubble-user p{
+    color: inherit;
+  }
+
+  .bubble-user .meta,
+  .bubble-bot .meta{
+    color: rgba(71,85,105,.8);
+  }
+
+  .feature-icon{
+    position:relative;
+    width:48px;
+    height:48px;
+    border-radius:16px;
+    background: linear-gradient(135deg, rgba(236,233,254,.92), rgba(207,250,254,.95));
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    border:1px solid rgba(148,163,184,.28);
+    box-shadow: 0 18px 38px rgba(148,163,184,.28);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .feature-icon--xl{
+    width:56px;
+    height:56px;
+    border-radius:18px;
+  }
+  .feature-icon::before{
+    content:"";
+    position:absolute;
+    inset:4px;
+    border-radius:inherit;
+    border:1px solid rgba(255,255,255,.4);
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.55), transparent 55%);
+    opacity:.9;
+  }
+  .feature-icon svg{
+    position:relative;
+    color:#0f172a;
+    filter: drop-shadow(0 4px 10px rgba(148,163,184,.45));
+  }
+  a:hover .feature-icon{ transform: translateY(-1px) scale(1.02); box-shadow:0 22px 42px rgba(148,163,184,.32); }
+
+  .avatar-chip{
+    position:relative;
+    width:38px;
+    height:38px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    background: linear-gradient(135deg, rgba(236,233,254,.92), rgba(207,250,254,.95));
+    color:#0f172a;
+    font-weight:600;
+    letter-spacing:.03em;
+    box-shadow: 0 12px 30px rgba(148,163,184,.28);
+    border:1px solid rgba(148,163,184,.32);
+  }
+
+  .avatar-chip--bot{
+    background: linear-gradient(135deg, rgba(236,233,254,.92), rgba(204,251,241,.95));
+  }
+
+  .chip{
+    color: rgba(15,23,42,.78);
+  }
+
+  /* Typing dots */
+  .typing-dot{ width:6px; height:6px; border-radius:999px; background:#a78bfa; opacity:.8; }
+  .typing-dot:nth-child(2){ animation-delay: .15s }
+  .typing-dot:nth-child(3){ animation-delay: .3s }
+  @keyframes typing { 0%,80%,100% { transform: translateY(0); opacity:.6 } 40% { transform: translateY(-4px); opacity:1 } }
+  .typing-dot{ animation: typing 1.2s infinite ease-in-out; }
+
+  /* Quick prompts */
+  .chip{
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--glass-stroke);
+    transition: transform .15s ease, background .2s ease, border-color .2s ease;
+  }
+  .chip:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); border-color: rgba(148,163,184,.28); }
+
+  /* Composer shadow */
+  .composer{
+    background: color-mix(in oklab, var(--color-ink-surface) 94%, transparent);
+    box-shadow: 0 -10px 30px rgba(2,6,23,.24);
+  }
+
+  /* Copy button */
+  .copy-btn{
+    opacity:0;
+    transition: opacity .15s ease, background .2s ease, color .2s ease, border-color .2s ease;
+    background: rgba(255,255,255,.88);
+    color:#0f172a;
+    border:1px solid rgba(148,163,184,.35);
+  }
+  .copy-btn:hover{ background: rgba(255,255,255,.95); }
+  .bubble-bot:hover .copy-btn{ opacity:1; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col min-h-screen bg-ink-bg text-text-strong">
+<div class="flex flex-col min-h-screen bg-transparent text-text-strong">
 
-  <!-- Premium Dark Header -->
-  <header class="sticky top-0 z-40 bg-ink-surface/95 backdrop-blur-xl border-b border-default shadow-brand-soft">
-    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+  <!-- Header -->
+  <header class="hdr sticky top-0 z-40 backdrop-blur-xl border-b border-default relative">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="{% url 'home' %}" class="flex items-center gap-2 group">
-          <svg width="140" height="80" viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-8 sm:h-10 w-auto group-hover:scale-110 transition-transform drop-shadow-sm">
-            <defs>
-              <linearGradient id="chatBubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
-                <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
-              </linearGradient>
-              <linearGradient id="chatTailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
-              </linearGradient>
-            </defs>
-            <path d="M10 15 Q10 5 20 5 L100 5 Q110 5 110 15 L110 45 Q110 55 100 55 L35 55 L20 70 L20 55 Q10 55 10 45 Z" fill="url(#chatBubbleGradient)"/>
-            <path d="M15 18 Q15 12 20 12 L100 12 Q105 12 105 18 L105 42 Q105 48 100 48 L32 48 L20 60 L20 48 Q15 48 15 42 Z" fill="white" opacity="0.95"/>
-            <path d="M20 48 L15 55 L25 55 Z" fill="url(#chatTailGradient)"/>
-            <text x="60" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FF6B35" text-anchor="middle">Speak</text>
-            <text x="60" y="42" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3B82F6" text-anchor="middle">ProApp</text>
-          </svg>
-        </a>
-        <div class="h-6 w-px bg-border-default"></div>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-electric-violet/10 to-cyan/10 border border-electric-violet/20 grid place-items-center">
-            <span class="text-electric-violet font-bold text-sm">T</span>
+          <div class="feature-icon">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 12l9-8 9 8M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/>
+            </svg>
           </div>
           <div>
-            <h1 class="font-bold text-base sm:text-lg text-text-strong">AI Coach</h1>
-            <p class="text-xs text-muted">Level {{ current_level }} • {{ profile.total_xp }} XP</p>
+            <h1 class="font-bold leading-5">AI Coach</h1>
+            <p class="text-[11px] text-muted -mt-0.5">Level {{ current_level }} • {{ profile.total_xp }} XP</p>
           </div>
-        </div>
+        </a>
       </div>
-      <a href="{% url 'home' %}" class="w-10 h-10 rounded-xl bg-overlay-weak hover:bg-overlay-strong border border-default flex items-center justify-center text-muted hover:text-text-strong transition-all" aria-label="Close">
+      <a href="{% url 'home' %}" class="w-9 h-9 rounded-lg bg-overlay-weak hover:bg-overlay-strong border border-default flex items-center justify-center text-muted hover:text-text-strong transition-all" aria-label="Close">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -67,147 +176,164 @@
     </div>
   </header>
 
-  <!-- Chat Container -->
-  <main id="chatContainer" class="flex-1 overflow-y-auto px-4 sm:px-6 max-w-4xl mx-auto w-full pt-4 pb-[calc(100px+env(safe-area-inset-bottom)+64px)] space-y-4">
-    <!-- Welcome -->
-    <div class="p-5 rounded-2xl bg-gradient-to-br from-electric-violet/10 via-cyan/10 to-blue-400/10 border border-default backdrop-blur-sm shadow-brand-soft">
+  <!-- Chat -->
+  <main id="chatContainer" class="flex-1 overflow-y-auto px-4 sm:px-6 max-w-4xl mx-auto w-full pt-4 pb-[calc(112px+env(safe-area-inset-bottom)+64px)] space-y-4">
+
+    <!-- Welcome card -->
+    <section class="p-5 rounded-2xl border border-default backdrop-blur-md shadow-brand-soft"
+             style="background:var(--g-pane)">
       <div class="flex items-start gap-4">
-        <div class="w-12 h-12 rounded-full bg-gradient-to-r from-electric-violet to-cyan grid place-items-center shadow-lg shadow-electric-violet/30 flex-shrink-0">
-          <span class="text-white text-xl">💬</span>
+        <div class="feature-icon feature-icon--xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 10h8M8 14h5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
         <div class="flex-1">
-          <h2 class="font-bold text-lg mb-2 text-text-strong">Hi! I'm your AI Coach 👋</h2>
-          <p class="text-muted text-sm leading-relaxed">Ask me anything about your lessons, delivery, or communication skills! I'm here to help you master high-stakes communication.</p>
+          <h2 class="font-semibold mb-1.5 text-text-strong">Welcome! Let’s get you momentum.</h2>
+          <p class="text-sm text-muted leading-relaxed">
+            Ask about lessons, delivery, scenarios—or paste a transcript for coaching. Try a quick prompt:
+          </p>
+
+          <!-- Quick prompts -->
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button class="chip px-3 py-1.5 rounded-lg text-[12px]" onclick="seedPrompt('Give me a 3-step plan to improve clarity in Module A.')">Plan for clarity</button>
+            <button class="chip px-3 py-1.5 rounded-lg text-[12px]" onclick="seedPrompt('Role-play: You are a tough investor, I have 90 seconds to pitch. Ask me 3 questions.')">Role-play investor</button>
+            <button class="chip px-3 py-1.5 rounded-lg text-[12px]" onclick="seedPrompt('Summarize my last lesson takeaways into 5 bullet points with one action each.')">Summarize + actions</button>
+            <button class="chip px-3 py-1.5 rounded-lg text-[12px]" onclick="seedPrompt('Diagnose my tone from this paragraph and suggest alternatives: ')">Tone diagnosis</button>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Messages -->
-    <div id="messages" class="space-y-4"></div>
+    <div id="messages" class="space-y-3"></div>
   </main>
 
-  <!-- Input Area -->
-  <footer class="fixed left-0 right-0 z-40 bg-ink-surface/95 backdrop-blur-xl border-t border-default shadow-brand-soft" style="bottom: calc(env(safe-area-inset-bottom) + 64px + 16px); padding-bottom: 16px;">
-    <div class="max-w-4xl mx-auto px-4 pt-4 pb-3 flex items-end gap-2 sm:gap-3">
-      <div class="flex-1 relative">
-        <textarea 
-          id="messageInput"
-          rows="1"
-          placeholder="Type your question for your AI Coach..."
-          class="w-full px-4 py-3.5 pr-14 rounded-2xl bg-ink-surface border-2 border-default text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-electric-violet/40 focus:border-electric-violet/60 resize-none transition-all text-sm sm:text-base backdrop-blur-sm shadow-brand-soft"
-          onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }"
-        ></textarea>
-        <button onclick="sendMessage()" class="absolute right-2.5 bottom-2.5 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-r from-electric-violet to-cyan hover:scale-110 active:scale-95 transition-transform grid place-items-center shadow-lg shadow-electric-violet/40 hover:shadow-electric-violet/60 ring-1 ring-black/5">
-          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
-          </svg>
-        </button>
+  <!-- Composer -->
+  <footer class="composer fixed left-0 right-0 z-40 border-t border-default"
+          style="bottom: calc(env(safe-area-inset-bottom) + 64px + 12px);">
+    <div class="max-w-4xl mx-auto px-4 pt-3 pb-3">
+      <div class="flex items-end gap-2 sm:gap-3">
+        <div class="flex-1 relative">
+          <textarea id="messageInput" rows="1"
+            placeholder="Ask your AI Coach… (Shift+Enter = new line)"
+            class="w-full px-4 py-3.5 pr-14 rounded-2xl bg-ink-surface border-2 border-default text-text-strong placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-electric-violet/40 focus:border-electric-violet/60 resize-none transition-all text-sm sm:text-base backdrop-blur-sm shadow-brand-soft"></textarea>
+          <button onclick="sendMessage()" class="absolute right-2.5 bottom-2.5 w-10 h-10 sm:w-11 sm:h-11 rounded-xl grid place-items-center shadow-lg ring-1 ring-black/5 hover:scale-110 active:scale-95 transition"
+                  style="background:var(--g-brand)">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
       </div>
+      <div class="mt-2 text-[11px] text-muted">Tip: Paste a transcript or say “Coach me on this scenario.”</div>
     </div>
   </footer>
 </div>
 
 <script>
-function sendMessage() {
+/* ===== Helpers ===== */
+function seedPrompt(text){ const i=document.getElementById('messageInput'); i.value=text; i.focus(); i.dispatchEvent(new Event('input')); }
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function getCSRF(){ const m=document.cookie.match(/csrftoken=([^;]+)/); return m?m[1]:''; }
+function nowTime(){ const d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+/* ===== Messaging ===== */
+function sendMessage(){
   const input = document.getElementById('messageInput');
   const message = input.value.trim();
-  if (!message) return;
+  if(!message) return;
 
   addMessage('user', message);
-  input.value = '';
-  input.style.height = 'auto';
+  input.value=''; input.style.height='auto';
 
-  const typingId = addMessage('bot', '...', true);
+  const typingId = addTyping();
 
   fetch('{% url "ai_chat_send" %}', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCSRF()
-    },
+    method:'POST',
+    headers:{ 'Content-Type':'application/json','X-CSRFToken':getCSRF() },
     body: JSON.stringify({ message })
   })
-  .then(res => {
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    return res.json();
-  })
+  .then(res => { if(!res.ok) throw new Error(res.status); return res.json(); })
   .then(data => {
     document.getElementById(typingId)?.remove();
-    if (data.success) {
-      addMessage('bot', data.response);
-    } else {
-      const errorMsg = data.error || 'Sorry, I encountered an error. Please try again.';
-      addMessage('bot', errorMsg, false, true);
-      console.error('AI Chat Error:', data);
-    }
+    if(data.success){ addMessage('bot', data.response); }
+    else { addMessage('bot', data.error || 'Sorry, something went wrong.', false, true); }
   })
-  .catch(error => {
+  .catch(err => {
     document.getElementById(typingId)?.remove();
-    console.error('AI Chat Request Error:', error);
-    addMessage('bot', 'Could not connect to AI service. Please check your internet connection and try again.', false, true);
+    addMessage('bot','Connection issue. Please try again.', false, true);
+    console.error(err);
   });
 }
 
-function addMessage(sender, text, isTyping = false, isError = false) {
-  const messagesDiv = document.getElementById('messages');
-  const msgId = 'msg-' + Date.now();
+function addTyping(){
+  const id='typing-'+Date.now();
+  const row=document.createElement('div'); row.id=id; row.className='flex justify-start gap-3';
+  row.innerHTML = `
+    <div class="avatar-chip avatar-chip--bot flex-shrink-0">T</div>
+    <div class="bubble bubble-bot px-4 py-3 max-w-[80%]">
+      <div class="flex items-center gap-1.5">
+        <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+      </div>
+    </div>
+  `;
+  document.getElementById('messages').appendChild(row);
+  row.scrollIntoView({behavior:'smooth', block:'end'});
+  return id;
+}
 
-  const msgDiv = document.createElement('div');
-  msgDiv.id = msgId;
-  msgDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} gap-3`;
+function addMessage(sender, text, _isTyping=false, isError=false){
+  const wrap=document.getElementById('messages');
+  const row=document.createElement('div');
+  row.className = 'flex ' + (sender==='user' ? 'justify-end':'justify-start') + ' gap-3';
 
-  if (sender === 'user') {
-    msgDiv.innerHTML = `
-      <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-tr-none bg-gradient-to-r from-electric-violet to-cyan shadow-lg shadow-electric-violet/30 ring-1 ring-black/5">
-        <p class="text-white text-sm sm:text-base leading-relaxed font-medium">${escapeHtml(text)}</p>
+  if(sender==='user'){
+    row.innerHTML = `
+      <div class="max-w-[80%] bubble bubble-user px-4 py-3 rounded-tr-none">
+        <p class="text-sm sm:text-base leading-relaxed font-medium">${escapeHtml(text).replace(/\n/g,'<br>')}</p>
+        <div class="meta mt-1.5 text-[10px] text-right">${nowTime()}</div>
       </div>`;
-  } else {
-    const bg = isError 
-      ? 'bg-rose-50 border border-rose-200 shadow-lg'
-      : 'bg-ink-surface border border-default shadow-brand-soft';
-    msgDiv.innerHTML = `
-      <div class="w-9 h-9 rounded-full bg-gradient-to-r from-electric-violet to-cyan grid place-items-center text-white text-sm font-bold flex-shrink-0 shadow-lg shadow-electric-violet/30 ring-1 ring-black/5">T</div>
-      <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-tl-none ${bg}">
-        <p class="text-text-strong text-sm sm:text-base leading-relaxed">${isTyping ? '<span class="animate-pulse flex items-center gap-2 text-muted"><span class="inline-block w-2 h-2 bg-electric-violet/40 rounded-full"></span><span class="inline-block w-2 h-2 bg-electric-violet/30 rounded-full" style="animation-delay: 0.2s"></span><span class="inline-block w-2 h-2 bg-electric-violet/20 rounded-full" style="animation-delay: 0.4s"></span></span>' : escapeHtml(text)}</p>
+  }else{
+    const intent = isError ? 'bg-rose-50/90 border-rose-200 text-rose-900' : '';
+    row.innerHTML = `
+      <div class="avatar-chip avatar-chip--bot flex-shrink-0">T</div>
+      <div class="relative max-w-[80%] bubble bubble-bot px-4 py-3 rounded-tl-none ${intent}">
+        <button class="copy-btn absolute -right-2 -top-2 w-7 h-7 rounded-md grid place-items-center shadow-sm"
+                title="Copy" onclick="copyText(this)">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 8h10a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-9a2 2 0 012-2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M16 8V5a2 2 0 00-2-2H6a2 2 0 00-2 2v9a2 2 0 002 2h2"/>
+          </svg>
+        </button>
+        <p class="text-sm sm:text-base leading-relaxed">${escapeHtml(text).replace(/\n/g,'<br>')}</p>
+        <div class="meta mt-1.5 text-[10px]">${nowTime()}</div>
       </div>`;
   }
 
-  messagesDiv.appendChild(msgDiv);
-  msgDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  return msgId;
+  wrap.appendChild(row);
+  row.scrollIntoView({behavior:'smooth', block:'end'});
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function copyText(btn){
+  const p = btn.parentElement.querySelector('p');
+  const temp = document.createElement('textarea');
+  temp.value = p.innerText; document.body.appendChild(temp); temp.select();
+  try { document.execCommand('copy'); btn.innerHTML='✅'; setTimeout(()=>btn.innerHTML='📋',900); }
+  catch(e){ console.warn('Copy failed'); }
+  document.body.removeChild(temp);
 }
 
-function getCSRF() {
-  const m = document.cookie.match(/csrftoken=([^;]+)/);
-  return m ? m[1] : '';
-}
-
-document.getElementById('messageInput').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-});
-
-// Make sure the composer never hides under the keyboard on mobile
+/* ===== UX niceties ===== */
 const input = document.getElementById('messageInput');
+input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }});
+input.addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight, 140)+'px'; });
+
 const container = document.getElementById('chatContainer');
-
-function snapToComposer() {
-  // Use new dvh-aware scroll on modern browsers
-  requestAnimationFrame(() => input.scrollIntoView({ block: 'end', behavior: 'smooth' }));
-}
-
-input.addEventListener('focus', snapToComposer);
-
-// If using iOS, re-snap after keyboard anim (~300ms)
-input.addEventListener('focus', () => setTimeout(snapToComposer, 350));
+function snap(){ requestAnimationFrame(()=>input.scrollIntoView({block:'end', behavior:'smooth'})); }
+input.addEventListener('focus', snap); input.addEventListener('focus', ()=>setTimeout(snap,350));
 </script>
-
 {% endblock %}

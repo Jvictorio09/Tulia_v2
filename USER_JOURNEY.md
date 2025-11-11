@@ -87,7 +87,7 @@ This document describes the end-to-end experience a user has with Tulia, startin
 - **Prerequisites**: Redirects back to the Learn phase if the module has not been started (enforces watch-first flow).
 - **Session Initialization**:
   - Retrieves/creates `UserProgress` and `LessonSessionContext`.
-  - Loads seed data via `LessonEngine` (cards, flow metadata, scoring configuration) as before.
+  - Loads guided step definitions from `myApp/content/guided/*.steps.json` (prompt copy, input metadata, helper context).
   - Logs `module_exercises_view` every entry.
 - **Context Provided to Template**:
   - `lesson_cards`: Ordered stack of exercise cards returned by the engine.

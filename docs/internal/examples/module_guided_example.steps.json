@@ -1,0 +1,106 @@
+{
+  "module_code": "X",
+  "version": "guided-0.1.0",
+  "steps": [
+    {
+      "step_id": "welcome",
+      "order": 1,
+      "field_name": "context_note",
+      "input_type": "textarea",
+      "prompt_title": "Kick Off Your Session",
+      "prompt_body": "Describe the scenario you want to prep for. Include the audience and what you want to achieve.",
+      "examples": [
+        "Delivering Q4 results to the board",
+        "Negotiating resources with a cross-functional lead"
+      ],
+      "validation": {
+        "required": true,
+        "min_length": 40
+      },
+      "fa_icon": "fa-location-dot",
+      "helper": {
+        "title": "Why this matters",
+        "bullets": [
+          "The more specific you are, the sharper the coach becomes.",
+          "Think: who, what, and why it matters."
+        ]
+      },
+      "progress": {
+        "current": 1,
+        "total": 5
+      }
+    },
+    {
+      "step_id": "pressure_check",
+      "order": 2,
+      "field_name": "pressure_level",
+      "input_type": "select",
+      "prompt_title": "How intense does this feel right now?",
+      "prompt_body": "Pick the option that best matches your gut feel.",
+      "options": [
+        { "value": "steady", "label": "Steady – I can stay anchored." },
+        { "value": "elevated", "label": "Elevated – I feel the stakes rising." },
+        { "value": "spiking", "label": "Spiking – it's hard to focus." }
+      ],
+      "validation": { "required": true },
+      "fa_icon": "fa-gauge",
+      "progress": { "current": 2, "total": 5 }
+    },
+    {
+      "step_id": "control_move",
+      "order": 3,
+      "field_name": "control_action",
+      "input_type": "textarea",
+      "prompt_title": "Choose your control move",
+      "prompt_body": "Write the concrete action you'll take to increase control before you walk into the room.",
+      "examples": [
+        "Draft three stakes lines and rehearse them once.",
+        "Align with my sponsor on the narrative and risky numbers."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-chess-knight",
+      "helper": {
+        "title": "Need ideas?",
+        "bullets": [
+          "Preparation: tighten your content outline.",
+          "Presence: prime breath and cadence.",
+          "Perspective: reframe from the audience’s view."
+        ]
+      },
+      "progress": { "current": 3, "total": 5 }
+    },
+    {
+      "step_id": "confidence_rating",
+      "order": 4,
+      "field_name": "confidence_score",
+      "input_type": "rating",
+      "prompt_title": "Quick confidence check",
+      "prompt_body": "After picking that move, how ready do you feel on a scale of 1–5?",
+      "validation": {
+        "required": true,
+        "min_value": 1,
+        "max_value": 5
+      },
+      "fa_icon": "fa-star",
+      "progress": { "current": 4, "total": 5 }
+    },
+    {
+      "step_id": "wrap",
+      "order": 5,
+      "field_name": "confirmation",
+      "input_type": "confirm",
+      "prompt_title": "Lock it in",
+      "prompt_body": "We’ll save your notes and loop them into future nudges. Ready to continue?",
+      "fa_icon": "fa-circle-check",
+      "helper": {
+        "title": "What you’ll get",
+        "bullets": [
+          "A recap inside the coach tab.",
+          "Context for the next guided script."
+        ]
+      },
+      "progress": { "current": 5, "total": 5 }
+    }
+  ]
+}
+
