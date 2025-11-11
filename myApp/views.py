@@ -12,9 +12,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
 from .forms import CustomUserCreationForm
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.utils import timezone
 from django.contrib import messages
 from django.conf import settings
@@ -22,8 +22,6 @@ import json
 import random
 import requests
 from datetime import date, datetime, timedelta
-
-from openai import OpenAI
 
 from .models import (
     UserProfile, Level, Module, KnowledgeBlock, Lesson,
@@ -79,6 +77,13 @@ VENUE_SESSION_WEBHOOK_URL = getattr(
         "VENUE_SESSION_WEBHOOK_URL",
         "https://speak-pro-app.fly.dev/webhook/d4908fce-e029-4c09-8267-027516b0e6cf",
     ),
+)
+
+SYSTEM_PROMPT = (
+    "You are SpeakProApp's landing-page concierge. Be concise, friendly, and specific. "
+    "Answer questions about: Beta access, Legacy Patron lifetime (€47), pricing, simulations, and how we help with high-stakes communication. "
+    "If the user asks for account-specific or medical/legal advice, steer them to signup. "
+    "Style: 1–3 short paragraphs max. Use bullet points when listing perks."
 )
 
 
@@ -236,7 +241,7 @@ DISTRICT_MODULE_VENUE_MAP = {
 AMPHITHEATRE_HINTS = {
     "stakes_echoes": {
         "label": "Today leans clarity",
-        "subtext": "We’ll map the stakes with the Philosopher beside you.",
+        "subtext": "We'll map the stakes with the Philosopher beside you.",
     },
     "voice_to_marble": {
         "label": "Today leans presence",
@@ -248,7 +253,7 @@ AMPHITHEATRE_HINTS = {
     },
     "control_in_motion": {
         "label": "Today leans agency",
-        "subtext": "We’ll choose the lever that widens control.",
+        "subtext": "We'll choose the lever that widens control.",
     },
     "shorter_not_smaller": {
         "label": "Today leans precision",
@@ -375,14 +380,14 @@ def _amphitheatre_hint_for_plan(plan):
     if not plan:
         return {
             "label": "Your practice awaits",
-            "subtext": "We’ll choose a prompt as soon as you arrive.",
+            "subtext": "We'll choose a prompt as soon as you arrive.",
             "count": 0,
         }
     first_id = plan[0]["id"]
     hint = AMPHITHEATRE_HINTS.get(first_id, {})
     return {
         "label": hint.get("label", "Practice at the Amphitheatre"),
-        "subtext": hint.get("subtext", "We’ll keep it gentle and grounded."),
+        "subtext": hint.get("subtext", "We'll keep it gentle and grounded."),
         "count": len(plan),
         "exercise_titles": [slot["title"] for slot in plan],
     }
@@ -749,6 +754,7 @@ def profile_view(request):
     return render(request, 'myApp/profile.html', context)
 
 
+@ensure_csrf_cookie
 def home(request):
     """Home page - landing for unauthenticated, dashboard for authenticated"""
     if not request.user.is_authenticated:
@@ -2264,7 +2270,7 @@ def venue_session(request, venue_id):
         return redirect('venue_detail', venue_id=venue.id)
 
     initial_prompt = (
-        f"Welcome to the {venue.name}. Take a breath, then share what moment you’re preparing for."
+        f"Welcome to the {venue.name}. Take a breath, then share what moment you're preparing for."
     )
 
     return render(
@@ -2704,10 +2710,91 @@ def _decode_audio_payload(data_uri: str) -> bytes:
 
 
 def _get_openai_client():
-    api_key = getattr(settings, "OPENAI_API_KEY", None) or os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
+    if not key:
         return None
-    return OpenAI(api_key=api_key)
+    from openai import OpenAI
+
+    return OpenAI(api_key=key)
+
+
+@require_POST
+@csrf_protect
+def landing_chat_send(request):
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+    if not message:
+        return JsonResponse({"success": False, "response": "Please type a question."}, status=400)
+
+    try:
+        AnalyticsEvent.objects.create(
+            event_type="landing_chat_message",
+            event_data={
+                "length": len(message),
+                "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:160],
+            },
+        )
+    except Exception:
+        pass
+
+    client = _get_openai_client()
+
+    convo = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if not isinstance(history, list):
+        history = []
+    for turn in history[-6:]:
+        if not isinstance(turn, dict):
+            continue
+        role = turn.get("role")
+        content = (turn.get("content") or "").strip()
+        if role in {"user", "assistant"} and content:
+            convo.append({"role": role, "content": content})
+    convo.append({"role": "user", "content": message})
+
+    if client is None:
+        q = message.lower()
+        if "beta" in q:
+            hint = "You can explore everything free during Beta."
+        elif any(key in q for key in ("legacy", "lifetime", "€47")):
+            hint = "Legacy Patron is a one-time €47 lifetime access with new simulations first."
+        elif "price" in q or "pricing" in q or "$" in q:
+            hint = "Right now it's free for Beta, or €47 for lifetime Legacy Patron."
+        elif "investor" in q or "pitch" in q:
+            hint = "We provide high-pressure investor and exec simulations with feedback."
+        else:
+            hint = "Ask me about Beta, Legacy Patron, pricing, or our simulations."
+
+        return JsonResponse({
+            "success": True,
+            "response": f"Got it about '{message}'. {hint} If you need a direct link, tap Legacy Patron or Start Free."}
+        )
+
+    try:
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=convo,
+            temperature=0.4,
+            top_p=0.9,
+            max_tokens=220,
+        )
+        text = (res.choices[0].message.content or "").strip()
+        if not text:
+            raise ValueError("Empty completion")
+        return JsonResponse({"success": True, "response": text})
+    except Exception:
+        return JsonResponse({
+            "success": True,
+            "response": (
+                f"I'm having trouble reaching the assistant right now, but here's the quick take on '{message}': "
+                "• Free Beta access today • Lifetime Legacy Patron for €47 • Simulations for investor pitches, media, and leadership. "
+                "Share more context and I'll point you to the right simulation track."
+            ),
+        })
 
 
 @login_required

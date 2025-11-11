@@ -250,6 +250,7 @@
         .hover\:bg-electric-violet\/15:hover { background-color: rgba(108, 99, 255, 0.15) !important; }
     </style>
     {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="{% if user.is_authenticated %}pb-20 md:pb-0{% endif %} {% block body_class %}{% endblock %}">
     {% if user.is_authenticated %}
@@ -351,6 +352,7 @@
         {% include 'myApp/components/bottom_nav.html' %}
     {% endif %}
 
+    {% block extra_scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}
 
     {% if user.is_authenticated %}

@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 
 import dj_database_url
@@ -8,6 +9,8 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
+
+logger = logging.getLogger(__name__)
 
 
 # Quick-start development settings - unsuitable for production
@@ -144,7 +147,9 @@ N8N_COACH_WEBHOOK = None   # Set via env: N8N_COACH_WEBHOOK
 N8N_MILESTONE_WEBHOOK = None  # Set via env: N8N_MILESTONE_WEBHOOK
 
 # AI Providers
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+if not OPENAI_API_KEY:
+    logger.warning("TODO: Set OPENAI_API_KEY environment variable for landing chatbot responses.")
 
 # Feature Flags
 ENABLE_DISTRICT_MAP = True

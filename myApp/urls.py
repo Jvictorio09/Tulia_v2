@@ -28,6 +28,7 @@ urlpatterns = [
     # AI Chat
     path('ai-chat/', views.ai_chat, name='ai_chat'),
     path('ai-chat/send/', views.ai_chat_send, name='ai_chat_send'),
+    path('landing-chat/send/', views.landing_chat_send, name='landing_chat_send'),
     
     # Exercise submission
     path('api/exercise/submit/', views.submit_exercise, name='submit_exercise'),

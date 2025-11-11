@@ -16,198 +16,398 @@
     {# {% include 'landing/_pricing.html' %} #}
     {% include 'landing/_faq.html' %}
     {% include 'landing/_footer.html' %}
+
+    <div id="landing-chatbot" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-8 sm:right-8 z-50 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:justify-end" data-endpoint="{% url 'landing_chat_send' %}">
+        <div id="landing-chatbot-callout"
+             class="hidden pointer-events-auto select-none relative flex items-center gap-3
+                    rounded-2xl border bg-white/95 text-slate-900 shadow-[0_20px_45px_rgba(79,70,229,0.18)]
+                    border-white/80 backdrop-blur px-3.5 py-2 sm:px-4 sm:py-2.5
+                    max-w-[88vw] sm:max-w-none
+                    ring-1 ring-black/0 hover:ring-black/5 transition will-change-transform"
+             style="padding-right: max(0.875rem, env(safe-area-inset-right));">
+            <span class="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center
+                         rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/30">
+                <svg class="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                          d="M21 11.5a8.5 8.5 0 01-8.5 8.5 8.7 8.7 0 01-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0120.5 7"/>
+                </svg>
+            </span>
+            <div class="leading-tight">
+                <p class="text-[13px] sm:text-sm font-extrabold tracking-tight text-indigo-600">
+                    Need help?
+                </p>
+                <p class="text-[11px] sm:text-[13px] text-slate-500 font-medium">
+                    Ask us <span aria-hidden="true">→</span>
+                </p>
+            </div>
+            <span class="hidden sm:inline-flex ml-1 text-slate-400 group-hover:translate-x-0.5 transition">
+                →
+            </span>
+        </div>
+
+        <div id="landing-chatbot-panel" data-chatbot-panel class="hidden pointer-events-auto w-full max-w-full sm:w-[360px] sm:max-w-none rounded-[28px] overflow-hidden border border-indigo-100/70 bg-white shadow-[0_40px_120px_rgba(30,64,175,0.28)]">
+            <div class="p-5 border-b border-indigo-100/60 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 border border-white/30 text-lg font-semibold shadow-lg shadow-black/15">
+                            SP
+                        </span>
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.35em] text-white/70">SpeakPro Concierge</p>
+                            <h3 class="text-white font-semibold text-xl">Need guidance?</h3>
+                        </div>
+                    </div>
+                    <button type="button" data-chatbot-close class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 border border-white/40 text-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="Close concierge">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="mt-4 rounded-2xl bg-white/20 border border-white/30 p-4 shadow-inner shadow-black/20">
+                    <p class="text-sm text-white/85 leading-relaxed">
+                        I’m your SpeakPro concierge. Ask me about beta access, Legacy Patron perks, pricing, or how we help you stay composed in high-stakes moments.
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" data-chatbot-suggestion="What comes with the beta access?" class="px-3 py-1.5 rounded-full text-[11px] font-semibold text-indigo-600 bg-white border border-white/80 shadow-sm hover:-translate-y-0.5 transition">Beta access perks</button>
+                        <button type="button" data-chatbot-suggestion="How does the Legacy Patron offer work?" class="px-3 py-1.5 rounded-full text-[11px] font-semibold text-indigo-600 bg-white border border-white/80 shadow-sm hover:-translate-y-0.5 transition">Legacy Patron</button>
+                        <button type="button" data-chatbot-suggestion="Can SpeakProApp help me prepare for investor meetings?" class="px-3 py-1.5 rounded-full text-[11px] font-semibold text-indigo-600 bg-white border border-white/80 shadow-sm hover:-translate-y-0.5 transition">Investor pitch help</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="landing-chatbot-messages" class="p-5 space-y-4 max-h-[320px] overflow-y-auto bg-white">
+                <div class="flex justify-start">
+                    <div class="max-w-[85%] rounded-3xl rounded-tl-sm bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm text-indigo-900 shadow-sm">
+                        <p class="font-semibold text-indigo-700">Hi there! 👋</p>
+                        <p class="mt-1 leading-relaxed">Ask about beta access, Legacy Patron perks, pricing, or how SpeakProApp helps you communicate when it counts. I’ve got you covered.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="landing-chatbot-form" class="p-4 border-t border-indigo-100/70 bg-indigo-50" autocomplete="off">
+                <div class="flex items-center gap-3">
+                    <input id="landing-chatbot-input" type="text" name="message" maxlength="500" placeholder="Type your question..." class="flex-1 rounded-2xl border border-indigo-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
+                    <button type="submit" data-chatbot-send class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-500/40 transition-transform hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12l14-7-7 14-2-4-4-2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="mt-2 text-[11px] text-slate-500">Concierge replies instantly using the same AI that powers SpeakProApp coaching.</p>
+            </form>
+        </div>
+
+        <button type="button" data-chatbot-toggle class="pointer-events-auto relative inline-flex items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-[0_24px_55px_rgba(88,28,135,0.4)] transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-300/40 hover:-translate-y-1 self-end sm:self-auto">
+            <span class="absolute inset-0 rounded-full border border-white/30 opacity-70"></span>
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8z"/>
+            </svg>
+        </button>
+    </div>
 {% endblock %}
 
+{% block extra_head %}
 <style>
-/* Scroll-driven animations - WordPress style */
-.scroll-animate {
-    will-change: transform, opacity;
-    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+#landing-chatbot-callout {
+    transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-/* Initial states */
-.scroll-animate.fade-up {
-    opacity: 0;
-    transform: translateY(50px);
+@media (max-width: 639px) {
+    #landing-chatbot-callout {
+        display: inline-flex !important;
+    }
 }
 
-.scroll-animate.fade-down {
-    opacity: 0;
-    transform: translateY(-50px);
+#landing-chatbot-callout.chatbot-callout-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.scroll-animate.fade-left {
+#landing-chatbot-callout:not(.chatbot-callout-visible) {
     opacity: 0;
-    transform: translateX(-50px);
+    transform: translateY(8px);
 }
 
-.scroll-animate.fade-right {
-    opacity: 0;
-    transform: translateX(50px);
+.chatbot-panel-open {
+    animation: chatbotPanelIn 0.28s ease both;
 }
 
-.scroll-animate.fade-scale {
-    opacity: 0;
-    transform: scale(0.9);
+@keyframes chatbotPanelIn {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
-.scroll-animate.fade {
-    opacity: 0;
+.chatbot-message-enter {
+    animation: chatbotMessageIn 0.25s ease both;
+}
+
+@keyframes chatbotMessageIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
 (function() {
-    'use strict';
-    
-    let scrollElements = [];
-    let ticking = false;
-    
-    function initScrollAnimations() {
-        // Find all sections
-        const sections = [
-            document.getElementById('how-it-works'),
-            document.getElementById('testimonials'),
-            document.getElementById('pricing'),
-            document.getElementById('faq'),
-            document.getElementById('footer')
-        ].filter(Boolean);
-        
-        if (sections.length === 0) return;
-        
-        // Animation types
-        const animTypes = ['fade-up', 'fade-down', 'fade-left', 'fade-right', 'fade-scale', 'fade'];
-        
-        // Process each section and find animatable elements
-        sections.forEach(section => {
-            // Find major content elements
-            const selectors = [
-                'h2', 'h3', 'h4',
-                '.faq-item',
-                'details',
-                '.grid > div',
-                '.space-y-4 > *',
-                '.space-y-8 > *',
-                'div[class*="card"]',
-                'div[class*="item"]',
-                'ul > li',
-                'p:not(:has(img))'
-            ];
-            
-            selectors.forEach(selector => {
-                const elements = section.querySelectorAll(selector);
-                elements.forEach((el, index) => {
-                    // Skip if too small or already processed
-                    if (el.offsetHeight < 30 || el.classList.contains('scroll-animate')) return;
-                    
-                    // Add scroll-animate class
-                    el.classList.add('scroll-animate');
-                    
-                    // Assign animation type
-                    const animType = animTypes[index % animTypes.length];
-                    el.classList.add(animType);
-                    
-                    // Store element data
-                    scrollElements.push({
-                        element: el,
-                        animType: animType,
-                        offset: el.offsetTop,
-                        delay: index * 50
-                    });
-                });
-            });
+    const root = document.getElementById('landing-chatbot');
+    if (!root) return;
+
+    window.__landingChatHistory = window.__landingChatHistory || [];
+
+    const toggleBtn = root.querySelector('[data-chatbot-toggle]');
+    const panel = root.querySelector('[data-chatbot-panel]');
+    const closeBtn = root.querySelector('[data-chatbot-close]');
+    const callout = root.querySelector('#landing-chatbot-callout');
+    const messagesWrap = root.querySelector('#landing-chatbot-messages');
+    const form = root.querySelector('#landing-chatbot-form');
+    const input = root.querySelector('#landing-chatbot-input');
+    const sendBtn = root.querySelector('[data-chatbot-send]');
+    const suggestionButtons = root.querySelectorAll('[data-chatbot-suggestion]');
+    const endpoint = root.dataset.endpoint;
+
+    let isOpen = false;
+    let hasGreeted = true;
+    let isSending = false;
+    let calloutHideTimeout = null;
+
+    const fallbackReply = "I'm here to help! If you need more detail, send us a note at hello@speakpro.app.";
+
+    function showCalloutBubble() {
+        if (!callout) return;
+        callout.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            callout.classList.add('chatbot-callout-visible');
         });
-        
-        // Scroll handler
-        function handleScroll() {
-            if (!ticking) {
-                window.requestAnimationFrame(() => {
-                    const windowHeight = window.innerHeight;
-                    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-                    
-                    scrollElements.forEach((item, index) => {
-                        const el = item.element;
-                        const rect = el.getBoundingClientRect();
-                        const elementTop = rect.top;
-                        const elementHeight = rect.height;
-                        
-                        // Calculate progress (0 to 1) as element enters viewport
-                        let progress = 0;
-                        
-                        if (elementTop < windowHeight && elementTop > -elementHeight) {
-                            // Element is in viewport
-                            progress = 1 - (elementTop / (windowHeight * 0.8));
-                            progress = Math.max(0, Math.min(1, progress));
-                        } else if (elementTop <= -elementHeight) {
-                            // Element has scrolled past
-                            progress = 1;
-                        }
-                        
-                        // Apply animation based on progress
-                        if (progress > 0) {
-                            const easeProgress = easeOutCubic(progress);
-                            
-                            switch(item.animType) {
-                                case 'fade-up':
-                                    el.style.opacity = easeProgress;
-                                    el.style.transform = `translateY(${50 * (1 - easeProgress)}px)`;
-                                    break;
-                                case 'fade-down':
-                                    el.style.opacity = easeProgress;
-                                    el.style.transform = `translateY(${-50 * (1 - easeProgress)}px)`;
-                                    break;
-                                case 'fade-left':
-                                    el.style.opacity = easeProgress;
-                                    el.style.transform = `translateX(${-50 * (1 - easeProgress)}px)`;
-                                    break;
-                                case 'fade-right':
-                                    el.style.opacity = easeProgress;
-                                    el.style.transform = `translateX(${50 * (1 - easeProgress)}px)`;
-                                    break;
-                                case 'fade-scale':
-                                    el.style.opacity = easeProgress;
-                                    el.style.transform = `scale(${0.9 + (0.1 * easeProgress)})`;
-                                    break;
-                                case 'fade':
-                                    el.style.opacity = easeProgress;
-                                    break;
-                            }
-                        } else {
-                            // Reset when out of view
-                            el.style.opacity = '0';
-                            if (item.animType === 'fade-up') el.style.transform = 'translateY(50px)';
-                            else if (item.animType === 'fade-down') el.style.transform = 'translateY(-50px)';
-                            else if (item.animType === 'fade-left') el.style.transform = 'translateX(-50px)';
-                            else if (item.animType === 'fade-right') el.style.transform = 'translateX(50px)';
-                            else if (item.animType === 'fade-scale') el.style.transform = 'scale(0.9)';
-                        }
-                    });
-                    
-                    ticking = false;
-                });
-                ticking = true;
+        calloutHideTimeout = setTimeout(() => hideCalloutBubble(), 6000);
+    }
+
+    function hideCalloutBubble() {
+        if (!callout) return;
+        callout.classList.remove('chatbot-callout-visible');
+        setTimeout(() => {
+            callout.classList.add('hidden');
+        }, 300);
+        if (calloutHideTimeout) {
+            clearTimeout(calloutHideTimeout);
+            calloutHideTimeout = null;
+        }
+    }
+
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (let i = 0; i < cookies.length; i += 1) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                return decodeURIComponent(cookie.substring(name.length + 1));
             }
         }
-        
-        // Easing function
-        function easeOutCubic(t) {
-            return 1 - Math.pow(1 - t, 3);
+        return '';
+    }
+
+    function scrollMessagesToBottom() {
+        if (!messagesWrap) return;
+        messagesWrap.scrollTo({
+            top: messagesWrap.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+
+    function createMessageBubble(role, text, options = {}) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} chatbot-message-enter`;
+
+        const bubble = document.createElement('div');
+        const bubbleClasses = [
+            'max-w-[85%]',
+            'rounded-2xl',
+            'px-4',
+            'py-3',
+            'text-sm',
+        ];
+
+        if (role === 'user') {
+            bubbleClasses.push('bg-gradient-to-br', 'from-indigo-500', 'via-purple-500', 'to-pink-500', 'text-white', 'shadow-lg', 'shadow-indigo-900/40');
+        } else {
+            bubbleClasses.push('bg-indigo-50', 'text-indigo-900', 'border', 'border-indigo-100', 'shadow-sm');
         }
-        
-        // Event listeners
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', handleScroll, { passive: true });
-        
-        // Initial call
-        handleScroll();
+
+        bubble.className = bubbleClasses.join(' ');
+
+        if (options.pending) {
+            bubble.innerHTML = `
+                <span class="flex items-center gap-2 text-indigo-500">
+                    <span class="inline-flex gap-1">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0ms"></span>
+                        <span class="w-2 h-2 rounded-full bg-indigo-400/80 animate-bounce" style="animation-delay:120ms"></span>
+                        <span class="w-2 h-2 rounded-full bg-indigo-400/60 animate-bounce" style="animation-delay:240ms"></span>
+                    </span>
+                    Typing...
+                </span>
+            `;
+        } else {
+            bubble.textContent = text;
+        }
+
+        if (options.id) {
+            wrapper.dataset.messageId = options.id;
+        }
+
+        wrapper.appendChild(bubble);
+        return wrapper;
     }
-    
-    // Initialize
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initScrollAnimations);
-    } else {
-        setTimeout(initScrollAnimations, 100);
+
+    function appendMessage(role, text, options = {}) {
+        const bubble = createMessageBubble(role, text, options);
+        messagesWrap.appendChild(bubble);
+        scrollMessagesToBottom();
+        return bubble;
     }
+
+    function removePendingMessage(node) {
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+    }
+
+    function openPanel() {
+        if (isOpen) return;
+        isOpen = true;
+        hideCalloutBubble();
+        callout.classList.add('hidden');
+        panel.classList.remove('hidden');
+        panel.classList.add('chatbot-panel-open');
+        root.classList.add('chatbot-active');
+        toggleBtn.classList.add('scale-95');
+        setTimeout(() => {
+            panel.classList.remove('chatbot-panel-open');
+        }, 320);
+        setTimeout(() => {
+            input.focus();
+        }, 250);
+
+        hasGreeted = true;
+    }
+
+    function closePanel() {
+        if (!isOpen) return;
+        isOpen = false;
+        panel.classList.add('hidden');
+        root.classList.remove('chatbot-active');
+        toggleBtn.classList.remove('scale-95');
+        setTimeout(showCalloutBubble, 1200);
+    }
+
+    function handleSuggestionClick(value) {
+        openPanel();
+        if (!value) return;
+        input.value = value;
+        input.focus();
+    }
+
+    function handleSendMessage(message) {
+        if (!message || isSending) return;
+        isSending = true;
+
+        appendMessage('user', message);
+        const pendingNode = appendMessage('bot', '', { pending: true, id: `pending-${Date.now()}` });
+
+        const historyToSend = (window.__landingChatHistory || []).slice(-6);
+
+        fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify({ message, history: historyToSend }),
+        })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return res.json();
+            })
+            .then((data) => {
+                removePendingMessage(pendingNode);
+                if (data && data.success && data.response) {
+                    appendMessage('bot', data.response);
+                    window.__landingChatHistory = window.__landingChatHistory || [];
+                    window.__landingChatHistory.push({ role: 'user', content: message });
+                    window.__landingChatHistory.push({ role: 'assistant', content: data.response });
+                    if (window.__landingChatHistory.length > 6) {
+                        window.__landingChatHistory = window.__landingChatHistory.slice(-6);
+                    }
+                } else {
+                    appendMessage('bot', fallbackReply);
+                }
+            })
+            .catch(() => {
+                removePendingMessage(pendingNode);
+                appendMessage('bot', fallbackReply);
+            })
+            .finally(() => {
+                isSending = false;
+            });
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (isOpen) {
+            closePanel();
+        } else {
+            openPanel();
+        }
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePanel);
+    }
+
+    if (callout) {
+        callout.addEventListener('click', openPanel);
+    }
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+        input.value = '';
+        handleSendMessage(value);
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            form.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && isOpen) {
+            closePanel();
+        }
+    });
+
+    suggestionButtons.forEach((btn) => {
+        btn.addEventListener('click', () => handleSuggestionClick(btn.dataset.chatbotSuggestion));
+    });
+
+    setTimeout(showCalloutBubble, 1400);
 })();
 </script>
+{% endblock %}
 
