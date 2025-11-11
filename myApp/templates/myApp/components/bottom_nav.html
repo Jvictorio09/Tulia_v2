@@ -190,33 +190,12 @@
     }
 }
 
-/* Tablet/Desktop: Side dock */
-@media (min-width: 768px) {
-    #bottomNav {
-        top: 0;
-        bottom: auto;
-        left: 0;
-        width: 80px;
-        height: 100vh;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        border-top: none;
-    }
-    
+/* Tablet/Desktop: maintain glass bar layout */
+@media (min-width: 1024px) {
     #bottomNav > div {
-        flex-direction: column;
-        height: 100%;
-        justify-content: flex-start;
-        padding-top: 2rem;
-        gap: 2rem;
-    }
-    
-    .coach-tab {
-        margin-top: auto;
-        margin-bottom: 2rem;
-    }
-    
-    .nav-label {
-        display: block !important;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 </style>
