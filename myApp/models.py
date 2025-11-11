@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 import json
 import uuid
 
@@ -478,3 +479,106 @@ class TelemetryEvent(models.Model):
     
     def __str__(self):
         return f"{self.module_code} - {self.name} @ {self.ts}"
+
+
+class AmphitheatreSession(models.Model):
+    """Guided venue practice sessions in the Greek Amphitheatre."""
+
+    STATE_CHOICES = [
+        ("draft", "Draft"),
+        ("active", "Active"),
+        ("completed", "Completed"),
+        ("archived", "Archived"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='amphitheatre_sessions')
+    session_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    visit_number = models.IntegerField(default=1)
+    depth_tier = models.CharField(max_length=16, default='alpha')
+    status = models.CharField(max_length=16, choices=STATE_CHOICES, default="active")
+    current_index = models.IntegerField(default=0)
+    exercises_plan = models.JSONField(default=list)
+    metadata = models.JSONField(default=dict, blank=True)
+    completion_points = models.IntegerField(default=0)
+    reflection_points = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status', 'created_at']),
+            models.Index(fields=['user', 'visit_number']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} – Amphitheatre visit {self.visit_number}"
+
+    @property
+    def total_points(self) -> int:
+        return int(self.completion_points or 0) + int(self.reflection_points or 0)
+
+    def mark_completed(self) -> bool:
+        if self.status == "completed":
+            return False
+        self.status = "completed"
+        self.completed_at = timezone.now()
+        self.save(update_fields=["status", "completed_at"])
+        return True
+
+
+class AmphitheatreExerciseRecord(models.Model):
+    """Per-exercise artefacts captured inside an Amphitheatre session."""
+
+    STATE_CHOICES = [
+        ("idle", "Idle"),
+        ("primed", "Primed"),
+        ("capturing", "Capturing"),
+        ("review", "Review"),
+        ("reflected", "Reflected"),
+        ("done", "Done"),
+    ]
+
+    session = models.ForeignKey(AmphitheatreSession, on_delete=models.CASCADE, related_name='exercise_records')
+    exercise_id = models.CharField(max_length=40)
+    prompt_id = models.CharField(max_length=64, blank=True)
+    sequence_index = models.IntegerField(default=0)
+    selections = models.JSONField(default=dict, blank=True)
+    audio_reference = models.TextField(blank=True)
+    reflection_text = models.TextField(blank=True)
+    markers = models.JSONField(default=dict, blank=True)
+    state = models.CharField(max_length=16, choices=STATE_CHOICES, default="idle")
+    philosopher_response = models.TextField(blank=True)
+    microcopy = models.JSONField(default=dict, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sequence_index']
+        unique_together = ('session', 'exercise_id')
+        indexes = [
+            models.Index(fields=['session', 'state']),
+            models.Index(fields=['session', 'sequence_index']),
+        ]
+
+    def __str__(self):
+        return f"{self.session.user.username} – {self.exercise_id} #{self.sequence_index + 1}"
+
+    @property
+    def has_audio(self) -> bool:
+        return bool(self.audio_reference)
+
+    def as_timeline_entry(self) -> dict:
+        """Return a lightweight dict for history timelines."""
+        return {
+            "exercise_id": self.exercise_id,
+            "prompt_id": self.prompt_id,
+            "sequence_index": self.sequence_index,
+            "reflection_text": self.reflection_text,
+            "has_audio": self.has_audio,
+            "philosopher_response": self.philosopher_response,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "markers": self.markers or {},
+        }

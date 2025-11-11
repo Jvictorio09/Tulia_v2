@@ -1,0 +1,208 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Greek Amphitheatre · Settings{% endblock %}
+
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-muted">
+    <a href="{% url 'amphitheatre_hub' %}" class="focus-ring">Greek Amphitheatre</a>
+    <i class="fa-solid fa-angles-right text-[10px]"></i>
+    <span>Settings</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-4xl">
+    <header class="bg-ink-surface border border-default rounded-3xl shadow-soft p-6 sm:p-8 space-y-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Practice Preferences</p>
+        <h1 class="text-[28px] font-heading font-bold text-text-strong tracking-tight">Stage Setup</h1>
+        <p class="text-sm text-text-secondary leading-relaxed">Tune the Amphitheatre to your nervous system. All settings stay on device—nothing is uploaded.</p>
+    </header>
+
+    <section class="grid gap-5 md:grid-cols-2">
+        <article class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-electric-violet">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-heading font-semibold text-text-strong">Audio permissions</h2>
+                    <p class="text-xs text-muted">Run a quick check to ensure your microphone is reachable.</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <button id="microphoneTestButton" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-electric-violet/40 bg-electric-violet/10 text-electric-violet font-semibold text-sm focus-ring hover:bg-electric-violet/15 transition" type="button">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Run preflight test</span>
+                </button>
+                <p id="microphoneTestStatus" class="text-xs text-muted">Status: {{ settings_state.audio.diagnostics_status|default:"unknown" }}.</p>
+                <label class="block text-xs font-semibold text-muted uppercase tracking-[0.3em]" for="inputDeviceSelect">Input device</label>
+                <select id="inputDeviceSelect" class="w-full rounded-xl border border-default bg-overlay-weak px-4 py-2.5 text-sm text-text-strong focus:border-electric-violet focus:outline-none focus:ring-2 focus:ring-electric-violet/30 transition">
+                    <option value="">Auto (system default)</option>
+                </select>
+            </div>
+        </article>
+
+        <article class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-electric-violet">
+                    <i class="fa-solid fa-language"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-heading font-semibold text-text-strong">Language &amp; prompts</h2>
+                    <p class="text-xs text-muted">Choose the prompt language you prefer hearing on each visit.</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-muted uppercase tracking-[0.3em]" for="languageSelect">Coach language</label>
+                <select id="languageSelect" class="w-full rounded-xl border border-default bg-overlay-weak px-4 py-2.5 text-sm text-text-strong focus:border-electric-violet focus:outline-none focus:ring-2 focus:ring-electric-violet/30 transition">
+                    {% for option in settings_state.available_languages %}
+                    <option value="{{ option.id }}" {% if settings_state.language == option.id %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-muted">We’ll tailor the Philosopher’s phrases accordingly.</p>
+            </div>
+        </article>
+
+        <article class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 space-y-4 md:col-span-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-electric-violet">
+                    <i class="fa-solid fa-universal-access"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-heading font-semibold text-text-strong">Accessibility</h2>
+                    <p class="text-xs text-muted">Adjust motion and feedback to keep your nervous system steady.</p>
+                </div>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <label class="flex items-start gap-3 rounded-2xl border border-default bg-white px-4 py-3 cursor-pointer">
+                    <input id="reducedMotionToggle" type="checkbox" class="mt-1 h-4 w-4 rounded border border-default text-electric-violet focus:ring-electric-violet/40" {% if settings_state.accessibility.reduced_motion %}checked{% endif %}>
+                    <div>
+                        <p class="text-sm font-semibold text-text-strong">Reduce transitions</p>
+                        <p class="text-xs text-muted leading-relaxed">Removes animated flourishes so nothing feels urgent.</p>
+                    </div>
+                </label>
+                <label class="flex items-start gap-3 rounded-2xl border border-default bg-white px-4 py-3 cursor-pointer">
+                    <input id="gentleHapticsToggle" type="checkbox" class="mt-1 h-4 w-4 rounded border border-default text-electric-violet focus:ring-electric-violet/40">
+                    <div>
+                        <p class="text-sm font-semibold text-text-strong">Enable gentle vibrations</p>
+                        <p class="text-xs text-muted leading-relaxed">If supported, we’ll pulse the device for breathing cues.</p>
+                    </div>
+                </label>
+            </div>
+        </article>
+    </section>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const STORAGE_KEY = 'amphitheatre.settings';
+    const microphoneButton = document.getElementById('microphoneTestButton');
+    const microphoneStatus = document.getElementById('microphoneTestStatus');
+    const inputDeviceSelect = document.getElementById('inputDeviceSelect');
+    const languageSelect = document.getElementById('languageSelect');
+    const reducedMotionToggle = document.getElementById('reducedMotionToggle');
+    const gentleHapticsToggle = document.getElementById('gentleHapticsToggle');
+
+    const state = loadState();
+    if (state.language && languageSelect) languageSelect.value = state.language;
+    if (typeof state.reducedMotion === 'boolean') reducedMotionToggle.checked = state.reducedMotion;
+    if (typeof state.haptics === 'boolean') gentleHapticsToggle.checked = state.haptics;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        navigator.mediaDevices.enumerateDevices().then((devices) => {
+            devices
+                .filter((device) => device.kind === 'audioinput')
+                .forEach((device) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Microphone ${inputDeviceSelect.length}`;
+                    if (state.inputDevice && state.inputDevice === device.deviceId) {
+                        option.selected = true;
+                    }
+                    inputDeviceSelect.appendChild(option);
+                });
+        }).catch((error) => {
+            console.warn('Unable to list input devices.', error);
+        });
+    }
+
+    if (microphoneButton) {
+        microphoneButton.addEventListener('click', async () => {
+            microphoneButton.disabled = true;
+            microphoneButton.classList.add('opacity-60');
+            microphoneStatus.textContent = 'Status: testing...';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: state.inputDevice ? { deviceId: state.inputDevice } : true
+                });
+                microphoneStatus.textContent = 'Status: ✅ microphone detected';
+                saveState({ diagnostics: 'ready' });
+                stream.getTracks().forEach((track) => track.stop());
+            } catch (error) {
+                console.error(error);
+                microphoneStatus.textContent = 'Status: ⚠️ permission denied or no mic detected';
+                saveState({ diagnostics: 'blocked' });
+            } finally {
+                microphoneButton.disabled = false;
+                microphoneButton.classList.remove('opacity-60');
+            }
+        });
+    }
+
+    if (inputDeviceSelect) {
+        inputDeviceSelect.addEventListener('change', (event) => {
+            const value = event.target.value;
+            saveState({ inputDevice: value || null });
+        });
+    }
+
+    if (languageSelect) {
+        languageSelect.addEventListener('change', (event) => {
+            saveState({ language: event.target.value });
+        });
+    }
+
+    if (reducedMotionToggle) {
+        reducedMotionToggle.addEventListener('change', (event) => {
+            const reduced = event.target.checked;
+            document.documentElement.style.setProperty('--amphi-reduced-motion', reduced ? '1' : '0');
+            saveState({ reducedMotion: reduced });
+        });
+    }
+
+    if (gentleHapticsToggle) {
+        gentleHapticsToggle.addEventListener('change', (event) => {
+            const enabled = event.target.checked;
+            if (enabled && navigator.vibrate) {
+                navigator.vibrate(15);
+            }
+            saveState({ haptics: enabled });
+        });
+    }
+
+    function loadState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (error) {
+            console.warn('Unable to load Amphitheatre settings', error);
+            return {};
+        }
+    }
+
+    function saveState(updates) {
+        const next = { ...state, ...updates };
+        Object.assign(state, updates);
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch (error) {
+            console.warn('Unable to persist settings', error);
+        }
+    }
+})();
+</script>
+{% endblock %}
+

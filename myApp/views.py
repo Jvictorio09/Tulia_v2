@@ -1,4 +1,8 @@
 from functools import lru_cache
+from copy import deepcopy
+import base64
+import io
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 import uuid
@@ -12,12 +16,14 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.conf import settings
 from django.contrib import messages
+from django.conf import settings
 import json
 import random
 import requests
 from datetime import date, datetime, timedelta
+
+from openai import OpenAI
 
 from .models import (
     UserProfile, Level, Module, KnowledgeBlock, Lesson,
@@ -25,7 +31,14 @@ from .models import (
     VenueTaskSheet, VenueEntry, DailyQuest, UserProgress,
     AnalyticsEvent, ExerciseSubmission, LessonSessionContext,
     StakesMap, TelemetryEvent, UserVenueUnlock, LessonSession,
-    LessonStepResponse
+    LessonStepResponse, AmphitheatreSession, AmphitheatreExerciseRecord
+)
+from .amphitheatre import (
+    build_session_plan,
+    build_philosopher_response,
+    score_submission,
+    EXERCISE_TITLES,
+    get_depth_tier,
 )
 
 
@@ -185,6 +198,184 @@ DISTRICT_MODULE_VENUE_MAP = {
         "D": None,  # Module D grants full district access
     },
 }
+
+
+AMPHITHEATRE_HINTS = {
+    "stakes_echoes": {
+        "label": "Today leans clarity",
+        "subtext": "We’ll map the stakes with the Philosopher beside you.",
+    },
+    "voice_to_marble": {
+        "label": "Today leans presence",
+        "subtext": "A gentle voice warm-up sets the tone.",
+    },
+    "inner_listener": {
+        "label": "Today leans awareness",
+        "subtext": "Listen inward first; the room will notice.",
+    },
+    "control_in_motion": {
+        "label": "Today leans agency",
+        "subtext": "We’ll choose the lever that widens control.",
+    },
+    "shorter_not_smaller": {
+        "label": "Today leans precision",
+        "subtext": "Compression without losing heart.",
+    },
+    "echo_of_truth": {
+        "label": "Today leans congruence",
+        "subtext": "Speak the quiet truth as an invitation.",
+    },
+}
+
+
+def _amphitheatre_last_prompt_lookup(user):
+    latest_completed = (
+        AmphitheatreSession.objects.filter(user=user, status="completed")
+        .order_by("-completed_at", "-created_at")
+        .first()
+    )
+    lookup = {}
+    if not latest_completed:
+        return lookup
+    for record in latest_completed.exercise_records.all():
+        if record.prompt_id:
+            lookup[record.exercise_id] = record.prompt_id
+    return lookup
+
+
+def _ensure_amphitheatre_session(user):
+    existing = (
+        AmphitheatreSession.objects.filter(user=user, status__in=["active", "draft"])
+        .order_by("-created_at")
+        .first()
+    )
+    if existing:
+        return existing, False
+
+    visit_number = AmphitheatreSession.objects.filter(user=user).count() + 1
+    last_prompts = _amphitheatre_last_prompt_lookup(user)
+    plan = build_session_plan(visit_number=visit_number, last_prompt_lookup=last_prompts)
+
+    session = AmphitheatreSession.objects.create(
+        user=user,
+        visit_number=visit_number,
+        depth_tier=get_depth_tier(visit_number),
+        status="active",
+        current_index=0,
+        exercises_plan=plan,
+        metadata={
+            "version": "v1",
+            "last_prompt_lookup": last_prompts,
+        },
+    )
+
+    for slot in plan:
+        AmphitheatreExerciseRecord.objects.create(
+            session=session,
+            exercise_id=slot["id"],
+            prompt_id=slot["prompt"]["id"],
+            sequence_index=slot["sequence_index"],
+            microcopy={
+                "title": slot["title"],
+                "prompt": slot["prompt"],
+            },
+        )
+
+    AnalyticsEvent.objects.create(
+        user=user,
+        event_type="amphitheatre_session_started",
+        event_data={
+            "visit_number": visit_number,
+            "depth_tier": session.depth_tier,
+            "exercise_ids": [slot["id"] for slot in plan],
+        },
+    )
+
+    return session, True
+
+
+def _build_amphitheatre_payload(session):
+    plan = deepcopy(session.exercises_plan or [])
+    records = {record.exercise_id: record for record in session.exercise_records.all()}
+
+    exercises = []
+    for slot in plan:
+        record = records.get(slot["id"])
+        slot_payload = deepcopy(slot)
+        if record:
+            slot_payload["state"] = record.state
+            slot_payload["selections"] = record.selections or {}
+            slot_payload["reflection_text"] = record.reflection_text or ""
+            slot_payload["markers"] = record.markers or {}
+            slot_payload["philosopher_response"] = record.philosopher_response or ""
+            slot_payload["completed_at"] = (
+                record.completed_at.isoformat() if record.completed_at else None
+            )
+            slot_payload["has_audio"] = record.has_audio
+            slot_payload["microcopy"] = record.microcopy or {}
+        else:
+            slot_payload["state"] = "idle"
+            slot_payload["selections"] = {}
+            slot_payload["markers"] = {}
+            slot_payload["reflection_text"] = ""
+            slot_payload["philosopher_response"] = ""
+            slot_payload["has_audio"] = False
+            slot_payload["microcopy"] = {}
+        exercises.append(slot_payload)
+
+    return {
+        "session_id": str(session.session_id),
+        "status": session.status,
+        "current_index": session.current_index,
+        "visit_number": session.visit_number,
+        "depth_tier": session.depth_tier,
+        "score": {
+            "completion": session.completion_points,
+            "reflection": session.reflection_points,
+            "total": session.total_points,
+        },
+        "exercises": exercises,
+    }
+
+
+def _amphitheatre_hint_for_plan(plan):
+    if not plan:
+        return {
+            "label": "Your practice awaits",
+            "subtext": "We’ll choose a prompt as soon as you arrive.",
+            "count": 0,
+        }
+    first_id = plan[0]["id"]
+    hint = AMPHITHEATRE_HINTS.get(first_id, {})
+    return {
+        "label": hint.get("label", "Practice at the Amphitheatre"),
+        "subtext": hint.get("subtext", "We’ll keep it gentle and grounded."),
+        "count": len(plan),
+        "exercise_titles": [slot["title"] for slot in plan],
+    }
+
+
+def _amphitheatre_reflection_feed(user, limit=6):
+    records = (
+        AmphitheatreExerciseRecord.objects.filter(session__user=user, state="done")
+        .order_by("-completed_at", "-updated_at")
+        .select_related("session")[:limit]
+    )
+    feed = []
+    for record in records:
+        timestamp = record.completed_at or record.updated_at
+        feed.append(
+            {
+                "exercise_id": record.exercise_id,
+                "exercise_title": EXERCISE_TITLES.get(record.exercise_id, record.exercise_id),
+                "reflection_text": record.reflection_text,
+                "philosopher_response": record.philosopher_response,
+                "has_audio": record.has_audio,
+                "timestamp": timestamp,
+                "session_visit": record.session.visit_number,
+            }
+        )
+    return feed
 
 
 def _get_level_for_district(district_number):
@@ -1979,6 +2170,7 @@ def venue_detail(request, venue_id):
     """Venue detail with task sheets"""
     venue = get_object_or_404(Venue, id=venue_id)
     profile = request.user.profile
+    is_amphitheatre = venue.name.lower() == "greek amphitheatre"
 
     if not _user_has_venue_access(request.user, venue):
         required_module = _module_code_for_venue(venue)
@@ -1988,8 +2180,8 @@ def venue_detail(request, venue_id):
             messages.info(request, f"{venue.name} unlocks after completing this district's modules.")
         return redirect('district_venues', district_number=venue.district.number)
     
-    # Check if user has enough tickets
-    if profile.tickets < venue.ticket_cost:
+    # Check tickets for paid venues
+    if not is_amphitheatre and profile.tickets < venue.ticket_cost:
         messages.info(request, "You need more tickets to enter this venue.")
         return redirect('district_venues', district_number=venue.district.number)
     
@@ -1998,10 +2190,10 @@ def venue_detail(request, venue_id):
         user=request.user,
         venue=venue,
         completed=False,
-        defaults={'tickets_spent': venue.ticket_cost}
+        defaults={'tickets_spent': 0 if is_amphitheatre else venue.ticket_cost}
     )
     
-    if created:
+    if created and not is_amphitheatre:
         profile.tickets -= venue.ticket_cost
         profile.save()
         
@@ -2010,6 +2202,9 @@ def venue_detail(request, venue_id):
             event_type='venue_entered',
             event_data={'venue_id': venue_id, 'venue_name': venue.name}
         )
+    
+    if is_amphitheatre:
+        return redirect('amphitheatre_hub')
     
     task_sheets = VenueTaskSheet.objects.filter(venue=venue).order_by('order')
     
@@ -2021,6 +2216,425 @@ def venue_detail(request, venue_id):
     }
     
     return render(request, 'myApp/district_venue.html', context)
+
+
+@login_required
+def amphitheatre_hub(request):
+    """Hub experience for the Greek Amphitheatre venue."""
+    user = request.user
+    profile = user.profile
+
+    sessions = (
+        AmphitheatreSession.objects.filter(user=user)
+        .order_by("-created_at")
+        .prefetch_related("exercise_records")
+    )
+    visits = sessions.count()
+    next_visit = visits + 1
+    next_plan = build_session_plan(
+        visit_number=next_visit,
+        last_prompt_lookup=_amphitheatre_last_prompt_lookup(user),
+    )
+    hint = _amphitheatre_hint_for_plan(next_plan)
+    active_exists = AmphitheatreSession.objects.filter(
+        user=user, status__in=["active", "draft"]
+    ).exists()
+
+    last_session = sessions.first()
+    last_practice = None
+    if last_session:
+        last_practice = last_session.completed_at or last_session.created_at
+
+    total_points = sum(session.total_points for session in sessions)
+
+    context = {
+        "hub": {
+            "visits": visits,
+            "streak": profile.current_streak,
+            "last_practice": last_practice,
+            "total_points": total_points,
+            "has_active_session": active_exists,
+            "hint": hint,
+        },
+        "next_plan": next_plan,
+        "recent_reflections": _amphitheatre_reflection_feed(user),
+    }
+
+    return render(request, "myApp/amphitheatre_hub.html", context)
+
+
+@login_required
+def amphitheatre_session(request):
+    """Render or resume an Amphitheatre practice session."""
+    session, created = _ensure_amphitheatre_session(request.user)
+    payload = _build_amphitheatre_payload(session)
+
+    context = {
+        "session_payload": payload,
+        "ui_tokens": get_ui_tokens(),
+        "profile": request.user.profile,
+        "session_created": created,
+    }
+    return render(request, "myApp/amphitheatre_session.html", context)
+
+
+@login_required
+def amphitheatre_history(request):
+    """Timeline of Amphitheatre sessions with quick replays."""
+    sessions = (
+        AmphitheatreSession.objects.filter(user=request.user)
+        .order_by("-created_at")
+        .prefetch_related("exercise_records")
+    )
+    timeline = []
+    for session in sessions:
+        timestamp = session.completed_at or session.created_at
+        exercises = []
+        for record in session.exercise_records.order_by("sequence_index"):
+            exercises.append(
+                {
+                    "title": EXERCISE_TITLES.get(record.exercise_id, record.exercise_id),
+                    "reflection_text": record.reflection_text,
+                    "philosopher_response": record.philosopher_response,
+                    "has_audio": record.has_audio,
+                    "markers": record.markers or {},
+                    "audio": record.audio_reference,
+                }
+            )
+        timeline.append(
+            {
+                "session_id": str(session.session_id),
+                "visit_number": session.visit_number,
+                "status": session.status,
+                "timestamp": timestamp,
+                "points": session.total_points,
+                "exercises": exercises,
+            }
+        )
+
+    return render(
+        request,
+        "myApp/amphitheatre_history.html",
+        {
+            "timeline": timeline,
+        },
+    )
+
+
+@login_required
+def amphitheatre_settings(request):
+    """Settings panel for Amphitheatre-specific preferences."""
+    settings_state = {
+        "language": request.session.get("amphitheatre_language", "en"),
+        "available_languages": [
+            {"id": "en", "label": "English"},
+            {"id": "en_es", "label": "English + Español"},
+        ],
+        "accessibility": {
+            "reduced_motion": request.session.get("amphitheatre_reduced_motion", False),
+        },
+        "audio": {
+            "last_device": request.session.get("amphitheatre_last_device"),
+            "diagnostics_status": request.session.get("amphitheatre_audio_status", "unknown"),
+        },
+    }
+    return render(
+        request,
+        "myApp/amphitheatre_settings.html",
+        {
+            "settings_state": settings_state,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+def amphitheatre_session_state(request, session_id):
+    """Return JSON payload for a session (used by polling refresh)."""
+    session = get_object_or_404(
+        AmphitheatreSession,
+        session_id=session_id,
+        user=request.user,
+    )
+    payload = _build_amphitheatre_payload(session)
+    return JsonResponse({"ok": True, "data": payload})
+
+
+@login_required
+@require_http_methods(["POST"])
+def amphitheatre_submit(request):
+    """Persist an Amphitheatre exercise submission."""
+    payload, error = _parse_request_json(request)
+    if error:
+        return error
+
+    session_id = payload.get("session_id")
+    exercise_id = payload.get("exercise_id")
+    if not session_id or not exercise_id:
+        return _json_error("session_id and exercise_id are required.")
+
+    session = get_object_or_404(
+        AmphitheatreSession,
+        session_id=session_id,
+        user=request.user,
+    )
+    record = get_object_or_404(
+        AmphitheatreExerciseRecord,
+        session=session,
+        exercise_id=exercise_id,
+    )
+
+    selections = payload.get("selections") or {}
+    reflection_text = (payload.get("reflection_text") or "").strip()
+    markers = payload.get("markers") or {}
+    audio_reference = payload.get("audio_ref") or ""
+    state = payload.get("state") or "done"
+    now = timezone.now()
+
+    previous_score = (record.microcopy or {}).get("score", {})
+    new_score = score_submission(exercise_id, reflection_text, markers)
+    completion_delta = new_score["completion"] - int(previous_score.get("completion", 0))
+    reflection_delta = new_score["reflection"] - int(previous_score.get("reflection", 0))
+
+    session.completion_points = max(
+        0, int(session.completion_points or 0) + completion_delta
+    )
+    session.reflection_points = max(
+        0, int(session.reflection_points or 0) + reflection_delta
+    )
+    session.current_index = max(session.current_index, record.sequence_index + 1)
+    metadata = session.metadata or {}
+    metadata.update(
+        {
+            "last_submission": {
+                "exercise_id": exercise_id,
+                "timestamp": now.isoformat(),
+            }
+        }
+    )
+    session.metadata = metadata
+
+    record.selections = selections
+    record.reflection_text = reflection_text
+    record.markers = markers
+    record.audio_reference = audio_reference
+    record.state = "done" if state == "done" else state
+    record.philosopher_response = build_philosopher_response(
+        exercise_id, selections, reflection_text, markers
+    )
+    record.completed_at = now
+    microcopy = record.microcopy or {}
+    microcopy["score"] = new_score
+    microcopy["last_submit_ts"] = now.isoformat()
+    record.microcopy = microcopy
+
+    record.save(
+        update_fields=[
+            "selections",
+            "reflection_text",
+            "markers",
+            "audio_reference",
+            "state",
+            "philosopher_response",
+            "completed_at",
+            "microcopy",
+            "updated_at",
+        ]
+    )
+
+    session.save(
+        update_fields=[
+            "completion_points",
+            "reflection_points",
+            "current_index",
+            "metadata",
+            "updated_at",
+        ]
+    )
+
+    all_done = not session.exercise_records.exclude(state="done").exists()
+    if all_done:
+        session.mark_completed()
+        AnalyticsEvent.objects.create(
+            user=request.user,
+            event_type="amphitheatre_session_completed",
+            event_data={
+                "session_id": str(session.session_id),
+                "visit_number": session.visit_number,
+                "total_points": session.total_points,
+            },
+        )
+
+    xp_delta = max(completion_delta, 0) + max(reflection_delta, 0)
+    if xp_delta:
+        profile = request.user.profile
+        profile.total_xp += xp_delta
+        profile.last_activity_date = now.date()
+        profile.save(update_fields=["total_xp", "last_activity_date"])
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type="amphitheatre_exercise_submitted",
+        event_data={
+            "session_id": str(session.session_id),
+            "exercise_id": exercise_id,
+            "state": record.state,
+            "score_delta": {
+                "completion": completion_delta,
+                "reflection": reflection_delta,
+            },
+        },
+    )
+
+    payload = _build_amphitheatre_payload(session)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "data": {
+                "session": payload,
+                "exercise_id": exercise_id,
+                "philosopher_response": record.philosopher_response,
+                "score": {
+                    "total": payload["score"]["total"],
+                    "completion": payload["score"]["completion"],
+                    "reflection": payload["score"]["reflection"],
+                    "delta": {
+                        "completion": completion_delta,
+                        "reflection": reflection_delta,
+                    },
+                },
+                "completed": all_done,
+                "microcopy": record.microcopy or {},
+            },
+        }
+    )
+
+
+def _decode_audio_payload(data_uri: str) -> bytes:
+    if not data_uri:
+        return b""
+    if "," in data_uri:
+        _, data = data_uri.split(",", 1)
+    else:
+        data = data_uri
+    padding = 4 - (len(data) % 4)
+    if padding and padding != 4:
+        data = f"{data}{'=' * padding}"
+    return base64.b64decode(data)
+
+
+def _get_openai_client():
+    api_key = getattr(settings, "OPENAI_API_KEY", None) or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key)
+
+
+@login_required
+@require_http_methods(["POST"])
+def amphitheatre_transcribe(request):
+    """Accept an audio clip, transcribe it, and store lightweight analysis."""
+    payload, error = _parse_request_json(request)
+    if error:
+        return error
+
+    audio_b64 = payload.get("audio_b64")
+    transcript_text = (payload.get("transcript") or "").strip()
+    session_id = payload.get("session_id")
+    exercise_id = payload.get("exercise_id")
+    if not session_id or not exercise_id:
+        return _json_error("session_id and exercise_id are required.")
+    if not audio_b64 and not transcript_text:
+        return _json_error("Provide audio_b64 or transcript.", code="missing_payload")
+
+    session = get_object_or_404(
+        AmphitheatreSession,
+        session_id=session_id,
+        user=request.user,
+    )
+    record = get_object_or_404(
+        AmphitheatreExerciseRecord,
+        session=session,
+        exercise_id=exercise_id,
+    )
+
+    client = _get_openai_client()
+    if not client:
+        return _json_error("OpenAI API key not configured.", status=503, code="config_missing")
+
+    if audio_b64 and not transcript_text:
+        audio_bytes = _decode_audio_payload(audio_b64)
+        if not audio_bytes:
+            return _json_error("Audio payload could not be decoded.", code="invalid_audio")
+
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = "amphitheatre_clip.webm"
+
+        try:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                response_format="text",
+            )
+            transcript_text = (transcription or "").strip()
+        except Exception as exc:
+            return _json_error(f"Transcription failed: {exc}", status=502, code="transcription_failed")
+
+    analysis_text = ""
+    if transcript_text:
+        try:
+            analysis_response = client.responses.create(
+                model="gpt-4.1-mini",
+                input=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are the Philosopher observing Amphitheatre practice. "
+                            "Offer a calm, encouraging two-sentence note about the voice clip. "
+                            "In the second sentence, reflect on delivery aspects the speaker can notice (pace, pauses, tone). "
+                            "Keep it supportive and non-judgemental."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": transcript_text,
+                    },
+                ],
+            )
+            analysis_text = (analysis_response.output_text or "").strip()
+        except Exception:
+            analysis_text = ""
+
+    microcopy = record.microcopy or {}
+    microcopy.update(
+        {
+            "transcript": transcript_text,
+            "analysis": analysis_text,
+        }
+    )
+    record.microcopy = microcopy
+    record.save(update_fields=["microcopy", "updated_at"])
+
+    AnalyticsEvent.objects.create(
+        user=request.user,
+        event_type="amphitheatre_transcription_saved",
+        event_data={
+            "session_id": str(session.session_id),
+            "exercise_id": exercise_id,
+            "has_analysis": bool(analysis_text),
+        },
+    )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "data": {
+                "transcript": transcript_text,
+                "analysis": analysis_text,
+            },
+        }
+    )
 
 
 @login_required

@@ -15,6 +15,10 @@ urlpatterns = [
     path('district/<int:district_number>/', views.district_overview, name='district_overview'),
     path('district/<int:district_number>/venues/', views.district_venues, name='district_venues'),
     path('district/venue/<int:venue_id>/', views.venue_detail, name='venue_detail'),
+    path('amphitheatre/', views.amphitheatre_hub, name='amphitheatre_hub'),
+    path('amphitheatre/session/', views.amphitheatre_session, name='amphitheatre_session'),
+    path('amphitheatre/history/', views.amphitheatre_history, name='amphitheatre_history'),
+    path('amphitheatre/settings/', views.amphitheatre_settings, name='amphitheatre_settings'),
     
     # AI webhook endpoints
     path('ai/lesson/orchestrate/', views.ai_lesson_orchestrate, name='ai_lesson_orchestrate'),
@@ -27,6 +31,9 @@ urlpatterns = [
     # Exercise submission
     path('api/exercise/submit/', views.submit_exercise, name='submit_exercise'),
     path('api/venue/<int:venue_id>/complete/', views.complete_venue, name='complete_venue'),
+    path('api/amphitheatre/session/<uuid:session_id>/', views.amphitheatre_session_state, name='amphitheatre_session_state'),
+    path('api/amphitheatre/submit/', views.amphitheatre_submit, name='amphitheatre_submit'),
+    path('api/amphitheatre/transcribe/', views.amphitheatre_transcribe, name='amphitheatre_transcribe'),
     
     # Guided lesson endpoints
     path('lesson/start/', views.lesson_start, name='lesson_start'),

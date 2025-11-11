@@ -239,27 +239,48 @@ function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; 
 function getCSRF(){ const m=document.cookie.match(/csrftoken=([^;]+)/); return m?m[1]:''; }
 function nowTime(){ const d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 
+const SESSION_KEY='aiCoach.sessionId';
+function getSessionId(){
+  try{
+    if(window.sessionStorage){
+      const existing=sessionStorage.getItem(SESSION_KEY);
+      if(existing) return existing;
+      const fresh=window.crypto?.randomUUID ? window.crypto.randomUUID()
+        : Date.now().toString(36)+Math.random().toString(36).slice(2);
+      sessionStorage.setItem(SESSION_KEY,fresh);
+      return fresh;
+    }
+  }catch(err){
+    console.warn('Session storage unavailable', err);
+  }
+  return window.crypto?.randomUUID ? window.crypto.randomUUID()
+    : Date.now().toString(36)+Math.random().toString(36).slice(2);
+}
+
 /* ===== Messaging ===== */
 function sendMessage(){
   const input = document.getElementById('messageInput');
   const message = input.value.trim();
   if(!message) return;
 
+  const sessionId = getSessionId();
+  const payload = { message, session_id: sessionId };
+  console.debug('AI Coach ➜ webhook', payload);
+
   addMessage('user', message);
   input.value=''; input.style.height='auto';
 
   const typingId = addTyping();
 
-  fetch('{% url "ai_chat_send" %}', {
+  fetch('https://katalyst-crm.fly.dev/webhook/e04564d5-a85a-437e-9741-69533c4dfc34', {
     method:'POST',
-    headers:{ 'Content-Type':'application/json','X-CSRFToken':getCSRF() },
-    body: JSON.stringify({ message })
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(payload)
   })
   .then(res => { if(!res.ok) throw new Error(res.status); return res.json(); })
   .then(data => {
     document.getElementById(typingId)?.remove();
-    if(data.success){ addMessage('bot', data.response); }
-    else { addMessage('bot', data.error || 'Sorry, something went wrong.', false, true); }
+    addMessage('bot', pickMessage(data));
   })
   .catch(err => {
     document.getElementById(typingId)?.remove();
@@ -316,6 +337,23 @@ function addMessage(sender, text, _isTyping=false, isError=false){
 
   wrap.appendChild(row);
   row.scrollIntoView({behavior:'smooth', block:'end'});
+}
+
+function pickMessage(payload){
+  if(!payload) return '…';
+  if(typeof payload === 'string') return payload;
+  if(Array.isArray(payload)){
+    return payload.map(item => pickMessage(item)).filter(Boolean).join('\n');
+  }
+  if(typeof payload === 'object'){
+    for(const key of ['response','Response','message','Message','reply','Reply','result','text','body']){
+      if(payload[key]) return pickMessage(payload[key]);
+    }
+    if(payload.data) return pickMessage(payload.data);
+    const firstValue = Object.values(payload).find(v => typeof v === 'string');
+    if(firstValue) return firstValue;
+  }
+  return JSON.stringify(payload, null, 2);
 }
 
 function copyText(btn){

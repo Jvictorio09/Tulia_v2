@@ -26,7 +26,7 @@
             
             <!-- [B] Venues -->
             <a href="{% url 'district_venues' current_level %}" 
-               class="nav-tab flex flex-col items-center justify-center relative flex-1 h-full transition-all duration-200 ease-out {% if request.resolver_match.url_name == 'district_venues' or request.resolver_match.url_name == 'venue_detail' %}active{% endif %}"
+               class="nav-tab flex flex-col items-center justify-center relative flex-1 h-full transition-all duration-200 ease-out {% if request.resolver_match.url_name == 'district_venues' or request.resolver_match.url_name == 'venue_detail' or request.resolver_match.url_name == 'amphitheatre_hub' or request.resolver_match.url_name == 'amphitheatre_session' or request.resolver_match.url_name == 'amphitheatre_history' or request.resolver_match.url_name == 'amphitheatre_settings' %}active{% endif %}"
                data-tab="venues"
                onclick="handleNavTap(this, event)">
                 <div class="relative">

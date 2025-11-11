@@ -1,0 +1,1019 @@
+{% extends 'myApp/base.html' %}
+{% load humanize %}
+
+{% block title %}Greek Amphitheatre · Session{% endblock %}
+{% block main_class %}max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 md:py-10{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <header class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 lg:p-7 flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Greek Amphitheatre</p>
+                <h1 class="text-[26px] sm:text-[30px] font-heading font-bold text-text-strong tracking-tight">Gentle Session</h1>
+                <p class="text-sm text-muted mt-2 leading-relaxed">A serene loop guided by the Philosopher. Stay with your breath; the stage will follow.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="scoreChip" class="inline-flex items-center gap-2 px-4 py-2 rounded-[14px] border border-electric-violet/30 bg-electric-violet/10 text-electric-violet text-sm font-semibold shadow-electric-violet/30">
+                    <i class="fa-solid fa-clover"></i>
+                    <span><span id="scoreTotal">{{ session_payload.score.total }}</span> pts</span>
+                </div>
+                <a href="{% url 'amphitheatre_history' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-[12px] border border-default text-sm font-semibold text-text-secondary hover:text-electric-violet transition focus-ring">
+                    <i class="fa-solid fa-timeline"></i>
+                    <span>History</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-2xl">Φ</div>
+                <div>
+                    <p class="text-sm font-semibold text-text-strong" id="philosopherHeadline">“Let the marble hear your breath.”</p>
+                    <p class="text-xs text-muted" id="philosopherSubhead">The Philosopher stays with you across each exercise.</p>
+                </div>
+            </div>
+            <div class="flex-1 lg:max-w-xl">
+                <div class="w-full h-1.5 rounded-full bg-overlay-weak overflow-hidden">
+                    <div id="sessionProgress" class="h-full bg-gradient-to-r from-electric-violet to-purple-500 transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between mt-2 text-xs font-semibold text-muted">
+                    <span id="stepLabel">Exercise 1</span>
+                    <span id="tierLabel" class="uppercase tracking-[0.3em]">Tier</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="exerciseContainer" class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 lg:p-8 space-y-6">
+        <div class="text-center text-sm text-muted">
+            Loading your practice card...
+        </div>
+    </section>
+
+    <aside id="reflectionBubble" class="hidden bg-electric-violet/5 border border-electric-violet/25 rounded-3xl shadow-soft p-5 sm:p-6">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full bg-electric-violet text-white grid place-items-center font-heading text-lg">Φ</div>
+            <div>
+                <p class="text-xs uppercase tracking-[0.26em] text-electric-violet/80">Philosopher</p>
+                <p id="reflectionBubbleText" class="text-sm text-electric-violet leading-relaxed mt-1"></p>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<footer class="fixed inset-x-0 bottom-[var(--footer-offset,4.5rem)] sm:bottom-8 z-40 pointer-events-none">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 pointer-events-auto">
+        <div class="bg-ink-surface border border-default rounded-2xl shadow-soft px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex-1 text-xs text-muted">
+                <span id="footerStatus">Ready when you are.</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="skipButton" class="hidden px-4 py-2 rounded-xl border border-default text-sm font-semibold text-muted hover:text-text-strong hover:bg-overlay-weak transition focus-ring" type="button">
+                    Skip prompt
+                </button>
+                <button id="saveExitButton" class="px-4 py-2 rounded-xl border border-default text-sm font-semibold text-text-secondary hover:text-electric-violet transition focus-ring" type="button">
+                    Save &amp; exit
+                </button>
+                <button id="continueButton" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-electric-violet to-purple-500 text-white text-sm font-semibold shadow-electric-violet/40 hover:shadow-electric-violet/60 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-violet/40">
+                    <span id="continueLabel">Continue</span>
+                    <i class="fa-solid fa-arrow-right-long text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</footer>
+
+{{ session_payload|json_script:"amphitheatre-session" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const sessionEl = document.getElementById('amphitheatre-session');
+    if (!sessionEl) return;
+    const sessionData = JSON.parse(sessionEl.textContent || '{}');
+    if (!sessionData || !Array.isArray(sessionData.exercises)) return;
+
+    const api = {
+        submit: "{% url 'amphitheatre_submit' %}",
+        sessionState: (sessionId) => `{% url 'amphitheatre_session_state' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', sessionId),
+        transcribe: "{% url 'amphitheatre_transcribe' %}",
+    };
+
+    let currentIndex = Math.min(sessionData.current_index || 0, sessionData.exercises.length - 1);
+    let recordingContext = null;
+    let mediaStream = null;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const state = {
+        session: sessionData,
+        exerciseState: {},
+        philosopherTimer: null,
+        activePointerId: null,
+        speechRecognitionSupported: Boolean(SpeechRecognition),
+        speechRecognitionResult: '',
+        speechRecognitionInterim: '',
+        speechRecognitionError: null,
+        pendingSpeechPromise: null,
+    };
+    let recognitionInstance = null;
+    let recognitionResolve = null;
+
+    const exerciseContainer = document.getElementById('exerciseContainer');
+    const reflectionBubble = document.getElementById('reflectionBubble');
+    const reflectionBubbleText = document.getElementById('reflectionBubbleText');
+    const footerStatus = document.getElementById('footerStatus');
+    const continueButton = document.getElementById('continueButton');
+    const continueLabel = document.getElementById('continueLabel');
+    const sessionProgress = document.getElementById('sessionProgress');
+    const stepLabel = document.getElementById('stepLabel');
+    const tierLabel = document.getElementById('tierLabel');
+    const philosopherHeadline = document.getElementById('philosopherHeadline');
+    const philosopherSubhead = document.getElementById('philosopherSubhead');
+    const scoreTotal = document.getElementById('scoreTotal');
+    const skipButton = document.getElementById('skipButton');
+    const saveExitButton = document.getElementById('saveExitButton');
+
+    function clampIndex(value) {
+        if (value < 0) return 0;
+        if (value >= state.session.exercises.length) return state.session.exercises.length - 1;
+        return value;
+    }
+
+    function formatDuration(seconds) {
+        if (!seconds && seconds !== 0) return '—';
+        return `${seconds.toFixed(1)}s`;
+    }
+
+    function renderExercise(index) {
+        currentIndex = clampIndex(index);
+        const exercise = state.session.exercises[currentIndex];
+        if (!exercise) return;
+
+        state.exerciseState = exercise.selections ? JSON.parse(JSON.stringify(exercise.selections)) : {};
+        const microcopy = exercise.microcopy || {};
+        if (microcopy.transcript && !state.exerciseState.transcript) {
+            state.exerciseState.transcript = microcopy.transcript;
+        }
+        if (microcopy.analysis && !state.exerciseState.analysis) {
+            state.exerciseState.analysis = microcopy.analysis;
+        }
+        const total = state.session.exercises.length;
+        const progressPercent = ((currentIndex) / total) * 100;
+        if (sessionProgress) sessionProgress.style.width = `${progressPercent}%`;
+        if (stepLabel) stepLabel.textContent = `Exercise ${currentIndex + 1} of ${total}`;
+        if (tierLabel) tierLabel.textContent = `${exercise.tier || state.session.depth_tier || 'alpha'}`.toUpperCase();
+
+        philosopherHeadline.textContent = exercise.prompt?.headline || 'Your Philosopher listens.';
+        philosopherSubhead.textContent = exercise.prompt?.rotating_prompt || 'Let a breath arrive first.';
+
+        exerciseContainer.innerHTML = '';
+        reflectionBubble.classList.add('hidden');
+        reflectionBubbleText.textContent = '';
+        footerStatus.textContent = exercise.state === 'done'
+            ? 'You can revisit this response or continue forward.'
+            : 'Ready when you are.';
+        delete continueButton.dataset.completed;
+
+        const promptCard = document.createElement('article');
+        promptCard.className = 'rounded-3xl border border-default bg-white shadow-soft p-5 sm:p-6 space-y-4';
+        promptCard.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.24em] text-muted">${exercise.title || 'Exercise'}</p>
+                    <h2 class="text-lg font-heading font-semibold text-text-strong">${exercise.prompt?.headline || ''}</h2>
+                </div>
+                <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-electric-violet/30 bg-electric-violet/10 text-electric-violet text-xs font-semibold">
+                    <i class="fa-solid fa-leaf"></i>
+                    <span>${state.session.depth_tier || exercise.tier}</span>
+                </span>
+            </div>
+            <p class="text-sm text-text-secondary leading-relaxed">${exercise.prompt?.scenario || ''}</p>
+            ${exercise.prompt?.why_it_matters ? `<div class="border border-dashed border-default rounded-xl p-4 bg-overlay-weak/60">
+                <p class="text-xs uppercase tracking-[0.24em] text-muted mb-2">Why this matters</p>
+                <p class="text-sm text-text-secondary leading-relaxed">${exercise.prompt.why_it_matters}</p>
+            </div>` : ''}
+        `;
+        exerciseContainer.appendChild(promptCard);
+
+        const componentWrapper = document.createElement('div');
+        componentWrapper.className = 'space-y-5';
+        exercise.components.forEach((component) => {
+            const element = renderComponent(exercise, component);
+            if (element) componentWrapper.appendChild(element);
+        });
+        exerciseContainer.appendChild(componentWrapper);
+
+        updateButtons();
+    }
+
+    function renderComponent(exercise, component) {
+        switch (component.type) {
+            case 'tag_picker':
+                return renderTagPicker(exercise, component);
+            case 'reflection_field':
+                return renderReflectionField(exercise, component);
+            case 'recorder_tile':
+                return renderRecorderTile(exercise, component);
+            case 'system_notes':
+                return renderSystemNotes(exercise, component);
+            case 'lever_picker':
+                return renderLeverPicker(exercise, component);
+            case 'prompt_card_inline':
+                return renderInlinePrompt(exercise, component);
+            case 'multi_phase_compression':
+                return renderMultiPhase(exercise, component);
+            default:
+                return null;
+        }
+    }
+
+    function renderTagPicker(exercise, component) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-2xl border border-default bg-white shadow-soft p-4 sm:p-5 space-y-4';
+        const selection = state.exerciseState.tags || {};
+        wrapper.innerHTML = `
+            <div>
+                <p class="text-sm font-semibold text-text-strong">${component.label || 'Choose tags'}</p>
+                <p class="text-xs text-muted">${component.microcopy || ''}</p>
+            </div>
+        `;
+        const options = document.createElement('div');
+        options.className = 'flex flex-wrap gap-2';
+        component.options.forEach((option) => {
+            const active = selection[option.id];
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `px-4 py-2 rounded-xl border text-sm font-semibold transition focus-ring ${
+                active
+                    ? 'border-electric-violet bg-electric-violet/10 text-electric-violet'
+                    : 'border-default bg-overlay-weak text-text-secondary hover:border-electric-violet/40'
+            }`;
+            button.innerHTML = `<span class="font-semibold">${option.label}</span>`;
+            button.addEventListener('click', () => {
+                const current = state.exerciseState.tags || {};
+                if (component.max_select && !current[option.id]) {
+                    const activeCount = Object.values(current).filter(Boolean).length;
+                    if (activeCount >= component.max_select) {
+                        footerStatus.textContent = `You can highlight up to ${component.max_select} tags.`;
+                        return;
+                    }
+                }
+                current[option.id] = !current[option.id];
+                state.exerciseState.tags = current;
+                renderExercise(currentIndex);
+            });
+            if (option.hint) {
+                button.title = option.hint;
+            }
+            options.appendChild(button);
+        });
+        wrapper.appendChild(options);
+        return wrapper;
+    }
+
+    function renderReflectionField(exercise, component) {
+        const value = state.exerciseState.reflection_text || '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-2xl border border-default bg-white shadow-soft p-4 sm:p-5 space-y-3';
+        wrapper.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm font-semibold text-text-strong">${component.label || 'Reflection'}</p>
+                    <p class="text-xs text-muted">${component.placeholder || 'Write or record what you notice.'}</p>
+                </div>
+                ${component.mode === 'text_or_voice'
+                    ? '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-default text-xs text-muted"><i class="fa-solid fa-microphone"></i><span>Voice optional</span></span>'
+                    : ''}
+            </div>
+        `;
+        const textarea = document.createElement('textarea');
+        textarea.className = 'w-full min-h-[88px] rounded-xl border border-default bg-overlay-weak px-4 py-3 text-sm text-text-strong focus:border-electric-violet focus:outline-none focus:ring-2 focus:ring-electric-violet/30 transition';
+        textarea.placeholder = component.placeholder || '';
+        textarea.value = value;
+        textarea.addEventListener('input', (event) => {
+            state.exerciseState.reflection_text = event.target.value;
+        });
+        wrapper.appendChild(textarea);
+
+        if (component.mode === 'text_or_voice') {
+            const voiceWrapper = document.createElement('div');
+            voiceWrapper.className = 'flex flex-col items-center justify-center gap-3 py-4 pb-16';
+
+            const voiceButton = document.createElement('button');
+            voiceButton.type = 'button';
+            voiceButton.className = 'voice-mic-trigger w-24 h-24 rounded-full bg-gradient-to-br from-electric-violet to-purple-500 text-white text-center font-semibold shadow-electric-violet/60 shadow-lg flex flex-col items-center justify-center gap-2 focus-ring transition-transform';
+            voiceButton.innerHTML = `
+                <i class="fa-solid fa-microphone-lines text-2xl"></i>
+                <span class="text-xs uppercase tracking-[0.3em]">Hold</span>
+            `;
+            voiceButton.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                voiceButton.setPointerCapture(event.pointerId);
+                state.activePointerId = event.pointerId;
+                voiceButton.classList.add('scale-95');
+                state.pendingSpeechPromise = null;
+                beginSpeechRecognition();
+                startRecording(
+                    exercise,
+                    { max_duration_sec: component.max_duration_sec || 30 },
+                    async (result) => {
+                        const voiceData = await processVoiceCapture(result, exercise, { phaseKey: 'reflection_voice', updateReflection: true });
+                        if (voiceData?.transcript) {
+                            textarea.value = voiceData.transcript;
+                        }
+                    },
+                );
+            });
+            const releaseVoice = (event) => {
+                if (state.activePointerId !== event.pointerId) return;
+                state.activePointerId = null;
+                voiceButton.releasePointerCapture(event.pointerId);
+                voiceButton.classList.remove('scale-95');
+                if (state.speechRecognitionSupported) {
+                    state.pendingSpeechPromise = endSpeechRecognition();
+                    if (state.pendingSpeechPromise) {
+                        state.pendingSpeechPromise.catch(() => {});
+                    }
+                }
+                stopRecording();
+            };
+            voiceButton.addEventListener('pointerup', releaseVoice);
+            voiceButton.addEventListener('pointerleave', releaseVoice);
+            voiceButton.addEventListener('pointercancel', releaseVoice);
+            voiceWrapper.appendChild(voiceButton);
+
+            const voiceHint = document.createElement('p');
+            voiceHint.className = 'text-xs text-muted text-center';
+            voiceHint.textContent = 'Press & hold to speak · release to pause';
+            voiceWrapper.appendChild(voiceHint);
+
+            wrapper.appendChild(voiceWrapper);
+        }
+        return wrapper;
+    }
+
+    function getMediaRecorder() {
+        return new Promise(async (resolve, reject) => {
+            if (recordingContext && recordingContext.recorder && recordingContext.state === 'ready') {
+                return resolve(recordingContext.recorder);
+            }
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const recorder = new MediaRecorder(mediaStream);
+                resolve(recorder);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    function renderRecorderTile(exercise, component) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-3xl border border-default bg-gradient-to-br from-white to-overlay-weak shadow-soft p-5 sm:p-6 space-y-4';
+        const recorderState = state.exerciseState.recorder || {};
+        wrapper.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm font-semibold text-text-strong">${component.primary_label || 'Voice capture'}</p>
+                    <p class="text-xs text-muted">Press and hold to speak. Auto-stop at ${component.max_duration_sec || 30}s.</p>
+                </div>
+                ${recorderState.duration ? `<span class="text-xs font-semibold text-electric-violet">${formatDuration(recorderState.duration)} recorded</span>` : ''}
+            </div>
+        `;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-full h-14 rounded-full border border-electric-violet/40 bg-electric-violet/10 text-electric-violet font-semibold flex items-center justify-center gap-3 text-sm focus-ring transition hover:bg-electric-violet/15';
+        button.innerHTML = `<i class="fa-solid fa-microphone-lines text-base"></i><span>${recorderState.audio ? 'Hold to record again' : 'Hold to record'}</span>`;
+
+        const waveform = document.createElement('div');
+        waveform.className = 'h-12 rounded-2xl border border-dashed border-electric-violet/30 bg-electric-violet/5 flex items-center justify-center text-xs text-electric-violet/70';
+        waveform.textContent = recorderState.audio ? 'Waveform preview stored.' : 'Waveform preview appears after recording.';
+
+        const note = document.createElement('p');
+        note.className = 'text-xs text-muted';
+        note.textContent = recorderState.energy ? `Energy sensed: ${recorderState.energy}` : 'Tips: breathe in for four, out for six before speaking.';
+
+        button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            button.setPointerCapture(event.pointerId);
+            state.activePointerId = event.pointerId;
+            button.classList.add('bg-electric-violet', 'text-white');
+            state.pendingSpeechPromise = null;
+            beginSpeechRecognition();
+            startRecording(exercise, component, async (result) => {
+                const voiceData = await processVoiceCapture(result, exercise);
+                if (voiceData?.transcript) {
+                    state.exerciseState.recorder = { ...(state.exerciseState.recorder || {}), transcript: voiceData.transcript };
+                }
+                renderExercise(currentIndex);
+            });
+        });
+        const releaseHandler = (event) => {
+            if (state.activePointerId !== event.pointerId) return;
+            state.activePointerId = null;
+            button.releasePointerCapture(event.pointerId);
+            button.classList.remove('bg-electric-violet', 'text-white');
+            if (state.speechRecognitionSupported) {
+                state.pendingSpeechPromise = endSpeechRecognition();
+                if (state.pendingSpeechPromise) {
+                    state.pendingSpeechPromise.catch(() => {});
+                }
+            } else {
+                state.pendingSpeechPromise = null;
+            }
+            stopRecording();
+        };
+        button.addEventListener('pointerup', releaseHandler);
+        button.addEventListener('pointerleave', releaseHandler);
+        button.addEventListener('pointercancel', releaseHandler);
+
+        wrapper.appendChild(button);
+        wrapper.appendChild(waveform);
+        wrapper.appendChild(note);
+        return wrapper;
+    }
+
+    async function startRecording(exercise, component, onComplete) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            footerStatus.textContent = 'Microphone access is unavailable. Use text reflection instead.';
+            return;
+        }
+        if (recordingContext && recordingContext.recorder && recordingContext.state === 'recording') {
+            footerStatus.textContent = 'Already recording. Press stop first.';
+            return;
+        }
+        try {
+            const recorder = await getMediaRecorder();
+            recordingContext = {
+                recorder,
+                chunks: [],
+                start: performance.now(),
+                state: 'recording',
+                exercise,
+                component,
+                callback: onComplete,
+            };
+            footerStatus.textContent = 'Recording... Release to stop.';
+            recorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordingContext.chunks.push(event.data);
+                }
+            };
+            recorder.onstop = handleRecordingStop;
+            recorder.start();
+            setTimeout(() => {
+                if (recordingContext && recordingContext.state === 'recording') {
+                    recorder.stop();
+                }
+            }, (component.max_duration_sec || 30) * 1000);
+        } catch (error) {
+            footerStatus.textContent = 'Unable to access microphone. Please allow permissions.';
+            console.error(error);
+        }
+    }
+
+    function stopRecording() {
+        if (recordingContext && recordingContext.state === 'recording') {
+            recordingContext.recorder.stop();
+        }
+    }
+
+    async function handleRecordingStop() {
+        if (!recordingContext) return;
+        const { chunks, callback, exercise } = recordingContext;
+        recordingContext.state = 'ready';
+        state.activePointerId = null;
+        footerStatus.textContent = 'Recording captured.';
+        try {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const analysis = await analyzeAudio(blob);
+            const base64 = await blobToBase64(blob);
+            const recordResult = {
+                audio: base64,
+                duration: analysis.duration,
+                pause_count: analysis.pauseCount,
+                energy: analysis.energy,
+            };
+            const targetExercise = exercise || state.session.exercises[currentIndex];
+            if (typeof callback === 'function') {
+                await callback(recordResult, targetExercise);
+            } else {
+                await processVoiceCapture(recordResult, targetExercise);
+                renderExercise(currentIndex);
+            }
+        } catch (error) {
+            console.error(error);
+            footerStatus.textContent = 'Recording failed—try again or use text.';
+        } finally {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+            }
+            recordingContext = null;
+        }
+    }
+
+    function renderSystemNotes(exercise, component) {
+        const recorder = state.exerciseState.recorder || {};
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-2xl border border-dashed border-default bg-overlay-weak/60 p-4 grid gap-3 sm:grid-cols-3 text-xs text-text-secondary';
+        component.fields.forEach((field) => {
+            const item = document.createElement('div');
+            item.innerHTML = `
+                <p class="uppercase tracking-[0.24em] text-muted mb-1">${field.label}</p>
+                <p class="text-sm font-semibold text-text-strong">${
+                    field.kind === 'duration'
+                        ? formatDuration(recorder.duration || 0)
+                        : field.kind === 'count'
+                            ? recorder.pause_count ?? '—'
+                            : recorder.energy || '—'
+                }</p>
+            `;
+            wrapper.appendChild(item);
+        });
+        if (state.exerciseState.transcript) {
+            const transcriptCard = document.createElement('div');
+            transcriptCard.className = 'sm:col-span-3 rounded-2xl border border-electric-violet/30 bg-electric-violet/5 p-4 space-y-2';
+            transcriptCard.innerHTML = `
+                <p class="text-xs uppercase tracking-[0.24em] text-electric-violet/80">Transcript</p>
+                <p class="text-sm text-electric-violet leading-relaxed">${state.exerciseState.transcript}</p>
+                ${state.exerciseState.analysis ? `<p class="text-xs text-electric-violet/80 border-t border-electric-violet/20 pt-2">AI note: ${state.exerciseState.analysis}</p>` : ''}
+            `;
+            wrapper.appendChild(transcriptCard);
+        }
+        return wrapper;
+    }
+
+    function renderLeverPicker(exercise, component) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-2xl border border-default bg-white shadow-soft p-4 sm:p-5 space-y-3';
+        wrapper.innerHTML = `
+            <div>
+                <p class="text-sm font-semibold text-text-strong">${component.label || 'Choose a lever'}</p>
+                <p class="text-xs text-muted">Tap a lever to activate its micro-priming.</p>
+            </div>
+        `;
+        const selection = state.exerciseState.lever;
+        const list = document.createElement('div');
+        list.className = 'grid gap-3 sm:grid-cols-3';
+        component.options.forEach((option) => {
+            const active = selection === option.id;
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = `text-left rounded-2xl border p-4 h-full transition focus-ring ${
+                active
+                    ? 'border-electric-violet bg-electric-violet/10 text-electric-violet'
+                    : 'border-default bg-overlay-weak hover:border-electric-violet/30 hover:bg-electric-violet/5'
+            }`;
+            card.innerHTML = `
+                <p class="text-sm font-semibold mb-2">${option.label}</p>
+                <p class="text-xs leading-relaxed ${active ? 'text-electric-violet/80' : 'text-muted'}">${option.micro_priming || ''}</p>
+            `;
+            card.addEventListener('click', () => {
+                state.exerciseState.lever = option.id;
+                renderExercise(currentIndex);
+            });
+            list.appendChild(card);
+        });
+        wrapper.appendChild(list);
+        return wrapper;
+    }
+
+    function renderInlinePrompt(exercise, component) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-2xl border border-default bg-overlay-weak/60 p-4 text-sm text-text-secondary leading-relaxed';
+        wrapper.textContent = component.label || '';
+        return wrapper;
+    }
+
+    function renderMultiPhase(exercise, component) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rounded-3xl border border-default bg-white shadow-soft p-4 sm:p-6 space-y-4';
+        const phases = component.phases || [];
+        const stateObj = state.exerciseState;
+        phases.forEach((phase) => {
+            if (phase.kind === 'record') {
+                const row = document.createElement('div');
+                const data = stateObj[phase.id] || {};
+                row.className = 'rounded-2xl border border-default bg-overlay-weak p-4 space-y-2';
+                row.innerHTML = `
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-sm font-semibold text-text-strong">${phase.label}</p>
+                        <span class="text-xs font-semibold text-electric-violet">${data.duration ? formatDuration(data.duration) : `≤ ${phase.max_duration_sec || 30}s`}</span>
+                    </div>
+                    <button class="w-full h-12 rounded-full border border-electric-violet/40 bg-electric-violet/10 text-electric-violet font-semibold flex items-center justify-center gap-2 text-sm focus-ring" type="button">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                        <span>${data.audio ? 'Retake' : 'Record phase'}</span>
+                    </button>
+                `;
+                const recordBtn = row.querySelector('button');
+                recordBtn.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    recordBtn.setPointerCapture(event.pointerId);
+                    state.activePointerId = event.pointerId;
+                    recordBtn.classList.add('bg-electric-violet', 'text-white');
+                    state.pendingSpeechPromise = null;
+                    beginSpeechRecognition();
+                    startRecording(
+                        exercise,
+                        { max_duration_sec: phase.max_duration_sec || component.max_duration_sec || 30 },
+                        async (result) => {
+                            const voiceData = await processVoiceCapture(result, exercise, { phaseKey: phase.id });
+                            if (voiceData?.transcript) {
+                                stateObj[phase.id] = { ...(stateObj[phase.id] || {}), transcript: voiceData.transcript };
+                            } else {
+                                stateObj[phase.id] = { ...(stateObj[phase.id] || {}), ...result };
+                            }
+                            renderExercise(currentIndex);
+                        },
+                    );
+                });
+                const releasePhase = (event) => {
+                    if (state.activePointerId !== event.pointerId) return;
+                    state.activePointerId = null;
+                    recordBtn.releasePointerCapture(event.pointerId);
+                    recordBtn.classList.remove('bg-electric-violet', 'text-white');
+                if (state.speechRecognitionSupported) {
+                    state.pendingSpeechPromise = endSpeechRecognition();
+                    if (state.pendingSpeechPromise) {
+                        state.pendingSpeechPromise.catch(() => {});
+                    }
+                } else {
+                    state.pendingSpeechPromise = null;
+                }
+                    if (state.speechRecognitionSupported) {
+                        state.pendingSpeechPromise = endSpeechRecognition();
+                        if (state.pendingSpeechPromise) {
+                            state.pendingSpeechPromise.catch(() => {});
+                        }
+                    } else {
+                        state.pendingSpeechPromise = null;
+                    }
+                    stopRecording();
+                };
+                recordBtn.addEventListener('pointerup', releasePhase);
+                recordBtn.addEventListener('pointerleave', releasePhase);
+                recordBtn.addEventListener('pointercancel', releasePhase);
+                wrapper.appendChild(row);
+            } else {
+                const field = document.createElement('div');
+                field.className = 'space-y-2';
+                field.innerHTML = `<p class="text-sm font-semibold text-text-strong">${phase.label}</p>`;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = phase.max_chars || 160;
+                input.placeholder = phase.placeholder || '';
+                input.value = stateObj[phase.id] || '';
+                input.className = 'w-full rounded-xl border border-default bg-overlay-weak px-4 py-3 text-sm text-text-strong focus:border-electric-violet focus:outline-none focus:ring-2 focus:ring-electric-violet/30 transition';
+                input.addEventListener('input', (event) => {
+                    stateObj[phase.id] = event.target.value;
+                });
+                field.appendChild(input);
+                wrapper.appendChild(field);
+            }
+        });
+        state.exerciseState = stateObj;
+        return wrapper;
+    }
+
+    async function analyzeAudio(blob) {
+        if (!window.AudioContext) {
+            return { duration: blob.size / 16000, pauseCount: 0, energy: 'medium' };
+        }
+        const audioContext = new AudioContext();
+        const arrayBuffer = await blob.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const data = audioBuffer.getChannelData(0);
+        const sampleRate = audioBuffer.sampleRate;
+        const windowSize = Math.floor(sampleRate * 0.25);
+        let pauseCount = 0;
+        let active = false;
+        let accumulator = 0;
+        const threshold = 0.02;
+        for (let i = 0; i < data.length; i += windowSize) {
+            let sum = 0;
+            for (let j = i; j < Math.min(i + windowSize, data.length); j++) {
+                sum += Math.abs(data[j]);
+            }
+            const rms = sum / windowSize;
+            accumulator += rms;
+            if (rms < threshold) {
+                if (active) {
+                    pauseCount += 1;
+                    active = false;
+                }
+            } else {
+                active = true;
+            }
+        }
+        const duration = audioBuffer.duration || (blob.size / 16000);
+        const averageEnergy = accumulator / (data.length / windowSize || 1);
+        const energyBand = averageEnergy > 0.08 ? 'high' : averageEnergy > 0.035 ? 'medium' : 'low';
+        await audioContext.close();
+        return { duration, pauseCount, energy: energyBand };
+    }
+
+    function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function collectPayload() {
+        const exercise = state.session.exercises[currentIndex];
+        const selections = JSON.parse(JSON.stringify(state.exerciseState || {}));
+        delete selections.transcript;
+        delete selections.analysis;
+        if (selections.recorder) {
+            selections.recorder = {
+                duration: selections.recorder.duration,
+                pause_count: selections.recorder.pause_count,
+                energy: selections.recorder.energy,
+            };
+        }
+        let audioRef = null;
+        if (state.exerciseState.recorder && state.exerciseState.recorder.audio) {
+            audioRef = state.exerciseState.recorder.audio;
+        } else if (selections.recorder && selections.recorder.audio) {
+            audioRef = selections.recorder.audio;
+        }
+        if (state.exerciseState.phase_a && state.exerciseState.phase_a.audio) {
+            audioRef = state.exerciseState.phase_a.audio;
+        }
+        const markers = {};
+        if (state.exerciseState.recorder) {
+            markers.duration_sec = state.exerciseState.recorder.duration || null;
+            markers.pause_count = state.exerciseState.recorder.pause_count || 0;
+            markers.energy_level = state.exerciseState.recorder.energy || 'medium';
+        }
+        if (exercise.components.some((component) => component.type === 'multi_phase_compression')) {
+            markers.duration_sec = state.exerciseState.phase_a?.duration || null;
+        }
+        return {
+            session_id: state.session.session_id,
+            exercise_id: exercise.id,
+            prompt_id: exercise.prompt?.id,
+            selections,
+            markers,
+            reflection_text: state.exerciseState.reflection_text || '',
+            audio_ref: audioRef,
+            state: 'done',
+        };
+    }
+
+    async function submitExercise() {
+        if (continueButton.dataset.completed === 'true') {
+            window.location.href = "{% url 'amphitheatre_hub' %}";
+            return;
+        }
+        const payload = collectPayload();
+        footerStatus.textContent = 'Saving...';
+        continueButton.disabled = true;
+        continueButton.classList.add('opacity-60');
+        try {
+            const response = await fetch(api.submit, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) throw new Error('Submission failed');
+            const data = await response.json();
+            if (!data.ok) throw new Error(data.error?.message || 'Something went wrong.');
+            state.session = data.data.session;
+            scoreTotal.textContent = state.session.score.total;
+            if (data.data.philosopher_response) {
+                reflectionBubbleText.textContent = data.data.philosopher_response;
+                reflectionBubble.classList.remove('hidden');
+            }
+            footerStatus.textContent = 'Saved. Continue when ready.';
+            if (data.data.completed) {
+                continueLabel.textContent = 'Finish Session';
+                continueButton.classList.add('bg-emerald-500', 'hover:bg-emerald-500/90');
+                continueButton.querySelector('i').className = 'fa-solid fa-check';
+                continueButton.dataset.completed = 'true';
+            } else {
+                delete continueButton.dataset.completed;
+                const nextIndex = clampIndex(currentIndex + 1);
+                renderExercise(nextIndex);
+            }
+        } catch (error) {
+            console.error(error);
+            footerStatus.textContent = 'Unable to save. Please retry.';
+        } finally {
+            continueButton.disabled = false;
+            continueButton.classList.remove('opacity-60');
+        }
+    }
+
+    function updateButtons() {
+        const exercise = state.session.exercises[currentIndex];
+        const isDone = exercise.state === 'done';
+        continueButton.classList.remove('bg-emerald-500', 'hover:bg-emerald-500/90');
+        const icon = continueButton.querySelector('i');
+        if (icon) icon.className = 'fa-solid fa-arrow-right-long text-sm';
+        continueLabel.textContent = currentIndex === state.session.exercises.length - 1 ? 'Finish' : isDone ? 'Continue' : 'Save & Continue';
+        skipButton.classList.toggle('hidden', currentIndex !== 0);
+    }
+
+    function getCsrfToken() {
+        const name = 'csrftoken=';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name)) {
+                return decodeURIComponent(cookie.substring(name.length));
+            }
+        }
+        return '';
+    }
+
+    continueButton.addEventListener('click', submitExercise);
+    saveExitButton.addEventListener('click', () => {
+        window.location.href = "{% url 'amphitheatre_hub' %}";
+    });
+    skipButton.addEventListener('click', () => {
+        footerStatus.textContent = 'Prompt skipped. No points awarded.';
+        const nextIndex = clampIndex(currentIndex + 1);
+        renderExercise(nextIndex);
+    });
+
+    renderExercise(currentIndex);
+
+    function beginSpeechRecognition() {
+        if (!state.speechRecognitionSupported) return;
+        state.speechRecognitionResult = '';
+        state.speechRecognitionInterim = '';
+        state.speechRecognitionError = null;
+        if (recognitionInstance) {
+            try { recognitionInstance.stop(); } catch (err) {}
+        }
+        recognitionInstance = new SpeechRecognition();
+        recognitionInstance.lang = 'en-US';
+        recognitionInstance.continuous = false;
+        recognitionInstance.interimResults = true;
+        recognitionInstance.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const result = event.results[i];
+                if (result.isFinal) {
+                    state.speechRecognitionResult = `${state.speechRecognitionResult} ${result[0].transcript}`.trim();
+                } else {
+                    state.speechRecognitionInterim = result[0].transcript;
+                }
+            }
+        };
+        recognitionInstance.onerror = (event) => {
+            state.speechRecognitionError = event.error;
+        };
+        recognitionInstance.onend = () => {
+            if (recognitionResolve) {
+                recognitionResolve(state.speechRecognitionResult.trim());
+                recognitionResolve = null;
+            }
+            recognitionInstance = null;
+        };
+        try {
+            recognitionInstance.start();
+        } catch (err) {
+            state.speechRecognitionSupported = false;
+            recognitionInstance = null;
+        }
+    }
+
+    function endSpeechRecognition() {
+        if (!state.speechRecognitionSupported || !recognitionInstance) {
+            return Promise.resolve(state.speechRecognitionResult.trim());
+        }
+        return new Promise((resolve) => {
+            recognitionResolve = resolve;
+            try {
+                recognitionInstance.stop();
+            } catch (err) {
+                recognitionInstance = null;
+                recognitionResolve = null;
+                resolve(state.speechRecognitionResult.trim());
+            }
+        });
+    }
+
+    async function handleTranscription(audioDataUrl, exercise, transcriptOverride = null) {
+        if ((!audioDataUrl && !transcriptOverride) || !exercise) return null;
+        footerStatus.textContent = transcriptOverride ? 'Analysing your voice...' : 'Transcribing voice note...';
+        try {
+            const response = await fetch(api.transcribe, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({
+                    session_id: state.session.session_id,
+                    exercise_id: exercise.id,
+                    audio_b64: audioDataUrl,
+                    transcript: transcriptOverride,
+                }),
+            });
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (err) {
+                payload = null;
+            }
+            if (!response.ok || !payload?.ok) {
+                const message = payload?.error?.message || `Transcription failed (HTTP ${response.status})`;
+                throw new Error(message);
+            }
+            const data = payload.data;
+            return data;
+        } catch (error) {
+            console.error(error);
+            footerStatus.textContent = `Voice analysis unavailable: ${error.message}`;
+            return null;
+        }
+    }
+
+    async function processVoiceCapture(result, exercise, options = {}) {
+        const { phaseKey, updateReflection } = options;
+        let recognitionTranscript = '';
+        if (state.pendingSpeechPromise) {
+            try {
+                recognitionTranscript = (await state.pendingSpeechPromise) || '';
+            } catch (err) {
+                recognitionTranscript = '';
+            }
+            state.pendingSpeechPromise = null;
+            state.speechRecognitionResult = '';
+            state.speechRecognitionInterim = '';
+            state.speechRecognitionError = null;
+            recognitionInstance = null;
+        }
+
+        let response = null;
+        if (recognitionTranscript) {
+            response = await handleTranscription(result.audio, exercise, recognitionTranscript);
+        } else {
+            response = await handleTranscription(result.audio, exercise);
+        }
+
+        const transcript = response?.transcript || recognitionTranscript || '';
+        const analysis = response?.analysis || '';
+
+        if (phaseKey) {
+            const phaseState = {
+                ...(state.exerciseState[phaseKey] || {}),
+                ...result,
+                transcript,
+            };
+            state.exerciseState[phaseKey] = phaseState;
+            exercise.selections = exercise.selections || {};
+            exercise.selections[phaseKey] = { ...(exercise.selections[phaseKey] || {}), ...result, transcript };
+            if (transcript) {
+                state.exerciseState.transcript = transcript;
+            }
+        } else {
+            const recorderState = {
+                ...(state.exerciseState.recorder || {}),
+                ...result,
+                transcript,
+            };
+            state.exerciseState.recorder = recorderState;
+            exercise.selections = exercise.selections || {};
+            exercise.selections.recorder = { ...(exercise.selections.recorder || {}), ...result, transcript };
+            if (transcript) {
+                state.exerciseState.transcript = transcript;
+            }
+        }
+
+        if (analysis) {
+            state.exerciseState.analysis = analysis;
+            exercise.microcopy = exercise.microcopy || {};
+            exercise.microcopy.analysis = analysis;
+        }
+
+        if (transcript) {
+            exercise.microcopy = exercise.microcopy || {};
+            exercise.microcopy.transcript = transcript;
+            if (updateReflection) {
+                state.exerciseState.reflection_text = transcript;
+            }
+        }
+
+        if (analysis) {
+            footerStatus.textContent = 'Transcript saved. The Philosopher left a gentle note.';
+        } else if (transcript) {
+            footerStatus.textContent = 'Transcript saved locally.';
+        }
+
+        return { transcript, analysis };
+    }
+})();
+</script>
+{% endblock %}
+

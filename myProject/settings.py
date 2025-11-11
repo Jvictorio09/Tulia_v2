@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -34,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'myApp',
 ]
 
@@ -138,6 +142,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 N8N_LESSON_WEBHOOK = None  # Set via env: N8N_LESSON_WEBHOOK
 N8N_COACH_WEBHOOK = None   # Set via env: N8N_COACH_WEBHOOK
 N8N_MILESTONE_WEBHOOK = None  # Set via env: N8N_MILESTONE_WEBHOOK
+
+# AI Providers
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Feature Flags
 ENABLE_DISTRICT_MAP = True

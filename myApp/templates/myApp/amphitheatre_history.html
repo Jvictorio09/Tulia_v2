@@ -1,0 +1,87 @@
+{% extends 'myApp/base.html' %}
+{% load humanize %}
+
+{% block title %}Greek Amphitheatre · History{% endblock %}
+
+{% block header_title %}
+<div class="hidden md:flex items-center gap-2 text-sm font-semibold text-muted">
+    <a href="{% url 'amphitheatre_hub' %}" class="focus-ring">Greek Amphitheatre</a>
+    <i class="fa-solid fa-angles-right text-[10px]"></i>
+    <span>History</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <header class="bg-ink-surface border border-default rounded-3xl shadow-soft p-6 sm:p-8 space-y-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Session Timeline</p>
+        <h1 class="text-[28px] font-heading font-bold text-text-strong tracking-tight">Echoes of Practice</h1>
+        <p class="text-sm text-text-secondary leading-relaxed max-w-2xl">Revisit past sessions, replay audio, and skim the gentle nudges offered by the Philosopher. Nothing is graded—this is simply a record of how your presence has evolved.</p>
+    </header>
+
+    <section class="space-y-4">
+        {% if timeline %}
+        <ol class="space-y-4">
+            {% for session in timeline %}
+            <li class="bg-ink-surface border border-default rounded-3xl shadow-soft p-5 sm:p-6 space-y-4">
+                <div class="flex flex-wrap items-center gap-3 justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-sm font-semibold text-electric-violet">Visit {{ session.visit_number }}</div>
+                        <div>
+                            <p class="text-sm font-semibold text-text-strong">
+                                {{ session.timestamp|date:"M j, Y" }}
+                                <span class="text-xs text-muted font-normal">· {{ session.timestamp|naturaltime }}</span>
+                            </p>
+                            <p class="text-xs uppercase tracking-[0.28em] text-muted">{{ session.status|title }}</p>
+                        </div>
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-[14px] border border-electric-violet/30 bg-electric-violet/10 text-electric-violet text-sm font-semibold">
+                        <i class="fa-solid fa-clover"></i>
+                        <span>{{ session.points }} pts</span>
+                    </div>
+                </div>
+                <div class="border border-dashed border-default rounded-2xl p-4 space-y-3">
+                    {% for exercise in session.exercises %}
+                    <article class="bg-white/90 border border-default rounded-2xl p-4 shadow-soft space-y-2">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-sm font-semibold text-text-strong">{{ exercise.title }}</h2>
+                            {% if exercise.has_audio %}
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-electric-violet/30 bg-electric-violet/10 text-electric-violet text-[11px] font-semibold">
+                                    <i class="fa-solid fa-headphones"></i>
+                                    <span>Replay</span>
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if exercise.reflection_text %}
+                        <p class="text-sm text-text-secondary leading-relaxed">“{{ exercise.reflection_text }}”</p>
+                        {% endif %}
+                        {% if exercise.philosopher_response %}
+                        <div class="text-xs text-electric-violet bg-electric-violet/5 border border-electric-violet/20 rounded-xl p-3 leading-relaxed">
+                            {{ exercise.philosopher_response }}
+                        </div>
+                        {% endif %}
+                        {% if exercise.audio %}
+                        <div class="pt-2">
+                            <audio controls class="w-full">
+                                <source src="{{ exercise.audio }}" type="audio/webm">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        {% endif %}
+                    </article>
+                    {% empty %}
+                    <p class="text-sm text-muted">No exercise records captured for this visit.</p>
+                    {% endfor %}
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <div class="bg-ink-surface border border-dashed border-default rounded-3xl p-10 text-center text-muted">
+            Your Amphitheatre history will appear after your first session. The Philosopher is ready when you are.
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
