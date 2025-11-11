@@ -1,0 +1,82 @@
+{
+  "module_code": "C",
+  "version": "guided-1.0.0",
+  "steps": [
+    {
+      "step_id": "context_snapshot",
+      "order": 1,
+      "field_name": "context_snapshot",
+      "input_type": "textarea",
+      "prompt_title": "What environment are you walking into?",
+      "prompt_body": "Describe the dynamic setting (fast-moving, remote, skeptical audience, etc.) in 2–3 sentences.",
+      "examples": [
+        "Hybrid call with 25 sellers—camera fatigue and competing priorities.",
+        "All-hands after a product outage—emotion is high and trust is shaky."
+      ],
+      "validation": { "required": true, "min_length": 35 },
+      "fa_icon": "fa-globe",
+      "progress": { "current": 1, "total": 5 }
+    },
+    {
+      "step_id": "adapt_goal",
+      "order": 2,
+      "field_name": "adapt_goal",
+      "input_type": "textarea",
+      "prompt_title": "What outcome matters most?",
+      "prompt_body": "State the result you need by the end of the moment. Keep it specific and measurable.",
+      "examples": [
+        "Secure agreement on a 48-hour triage plan.",
+        "Align the leadership team on the revised launch cadence."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-flag-checkered",
+      "progress": { "current": 2, "total": 5 }
+    },
+    {
+      "step_id": "story_arc",
+      "order": 3,
+      "field_name": "story_arc",
+      "input_type": "textarea",
+      "prompt_title": "Draft your adaptive arc",
+      "prompt_body": "Outline the three beats you’ll cover (setup, insight, call-to-action).",
+      "examples": [
+        "1) Name the data signal, 2) Share customer quote, 3) Invite ops to co-design mitigation.",
+        "1) Acknowledge the outage, 2) Explain the fix path, 3) Offer support channels."
+      ],
+      "validation": { "required": true, "min_length": 30 },
+      "fa_icon": "fa-timeline",
+      "progress": { "current": 3, "total": 5 }
+    },
+    {
+      "step_id": "adaptive_prompt",
+      "order": 4,
+      "field_name": "adaptive_prompt",
+      "input_type": "textarea",
+      "prompt_title": "Plan your adaptive question",
+      "prompt_body": "Write the question you’ll ask to sense-check the room and adapt on the fly.",
+      "examples": [
+        "“What’s the biggest risk you see if we delay by one sprint?”",
+        "“Where do you need more clarity before we move forward?”"
+      ],
+      "validation": { "required": true, "min_length": 20 },
+      "fa_icon": "fa-question-circle",
+      "progress": { "current": 4, "total": 5 }
+    },
+    {
+      "step_id": "next_move",
+      "order": 5,
+      "field_name": "next_move",
+      "input_type": "textarea",
+      "prompt_title": "Set your next move",
+      "prompt_body": "Describe the follow-up action you’ll take within 24 hours to keep momentum.",
+      "examples": [
+        "Send the action log with owners and timelines.",
+        "Book a 15-minute sync with the skeptics to hear concerns."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-forward",
+      "progress": { "current": 5, "total": 5 }
+    }
+  ]
+}
+

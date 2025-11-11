@@ -15,6 +15,7 @@ urlpatterns = [
     path('district/<int:district_number>/', views.district_overview, name='district_overview'),
     path('district/<int:district_number>/venues/', views.district_venues, name='district_venues'),
     path('district/venue/<int:venue_id>/', views.venue_detail, name='venue_detail'),
+    path('district/venue/<int:venue_id>/session/', views.venue_session, name='venue_session'),
     path('amphitheatre/', views.amphitheatre_hub, name='amphitheatre_hub'),
     path('amphitheatre/session/', views.amphitheatre_session, name='amphitheatre_session'),
     path('amphitheatre/history/', views.amphitheatre_history, name='amphitheatre_history'),
@@ -34,6 +35,7 @@ urlpatterns = [
     path('api/amphitheatre/session/<uuid:session_id>/', views.amphitheatre_session_state, name='amphitheatre_session_state'),
     path('api/amphitheatre/submit/', views.amphitheatre_submit, name='amphitheatre_submit'),
     path('api/amphitheatre/transcribe/', views.amphitheatre_transcribe, name='amphitheatre_transcribe'),
+    path('api/venue/<int:venue_id>/session/feedback/', views.venue_session_feedback, name='venue_session_feedback'),
     
     # Guided lesson endpoints
     path('lesson/start/', views.lesson_start, name='lesson_start'),

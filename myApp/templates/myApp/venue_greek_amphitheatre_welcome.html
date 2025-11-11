@@ -1,0 +1,96 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}Greek Amphitheatre · Debate Warmup{% endblock %}
+
+{% block extra_head %}
+<style>
+body.amphi-session {
+    background:
+        linear-gradient(180deg, rgba(16, 20, 35, 0.75), rgba(19, 22, 39, 0.92)),
+        url('https://res.cloudinary.com/dcuswyfur/image/upload/v1762868632/greekampi_bc0y7m.png') center/cover fixed no-repeat;
+}
+.amphi-welcome-card {
+    background: rgba(12, 18, 36, 0.65);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(244, 247, 255, 0.94);
+    box-shadow: 0 30px 60px rgba(5, 6, 16, 0.55);
+}
+.amphi-welcome-card p,
+.amphi-welcome-card span {
+    color: inherit;
+}
+.amphi-pill {
+    background: rgba(16, 24, 45, 0.55);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.amphi-pill p {
+    color: rgba(244, 247, 255, 0.88);
+}
+.amphi-cta {
+    box-shadow: 0 22px 48px rgba(124, 58, 237, 0.6);
+}
+</style>
+{% endblock %}
+
+{% block body_class %}amphi-session{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-10 sm:space-y-12 py-6 sm:py-10">
+    <section class="amphi-welcome-card border rounded-[28px] p-6 sm:p-10 space-y-6 sm:space-y-8">
+        <div class="flex flex-col gap-4">
+            <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-muted">
+                Guided Session
+            </span>
+            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
+                Welcome to the Greek Amphitheatre
+            </h1>
+            <p class="text-sm sm:text-base leading-relaxed max-w-2xl">
+                This venue is your debate studio. We’ll rehearse debate-ready presence, pressure regulation,
+                and audience awareness. Press “Start Debate” when you’re ready—the Philosopher will listen,
+                transcribe every word, and respond with supportive guidance.
+            </p>
+        </div>
+
+        <div class="grid gap-4 sm:gap-6 sm:grid-cols-3">
+            <div class="amphi-pill rounded-2xl border p-4">
+                <div class="text-[11px] uppercase tracking-[0.3em] text-muted mb-2">Focus</div>
+                <p class="text-sm leading-relaxed">
+                    Practice high-stakes debates in a calm, reflective space.
+                </p>
+            </div>
+            <div class="amphi-pill rounded-2xl border p-4">
+                <div class="text-[11px] uppercase tracking-[0.3em] text-muted mb-2">How it works</div>
+                <p class="text-sm leading-relaxed">
+                    Hold the mic for up to 5 seconds. We’ll mirror your words and offer a two-sentence reflection.
+                </p>
+            </div>
+            <div class="amphi-pill rounded-2xl border p-4">
+                <div class="text-[11px] uppercase tracking-[0.3em] text-muted mb-2">What to bring</div>
+                <p class="text-sm leading-relaxed">
+                    One debate topic or moment, and a willingness to breathe before you speak.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="text-sm text-muted">
+                Pressing start opens the live debate practice with the Philosopher. You can return here anytime.
+            </div>
+            <a href="{% url 'venue_session' venue.id %}"
+               class="amphi-cta inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[16px] bg-gradient-to-r from-electric-violet to-purple-500 text-white text-sm font-semibold hover:shadow-electric-violet/60 transition focus:ring-2 focus:ring-offset-2 focus:ring-electric-violet/40">
+                <i class="fa-solid fa-microphone-lines text-sm"></i>
+                <span>Start Debate</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="amphi-pill border border-dashed rounded-[24px] p-5 sm:p-7 text-center">
+        <p class="text-sm sm:text-base text-muted">
+            Need a refresher on debate fundamentals? Revisit the Module A guided map or press
+            “Start Debate” to dive straight in.
+        </p>
+    </section>
+</div>
+{% endblock %}
+
+

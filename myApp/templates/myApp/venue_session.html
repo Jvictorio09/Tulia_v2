@@ -1,0 +1,306 @@
+{% extends 'myApp/base.html' %}
+
+{% block title %}{{ venue.name }} · Guided Session{% endblock %}
+
+{% block extra_head %}
+<style>
+body.amphi-session {
+    background:
+        linear-gradient(180deg, rgba(16, 20, 35, 0.75), rgba(19, 22, 39, 0.9)),
+        url('https://res.cloudinary.com/dcuswyfur/image/upload/v1762868632/greekampi_bc0y7m.png') center/cover fixed no-repeat;
+    color: var(--text-strong);
+}
+.amphi-card {
+    background: rgba(14, 18, 36, 0.65);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 60px rgba(5, 6, 16, 0.45);
+    color: rgba(244, 247, 255, 0.95);
+}
+.amphi-card p,
+.amphi-card span {
+    color: inherit;
+}
+.amphi-transcript {
+    background: rgba(16, 24, 45, 0.55);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(244, 247, 255, 0.8);
+}
+.amphi-transcript span {
+    color: rgba(244, 247, 255, 0.6);
+}
+.voice-mic-trigger {
+    box-shadow: 0 22px 48px rgba(124, 58, 237, 0.6);
+}
+</style>
+{% endblock %}
+
+{% block body_class %}amphi-session{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto w-full space-y-6 sm:space-y-8 py-6 sm:py-10">
+    <header class="amphi-card rounded-3xl p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-muted">Guided Session</p>
+                <h1 class="text-2xl sm:text-3xl font-heading font-bold mt-1 text-white">{{ venue.name }}</h1>
+                <p class="text-sm text-muted mt-2 leading-relaxed">
+                    Press and hold the mic for up to 5 seconds. We’ll mirror every word you speak, then the Philosopher will respond.
+                </p>
+            </div>
+            <a href="{% url 'venue_detail' venue.id %}"
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-default bg-overlay-weak text-muted hover:text-text-strong transition focus:ring-2 focus:ring-electric-violet/40"
+               aria-label="Back to venue">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <section class="amphi-card rounded-3xl p-5 sm:p-6 space-y-5">
+        <div id="sessionMessages" class="space-y-4 overflow-y-auto max-h-[440px] pr-1">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-electric-violet font-semibold">Φ</div>
+                <div class="bg-overlay-weak border border-default rounded-2xl px-4 py-3 text-sm text-text-strong leading-relaxed">
+                    {{ initial_prompt }}
+                </div>
+            </div>
+        </div>
+
+        <div class="border border-dashed amphi-transcript rounded-2xl px-4 py-3 text-sm min-h-[60px]" id="liveTranscript">
+            <span class="opacity-70">Live transcript appears here while you hold the mic…</span>
+        </div>
+
+        <div class="flex flex-col items-center gap-3 pt-2">
+            <button id="holdToSpeakButton"
+                    class="w-24 h-24 rounded-full bg-gradient-to-br from-electric-violet to-purple-600 text-white shadow-electric-violet/50 shadow-xl grid place-items-center gap-2 text-center font-semibold transition-transform focus:ring-4 focus:ring-electric-violet/30 active:scale-95">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1a3 3 0 00-3 3v6a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4m-4 0h8"/>
+                </svg>
+                <span class="text-xs uppercase tracking-[0.3em]">Hold</span>
+            </button>
+            <p id="sessionStatus" class="text-xs text-muted text-center">
+                Press & hold for up to 5 seconds. Release to hear from the Philosopher.
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const messagesEl = document.getElementById('sessionMessages');
+    const transcriptEl = document.getElementById('liveTranscript');
+    const holdButton = document.getElementById('holdToSpeakButton');
+    const statusEl = document.getElementById('sessionStatus');
+
+    const FEEDBACK_URL = "{% url 'venue_session_feedback' venue.id %}";
+    const SESSION_KEY = 'venueSession.greekAmphitheatre.sessionId';
+
+    let recognition = null;
+    let recognitionTimer = null;
+    let interimTranscript = '';
+    let finalTranscript = '';
+    let processing = false;
+    let activePointerId = null;
+
+    function getSessionId() {
+        try {
+            if (window.sessionStorage) {
+                const existing = sessionStorage.getItem(SESSION_KEY);
+                if (existing) return existing;
+                const generated = window.crypto?.randomUUID
+                    ? window.crypto.randomUUID()
+                    : Date.now().toString(36) + Math.random().toString(36).slice(2);
+                sessionStorage.setItem(SESSION_KEY, generated);
+                return generated;
+            }
+        } catch (err) {
+            console.warn('Session storage unavailable', err);
+        }
+        return window.crypto?.randomUUID
+            ? window.crypto.randomUUID()
+            : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function appendMessage(role, text) {
+        if (!text) return;
+        const row = document.createElement('div');
+        row.className = role === 'user'
+            ? 'flex justify-end'
+            : 'flex justify-start';
+        row.innerHTML = role === 'user'
+            ? `
+                <div class="max-w-[80%] bg-gradient-to-br from-electric-violet/90 to-purple-500/90 text-black rounded-2xl rounded-tr-none px-4 py-3 shadow-lg text-sm leading-relaxed">
+                    ${escapeHtml(text)}
+                </div>
+              `
+            : `
+                <div class="flex items-start gap-3 max-w-[80%]">
+                    <div class="w-10 h-10 rounded-full bg-electric-violet/10 border border-electric-violet/30 grid place-items-center text-electric-violet font-semibold">Φ</div>
+                    <div class="bg-overlay-weak border border-default rounded-2xl px-4 py-3 text-sm text-text-strong leading-relaxed">
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+              `;
+        messagesEl.appendChild(row);
+        row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value;
+        return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    function updateTranscript() {
+        if (finalTranscript || interimTranscript) {
+            transcriptEl.innerHTML = `
+                <span class="text-text-strong">${escapeHtml(finalTranscript)}</span>
+                <span class="text-muted">${escapeHtml(interimTranscript)}</span>
+            `;
+        } else {
+            transcriptEl.innerHTML = '<span class="opacity-70">Live transcript appears here while you hold the mic…</span>';
+        }
+    }
+
+    function startListening() {
+        if (processing) return;
+
+        if (!SpeechRecognition) {
+            statusEl.textContent = 'Speech recognition is not supported in this browser.';
+            return;
+        }
+
+        finalTranscript = '';
+        interimTranscript = '';
+        updateTranscript();
+        statusEl.textContent = 'Listening…';
+        holdButton.classList.add('scale-95');
+
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event) => {
+            interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const result = event.results[i];
+                if (result.isFinal) {
+                    finalTranscript += (finalTranscript ? ' ' : '') + result[0].transcript.trim();
+                } else {
+                    interimTranscript += result[0].transcript;
+                }
+            }
+            updateTranscript();
+        };
+
+        recognition.onerror = (event) => {
+            console.warn('Speech recognition error', event.error);
+        };
+
+        recognition.onend = () => {
+            if (recognitionTimer) {
+                clearTimeout(recognitionTimer);
+                recognitionTimer = null;
+            }
+            if (activePointerId !== null) {
+                if (holdButton.hasPointerCapture && holdButton.hasPointerCapture(activePointerId)) {
+                    holdButton.releasePointerCapture(activePointerId);
+                }
+                activePointerId = null;
+            }
+            holdButton.classList.remove('scale-95');
+            finishListening();
+        };
+
+        recognition.start();
+        recognitionTimer = setTimeout(() => {
+            if (recognition) {
+                recognition.stop();
+            }
+        }, 5000);
+    }
+
+    function stopListening() {
+        if (!recognition) return;
+        recognition.stop();
+    }
+
+    function finishListening() {
+        if (!finalTranscript.trim()) {
+            statusEl.textContent = 'I didn’t catch any words. Try again and speak steadily.';
+            updateTranscript();
+            return;
+        }
+
+        appendMessage('user', finalTranscript.trim());
+        processing = true;
+        statusEl.textContent = 'Analyzing your voice…';
+        sendTranscript(finalTranscript.trim())
+            .finally(() => {
+                processing = false;
+                finalTranscript = '';
+                interimTranscript = '';
+                updateTranscript();
+            });
+    }
+
+    function sendTranscript(text) {
+        return fetch(FEEDBACK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRF(),
+            },
+            body: JSON.stringify({
+                transcript: text,
+                session_id: getSessionId(),
+            }),
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(res.status);
+                return res.json();
+            })
+            .then((data) => {
+                const reply = data?.message || 'Keep going. I’m listening.';
+                appendMessage('bot', reply);
+                statusEl.textContent = 'Press & hold for another round whenever you’re ready.';
+            })
+            .catch((error) => {
+                console.error(error);
+                appendMessage('bot', 'The winds were noisy. Try sharing again when you are ready.');
+                statusEl.textContent = 'Press & hold to try again.';
+            });
+    }
+
+    function getCSRF() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
+    }
+
+    holdButton.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        activePointerId = event.pointerId;
+        holdButton.setPointerCapture(event.pointerId);
+        startListening();
+    });
+
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((eventName) => {
+        holdButton.addEventListener(eventName, (event) => {
+            if (activePointerId === null || event.pointerId !== activePointerId) return;
+            if (holdButton.hasPointerCapture && holdButton.hasPointerCapture(event.pointerId)) {
+                holdButton.releasePointerCapture(event.pointerId);
+            }
+            activePointerId = null;
+            stopListening();
+        });
+    });
+})();
+</script>
+{% endblock %}
+

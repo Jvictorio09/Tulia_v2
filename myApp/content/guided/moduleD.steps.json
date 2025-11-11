@@ -1,0 +1,82 @@
+{
+  "module_code": "D",
+  "version": "guided-1.0.0",
+  "steps": [
+    {
+      "step_id": "mission_snapshot",
+      "order": 1,
+      "field_name": "mission_snapshot",
+      "input_type": "textarea",
+      "prompt_title": "What mission moment are you leading?",
+      "prompt_body": "Capture the high-context moment (cross-functional reset, exec pitch, etc.). Mention the stakes in one sentence.",
+      "examples": [
+        "Quarterly strategy review with the ELT—need green light on the expansion plan.",
+        "Customer council briefing after a major shift—must rebuild confidence."
+      ],
+      "validation": { "required": true, "min_length": 35 },
+      "fa_icon": "fa-compass-drafting",
+      "progress": { "current": 1, "total": 5 }
+    },
+    {
+      "step_id": "decision_line",
+      "order": 2,
+      "field_name": "decision_line",
+      "input_type": "textarea",
+      "prompt_title": "Draw the decision line",
+      "prompt_body": "Write the concrete decision or behavior change you want by the end.",
+      "examples": [
+        "Secure approval to sunset two SKUs and redirect budget.",
+        "Get commitment from ops and product to co-own the incident response playbook."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-scale-balanced",
+      "progress": { "current": 2, "total": 5 }
+    },
+    {
+      "step_id": "influence_strategy",
+      "order": 3,
+      "field_name": "influence_strategy",
+      "input_type": "textarea",
+      "prompt_title": "Outline your influence strategy",
+      "prompt_body": "List the two levers (data story, narrative, coalition, etc.) you’ll use to shape the decision.",
+      "examples": [
+        "Lead with customer retention data, then spotlight the pilot success of Team Delta.",
+        "Start with the vision arc, then anchor on the risk of inaction."
+      ],
+      "validation": { "required": true, "min_length": 30 },
+      "fa_icon": "fa-chess-knight",
+      "progress": { "current": 3, "total": 5 }
+    },
+    {
+      "step_id": "resistance_plan",
+      "order": 4,
+      "field_name": "resistance_plan",
+      "input_type": "textarea",
+      "prompt_title": "Plan for resistance",
+      "prompt_body": "Name the strongest counter-argument you expect and how you’ll respond.",
+      "examples": [
+        "Finance may argue the ROI horizon is too long—counter with phased milestones and quick wins.",
+        "Sales will worry about quota impact—offer the transition incentive plan."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-shield-halved",
+      "progress": { "current": 4, "total": 5 }
+    },
+    {
+      "step_id": "closing_move",
+      "order": 5,
+      "field_name": "closing_move",
+      "input_type": "textarea",
+      "prompt_title": "Design the closing move",
+      "prompt_body": "Describe how you’ll close the meeting: the question you’ll ask, the action you’ll propose, and who you’ll empower.",
+      "examples": [
+        "End by asking for explicit go/no-go, then assign Ops to lead the first 30-day check-in.",
+        "Close with a round-robin commitment and set the follow-up date before leaving the room."
+      ],
+      "validation": { "required": true, "min_length": 30 },
+      "fa_icon": "fa-door-open",
+      "progress": { "current": 5, "total": 5 }
+    }
+  ]
+}
+

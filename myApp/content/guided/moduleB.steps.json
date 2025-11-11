@@ -1,0 +1,98 @@
+{
+  "module_code": "B",
+  "version": "guided-1.0.0",
+  "steps": [
+    {
+      "step_id": "stakeholder_snapshot",
+      "order": 1,
+      "field_name": "stakeholder_snapshot",
+      "input_type": "textarea",
+      "prompt_title": "Who are the key players?",
+      "prompt_body": "List the top stakeholders you’ll interact with and what each one quietly wants.",
+      "examples": [
+        "CFO wants proof the plan protects margin. VP Product cares about launch timing.",
+        "Client sponsor wants reassurance the migration won’t derail Q3 metrics."
+      ],
+      "validation": { "required": true, "min_length": 40 },
+      "fa_icon": "fa-people-group",
+      "helper": {
+        "title": "Map the room",
+        "bullets": [
+          "Name the decision maker.",
+          "Call out the skeptic or blocker.",
+          "Capture the silent ally."
+        ]
+      },
+      "progress": { "current": 1, "total": 5 }
+    },
+    {
+      "step_id": "tension_scan",
+      "order": 2,
+      "field_name": "tension_scan",
+      "input_type": "textarea",
+      "prompt_title": "Where could tension surface?",
+      "prompt_body": "Describe the moment you expect pushback or friction. What triggers it?",
+      "examples": [
+        "Budget doubt will spike when I outline the additional headcount ask.",
+        "Legal will challenge the new data-sharing clause."
+      ],
+      "validation": { "required": true, "min_length": 30 },
+      "fa_icon": "fa-triangle-exclamation",
+      "helper": {
+        "title": "Spot the flashpoint",
+        "bullets": [
+          "Is it cost, risk, or control?",
+          "Who voices it first?",
+          "What happens if you ignore it?"
+        ]
+      },
+      "progress": { "current": 2, "total": 5 }
+    },
+    {
+      "step_id": "ally_move",
+      "order": 3,
+      "field_name": "ally_move",
+      "input_type": "textarea",
+      "prompt_title": "Design your ally move",
+      "prompt_body": "Write one action you’ll take to earn or reinforce an ally before the meeting.",
+      "examples": [
+        "Send the COO a one-page preview so she can co-sign the risk mitigation plan.",
+        "Check in with the client champion to confirm the success metrics."
+      ],
+      "validation": { "required": true, "min_length": 25 },
+      "fa_icon": "fa-handshake-angle",
+      "progress": { "current": 3, "total": 5 }
+    },
+    {
+      "step_id": "message_anchor",
+      "order": 4,
+      "field_name": "message_anchor",
+      "input_type": "textarea",
+      "prompt_title": "Clarify your core message",
+      "prompt_body": "State the single sentence you want every stakeholder to remember.",
+      "examples": [
+        "“This rollout protects uptime while unlocking $2.1M in new revenue.”",
+        "“By giving Ops the data feed, we cut decision time in half.”"
+      ],
+      "validation": { "required": true, "min_length": 20 },
+      "fa_icon": "fa-bullhorn",
+      "progress": { "current": 4, "total": 5 }
+    },
+    {
+      "step_id": "presence_card",
+      "order": 5,
+      "field_name": "presence_card",
+      "input_type": "textarea",
+      "prompt_title": "Prep your presence card",
+      "prompt_body": "Describe how you’ll show up in the room—tone, pacing, and first question.",
+      "examples": [
+        "Open with a calm recap, then ask the CFO what success looks like six months post-launch.",
+        "Use a 2-4 breath before speaking; keep tone warm but confident."
+      ],
+      "validation": { "required": true, "min_length": 30 },
+      "fa_icon": "fa-person-rays",
+      "progress": { "current": 5, "total": 5 }
+    }
+  ]
+}
+

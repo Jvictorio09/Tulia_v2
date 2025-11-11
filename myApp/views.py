@@ -60,13 +60,41 @@ def get_ui_tokens():
 
 GUIDED_FLOW_FILES = {
     "A": "moduleA.steps.json",
+    "B": "moduleB.steps.json",
+    "C": "moduleC.steps.json",
+    "D": "moduleD.steps.json",
 }
 
-EXERCISE_WEBHOOK_URL = getattr(
+DEFAULT_MODULE_WEBHOOKS = {
+    "A": "https://katalyst-crm.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
+    "B": "https://speak-pro-app.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
+    "C": "https://speak-pro-app.fly.dev/webhook/d4908fce-e029-4c09-8267-027516b0e6cf",
+    "D": "https://speak-pro-app.fly.dev/webhook/b3bf6992-16b8-4512-8982-7573211fbd63",
+}
+
+VENUE_SESSION_WEBHOOK_URL = getattr(
     settings,
-    "LESSON_EXERCISE_WEBHOOK_URL",
-    "https://katalyst-crm.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
+    "VENUE_SESSION_WEBHOOK_URL",
+    os.getenv(
+        "VENUE_SESSION_WEBHOOK_URL",
+        "https://speak-pro-app.fly.dev/webhook/d4908fce-e029-4c09-8267-027516b0e6cf",
+    ),
 )
+
+
+def _get_module_webhook(module_code: str) -> str:
+    module_code = (module_code or "").upper()
+    env_key = f"LESSON_EXERCISE_WEBHOOK_URL_{module_code}"
+    override = getattr(settings, env_key, None) or os.getenv(env_key)
+    if override:
+        return override
+    if module_code == "A":
+        return getattr(
+            settings,
+            "LESSON_EXERCISE_WEBHOOK_URL",
+            DEFAULT_MODULE_WEBHOOKS["A"],
+        )
+    return DEFAULT_MODULE_WEBHOOKS.get(module_code, DEFAULT_MODULE_WEBHOOKS["A"])
 
 
 class WebhookError(Exception):
@@ -85,7 +113,12 @@ def _coerce_message_text(value: Any) -> str:
 
 
 def _call_exercise_webhook(session, user, message: str) -> Tuple[Optional[str], Dict[str, Any], Dict[str, Any]]:
-    if not EXERCISE_WEBHOOK_URL:
+    module_code = ""
+    if hasattr(session, "module") and session.module:
+        module_code = session.module.code
+    webhook_url = _get_module_webhook(module_code)
+
+    if not webhook_url:
         return None, {}, {}
 
     request_payload = {
@@ -96,7 +129,7 @@ def _call_exercise_webhook(session, user, message: str) -> Tuple[Optional[str], 
     }
 
     try:
-        response = requests.post(EXERCISE_WEBHOOK_URL, json=request_payload, timeout=10)
+        response = requests.post(webhook_url, json=request_payload, timeout=10)
         response.raise_for_status()
     except requests.RequestException as exc:
         raise WebhookError(str(exc)) from exc
@@ -2215,7 +2248,150 @@ def venue_detail(request, venue_id):
         'profile': profile,
     }
     
-    return render(request, 'myApp/district_venue.html', context)
+    template = 'myApp/district_venue.html'
+    if venue.name.lower() == "greek amphitheatre":
+        template = 'myApp/venue_greek_amphitheatre_welcome.html'
+    return render(request, template, context)
+
+
+@login_required
+def venue_session(request, venue_id):
+    """Dedicated guided session screen for a venue."""
+    venue = get_object_or_404(Venue, id=venue_id)
+
+    if not _user_has_venue_access(request.user, venue):
+        messages.info(request, "Unlock this venue to start a guided session.")
+        return redirect('venue_detail', venue_id=venue.id)
+
+    initial_prompt = (
+        f"Welcome to the {venue.name}. Take a breath, then share what moment you’re preparing for."
+    )
+
+    return render(
+        request,
+        'myApp/venue_session.html',
+        {
+            'venue': venue,
+            'initial_prompt': initial_prompt,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def venue_session_feedback(request, venue_id):
+    """Return a short AI reflection for a venue session transcript."""
+    venue = get_object_or_404(Venue, id=venue_id)
+
+    payload, error = _parse_request_json(request)
+    if error:
+        return error
+
+    transcript = (payload.get("transcript") or "").strip()
+    session_id = (payload.get("session_id") or "").strip()
+    if not transcript:
+        return _json_error("Transcript is required.", code="missing_transcript")
+
+    message = ""
+
+    if VENUE_SESSION_WEBHOOK_URL:
+        try:
+            webhook_response = requests.post(
+                VENUE_SESSION_WEBHOOK_URL,
+                json={
+                    "venue_id": venue.id,
+                    "venue_name": venue.name,
+                    "user_id": request.user.id,
+                    "transcript": transcript,
+                    "session_id": session_id or None,
+                },
+                timeout=12,
+            )
+            webhook_response.raise_for_status()
+            try:
+                payload = webhook_response.json()
+            except ValueError:
+                payload = {"message": webhook_response.text}
+            nested_response = (
+                payload.get("greek_amphitheatre_response")
+                or payload.get("greek_amphitheatre")
+                or {}
+            )
+            if isinstance(nested_response, dict):
+                output_block = nested_response.get("output") or {}
+                if isinstance(output_block, dict) and output_block.get("text"):
+                    message = str(output_block.get("text")).strip()
+                elif isinstance(output_block, str):
+                    message = output_block.strip()
+            if not message:
+                for key in ("message", "response", "reply", "text"):
+                    if payload.get(key):
+                        message = str(payload[key]).strip()
+                        break
+            if not message:
+                message = webhook_response.text.strip()
+            AnalyticsEvent.objects.create(
+                user=request.user,
+                event_type="venue_session_webhook_success",
+                event_data={
+                    "venue_id": venue.id,
+                    "session_id": session_id or None,
+                    "status_code": webhook_response.status_code,
+                    "excerpt": message[:180],
+                },
+            )
+        except requests.RequestException as exc:
+            AnalyticsEvent.objects.create(
+                user=request.user,
+                event_type="venue_session_feedback_error",
+                event_data={
+                    "venue_id": venue.id,
+                    "session_id": session_id or None,
+                    "error": f"webhook: {exc}",
+                },
+            )
+
+    if not message:
+        client = _get_openai_client()
+        if client:
+            system_prompt = (
+                "You are The Philosopher guiding a communication practice session. "
+                "Offer a concise, encouraging response (maximum two sentences). "
+                "Acknowledge what the speaker shared, then offer a gentle nudge toward presence or clarity. "
+                "Keep it warm, judgement-free, and grounded."
+            )
+            user_prompt = (
+                f"The practice is happening inside the {venue.name}. "
+                f"The speaker just said: \"{transcript}\""
+            )
+
+            try:
+                response = client.responses.create(
+                    model="gpt-4.1-mini",
+                    input=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+                message = (response.output_text or "").strip()
+            except Exception as exc:
+                AnalyticsEvent.objects.create(
+                    user=request.user,
+                    event_type="venue_session_feedback_error",
+                    event_data={
+                        "venue_id": venue.id,
+                        "session_id": session_id or None,
+                        "error": f"openai: {exc}",
+                    },
+                )
+
+    if not message:
+        if VENUE_SESSION_WEBHOOK_URL:
+            message = "Philosopher: the webhook responded, but no message text was returned."
+        else:
+            message = "Philosopher: no reflection available yet. Try again in a moment."
+
+    return JsonResponse({"ok": True, "message": message})
 
 
 @login_required
@@ -2223,6 +2399,8 @@ def amphitheatre_hub(request):
     """Hub experience for the Greek Amphitheatre venue."""
     user = request.user
     profile = user.profile
+
+    venue_obj = Venue.objects.filter(name__iexact="Greek Amphitheatre").first()
 
     sessions = (
         AmphitheatreSession.objects.filter(user=user)
@@ -2258,6 +2436,7 @@ def amphitheatre_hub(request):
         },
         "next_plan": next_plan,
         "recent_reflections": _amphitheatre_reflection_feed(user),
+        "venue": venue_obj,
     }
 
     return render(request, "myApp/amphitheatre_hub.html", context)

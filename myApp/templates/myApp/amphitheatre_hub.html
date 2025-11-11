@@ -59,7 +59,7 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-                    <a href="{% url 'amphitheatre_session' %}"
+                    <a href="{% if venue %}{% url 'venue_session' venue.id %}{% else %}{% url 'amphitheatre_session' %}{% endif %}"
                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[14px] bg-gradient-to-r from-electric-violet to-purple-600 text-white font-semibold text-sm shadow-electric-violet/50 hover:shadow-electric-violet/60 transition focus-ring animate-press">
                         <span>{% if hub.has_active_session %}Resume Session{% else %}Start Session{% endif %}</span>
                         <i class="fa-solid fa-arrow-right-long text-sm"></i>
