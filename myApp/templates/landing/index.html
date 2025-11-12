@@ -19,12 +19,12 @@
 
     <div id="landing-chatbot" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-8 sm:right-8 z-50 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:justify-end" data-endpoint="{% url 'landing_chat_send' %}">
         <div id="landing-chatbot-callout"
-             class="hidden pointer-events-auto select-none relative flex items-center gap-3
-                    rounded-2xl border bg-white/95 text-slate-900 shadow-[0_20px_45px_rgba(79,70,229,0.18)]
-                    border-white/80 backdrop-blur px-3.5 py-2 sm:px-4 sm:py-2.5
-                    max-w-[88vw] sm:max-w-none
+             class="hidden pointer-events-auto select-none relative flex items-center gap-2
+                    rounded-2xl border bg-white/95 text-slate-900 shadow-[0_16px_35px_rgba(79,70,229,0.18)]
+                    border-white/80 backdrop-blur px-3 py-2 sm:px-4 sm:py-2.5
+                    max-w-[70vw] sm:max-w-none
                     ring-1 ring-black/0 hover:ring-black/5 transition will-change-transform"
-             style="padding-right: max(0.875rem, env(safe-area-inset-right));">
+             style="padding-right: max(0.75rem, env(safe-area-inset-right));">
             <span class="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center
                          rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/30">
                 <svg class="h-4.5 w-4.5 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -33,10 +33,10 @@
                 </svg>
             </span>
             <div class="leading-tight">
-                <p class="text-[13px] sm:text-sm font-extrabold tracking-tight text-indigo-600">
+                <p class="text-[12px] sm:text-sm font-extrabold tracking-tight text-indigo-600">
                     Need help?
                 </p>
-                <p class="text-[11px] sm:text-[13px] text-slate-500 font-medium">
+                <p class="text-[10px] sm:text-[13px] text-slate-500 font-medium">
                     Ask us <span aria-hidden="true">→</span>
                 </p>
             </div>
@@ -45,8 +45,8 @@
             </span>
         </div>
 
-        <div id="landing-chatbot-panel" data-chatbot-panel class="hidden pointer-events-auto w-full max-w-full sm:w-[360px] sm:max-w-none rounded-[28px] overflow-hidden border border-indigo-100/70 bg-white shadow-[0_40px_120px_rgba(30,64,175,0.28)]">
-            <div class="p-5 border-b border-indigo-100/60 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white">
+        <div id="landing-chatbot-panel" data-chatbot-panel class="hidden pointer-events-auto w-[85vw] sm:w-[320px] max-w-[calc(100vw-32px)] rounded-[22px] sm:rounded-[26px] overflow-hidden border border-indigo-100/70 bg-white shadow-[0_32px_100px_rgba(30,64,175,0.28)] flex flex-col relative max-h-[78dvh] sm:max-h-[72vh]">
+            <div class="chatbot-header p-4 sm:p-5 border-b border-indigo-100/60 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex items-center gap-3">
                         <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 border border-white/30 text-lg font-semibold shadow-lg shadow-black/15">
@@ -54,7 +54,7 @@
                         </span>
                         <div>
                             <p class="text-xs uppercase tracking-[0.35em] text-white/70">SpeakPro Concierge</p>
-                            <h3 class="text-white font-semibold text-xl">Need guidance?</h3>
+                            <h3 class="text-xl sm:text-2xl text-white font-semibold">Need guidance?</h3>
                         </div>
                     </div>
                     <button type="button" data-chatbot-close class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 border border-white/40 text-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="Close concierge">
@@ -63,7 +63,7 @@
                         </svg>
                     </button>
                 </div>
-                <div class="mt-4 rounded-2xl bg-white/20 border border-white/30 p-4 shadow-inner shadow-black/20">
+                <div data-chatbot-intro class="mt-4 rounded-2xl bg-white/20 border border-white/30 p-4 shadow-inner shadow-black/20">
                     <p class="text-sm text-white/85 leading-relaxed">
                         I’m your SpeakPro concierge. Ask me about beta access, Legacy Patron perks, pricing, or how we help you stay composed in high-stakes moments.
                     </p>
@@ -75,7 +75,7 @@
                 </div>
             </div>
 
-            <div id="landing-chatbot-messages" class="p-5 space-y-4 max-h-[320px] overflow-y-auto bg-white">
+            <div id="landing-chatbot-messages" class="px-4 sm:p-5 space-y-4 bg-white overflow-y-auto grow [scrollbar-gutter:stable] overscroll-contain">
                 <div class="flex justify-start">
                     <div class="max-w-[85%] rounded-3xl rounded-tl-sm bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm text-indigo-900 shadow-sm">
                         <p class="font-semibold text-indigo-700">Hi there! 👋</p>
@@ -84,21 +84,29 @@
                 </div>
             </div>
 
-            <form id="landing-chatbot-form" class="p-4 border-t border-indigo-100/70 bg-indigo-50" autocomplete="off">
+            <button type="button" id="landing-chatbot-scrollbtn"
+                    class="hidden absolute bottom-[72px] right-4 sm:right-5 z-10 h-10 w-10 rounded-full shadow-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80">
+              <svg class="mx-auto h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+
+            <form id="landing-chatbot-form" class="p-3 sm:p-4 border-t border-indigo-100/70 bg-indigo-50 sticky bottom-0 [padding-bottom:calc(env(safe-area-inset-bottom,0)+0.5rem)]" autocomplete="off">
                 <div class="flex items-center gap-3">
-                    <input id="landing-chatbot-input" type="text" name="message" maxlength="500" placeholder="Type your question..." class="flex-1 rounded-2xl border border-indigo-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
-                    <button type="submit" data-chatbot-send class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-500/40 transition-transform hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80">
+                    <input id="landing-chatbot-input" type="text" name="message" maxlength="500" placeholder="Type your question..." class="flex-1 rounded-2xl border border-indigo-200 bg-white px-4 py-3 sm:py-2.5 text-[15px] sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
+                    <button type="submit" data-chatbot-send class="inline-flex items-center justify-center w-11 h-11 sm:w-11 sm:h-11 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-500/40 transition-transform hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12l14-7-7 14-2-4-4-2z"/>
                         </svg>
                     </button>
                 </div>
-                <p class="mt-2 text-[11px] text-slate-500">Concierge replies instantly using the same AI that powers SpeakProApp coaching.</p>
+                <p class="mt-2 text-[11px] sm:text-[11px] text-slate-500">Concierge replies instantly using the same AI that powers SpeakProApp coaching.</p>
             </form>
         </div>
 
         <button type="button" data-chatbot-toggle class="pointer-events-auto relative inline-flex items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-[0_24px_55px_rgba(88,28,135,0.4)] transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-300/40 hover:-translate-y-1 self-end sm:self-auto">
             <span class="absolute inset-0 rounded-full border border-white/30 opacity-70"></span>
+            <span class="absolute -inset-3 sm:-inset-3 rounded-full bg-gradient-to-br from-indigo-500/40 via-purple-500/35 to-pink-500/30 blur-2xl opacity-80 pointer-events-none transition-opacity duration-300 group-hover:opacity-100"></span>
             <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8z"/>
             </svg>
@@ -126,6 +134,35 @@
 #landing-chatbot-callout:not(.chatbot-callout-visible) {
     opacity: 0;
     transform: translateY(8px);
+}
+
+#landing-chatbot.chatbot-active {
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+#landing-chatbot-panel.chatbot-compact .chatbot-header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+#landing-chatbot-panel.chatbot-compact [data-chatbot-intro] {
+    display: none !important;
+}
+
+#landing-chatbot-messages {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 639px) {
+    #landing-chatbot-panel {
+        max-height: 78dvh;
+    }
+    #landing-chatbot-messages {
+        -webkit-overflow-scrolling: touch;
+    }
 }
 
 .chatbot-panel-open {
@@ -241,9 +278,9 @@
         ];
 
         if (role === 'user') {
-            bubbleClasses.push('bg-gradient-to-br', 'from-indigo-500', 'via-purple-500', 'to-pink-500', 'text-white', 'shadow-lg', 'shadow-indigo-900/40');
+            bubbleClasses.push('bg-gradient-to-br', 'from-indigo-500', 'via-purple-500', 'to-pink-500', 'text-white', 'shadow-lg', 'shadow-indigo-900/40', 'text-[15px]', 'sm:text-sm', 'leading-relaxed', 'rounded-2xl', 'sm:rounded-3xl');
         } else {
-            bubbleClasses.push('bg-indigo-50', 'text-indigo-900', 'border', 'border-indigo-100', 'shadow-sm');
+            bubbleClasses.push('bg-indigo-50', 'text-indigo-900', 'border', 'border-indigo-100', 'shadow-sm', 'text-[15px]', 'sm:text-sm', 'leading-relaxed', 'rounded-2xl', 'sm:rounded-3xl');
         }
 
         bubble.className = bubbleClasses.join(' ');
@@ -284,6 +321,15 @@
         }
     }
 
+    function compactIntro() {
+        const intro = panel.querySelector('[data-chatbot-intro]');
+        if (!intro) return;
+        panel.classList.add('chatbot-compact');
+        if (!intro.hasAttribute('hidden')) {
+            intro.setAttribute('hidden', 'hidden');
+        }
+    }
+
     function openPanel() {
         if (isOpen) return;
         isOpen = true;
@@ -293,6 +339,9 @@
         panel.classList.add('chatbot-panel-open');
         root.classList.add('chatbot-active');
         toggleBtn.classList.add('scale-95');
+        if (window.__landingChatHistory && window.__landingChatHistory.length > 0) {
+            compactIntro();
+        }
         setTimeout(() => {
             panel.classList.remove('chatbot-panel-open');
         }, 320);
@@ -309,6 +358,7 @@
         panel.classList.add('hidden');
         root.classList.remove('chatbot-active');
         toggleBtn.classList.remove('scale-95');
+        panel.style.height = '';
         setTimeout(showCalloutBubble, 1200);
     }
 
@@ -324,6 +374,7 @@
         isSending = true;
 
         appendMessage('user', message);
+        compactIntro();
         const pendingNode = appendMessage('bot', '', { pending: true, id: `pending-${Date.now()}` });
 
         const historyToSend = (window.__landingChatHistory || []).slice(-6);
@@ -407,6 +458,99 @@
     });
 
     setTimeout(showCalloutBubble, 1400);
+})();
+</script>
+<script>
+(function() {
+  const root = document.getElementById('landing-chatbot');
+  const panel = document.getElementById('landing-chatbot-panel');
+  if (!root || !panel) return;
+
+  const header = panel.querySelector('.chatbot-header');
+  const messages = document.getElementById('landing-chatbot-messages');
+  const form = document.getElementById('landing-chatbot-form');
+  const scrollBtn = document.getElementById('landing-chatbot-scrollbtn');
+
+  function dvh() {
+    return (window.visualViewport?.height || window.innerHeight);
+  }
+
+  function clampHeights() {
+     if (!messages || !form || !header) return;
+     if (panel.classList.contains('hidden')) {
+       panel.style.height = '';
+       return;
+     }
+    const maxPanel = Math.min(dvh() - 40, dvh() * 0.88);
+    panel.style.maxHeight = `${maxPanel}px`;
+    panel.style.height = `${maxPanel}px`;
+
+    const headerH = header.offsetHeight || 0;
+    const formH = form.offsetHeight || 0;
+    const chrome = 2;
+    const avail = Math.max(120, maxPanel - headerH - formH - chrome);
+    messages.style.maxHeight = `${avail}px`;
+  }
+
+  const mo = new MutationObserver(clampHeights);
+  mo.observe(panel, { attributes: true, attributeFilter: ['class', 'style'] });
+
+  ['resize', 'orientationchange'].forEach(evt =>
+    window.addEventListener(evt, clampHeights, { passive: true })
+  );
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', clampHeights, { passive: true });
+  }
+
+  const input = document.getElementById('landing-chatbot-input');
+  if (input) {
+    input.addEventListener('focus', () => setTimeout(() => {
+      clampHeights();
+      messages.scrollTop = messages.scrollHeight;
+    }, 50));
+  }
+
+  if (scrollBtn) {
+    scrollBtn.addEventListener('click', scrollMessagesToBottom);
+  }
+
+  clampHeights();
+})();
+</script>
+<script>
+(function() {
+  const panel = document.getElementById('landing-chatbot-panel');
+  const messages = document.getElementById('landing-chatbot-messages');
+  const scrollBtn = document.getElementById('landing-chatbot-scrollbtn');
+  if (!panel || !messages || !scrollBtn) return;
+
+  function atBottom() {
+    return (messages.scrollHeight - messages.scrollTop - messages.clientHeight) < 8;
+  }
+
+  function updateScrollBtn() {
+    if (atBottom()) {
+      scrollBtn.classList.add('hidden');
+    } else {
+      scrollBtn.classList.remove('hidden');
+    }
+  }
+
+  function scrollToBottom() {
+    messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
+    setTimeout(updateScrollBtn, 200);
+  }
+
+  messages.addEventListener('scroll', updateScrollBtn, { passive: true });
+  window.addEventListener('resize', updateScrollBtn, { passive: true });
+  scrollBtn.addEventListener('click', scrollToBottom);
+
+  const mo = new MutationObserver(() => {
+    scrollToBottom();
+  });
+  mo.observe(messages, { childList: true });
+
+  setTimeout(updateScrollBtn, 300);
 })();
 </script>
 {% endblock %}

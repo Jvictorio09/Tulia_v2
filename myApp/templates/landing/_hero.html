@@ -177,35 +177,43 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12 animate-fade-in-up" style="animation-delay: 0.4s;">
                 {% if user.is_authenticated %}
                     <a href="{% url 'home' %}" 
-                       class="group relative px-8 py-4 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white font-semibold rounded-2xl shadow-2xl shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 hover:scale-105 hover:-translate-y-1 min-h-[56px] flex items-center justify-center overflow-hidden"
-                       data-analytics="click_start_learning"
-                       data-analytics-user-type="authenticated">
+                        class="group relative px-9 py-4 bg-gradient-to-r from-[#FF8ADC] via-[#8B7BFF] to-[#4CC2FF] text-white font-semibold rounded-[999px] shadow-[0_18px_42px_rgba(95,77,255,0.36)] hover:shadow-[0_22px_52px_rgba(95,77,255,0.45)] transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 min-h-[54px] flex items-center justify-center overflow-hidden ring-1 ring-white/40"
+                        data-analytics="click_start_learning"
+                        data-analytics-user-type="authenticated">
                         <span class="relative z-10 flex items-center gap-2">
                             Start Learning
                             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                             </svg>
                         </span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-white/25 via-white/10 to-white/25 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-screen"></div>
+                        <span class="hero-worm-edge hero-worm-edge-left"></span>
+                        <span class="hero-worm-edge hero-worm-edge-right"></span>
+                        <span class="hero-worm-edge hero-worm-edge-top"></span>
+                        <span class="hero-worm-edge hero-worm-edge-bottom"></span>
                     </a>
                 {% else %}
                     <a href="{% url 'signup' %}" 
-                       class="group relative px-8 py-4 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white font-semibold rounded-2xl shadow-2xl shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 hover:scale-105 hover:-translate-y-1 min-h-[56px] flex items-center justify-center overflow-hidden"
-                       data-analytics="click_start_learning"
-                       data-analytics-user-type="anonymous">
+                        class="group relative px-9 py-4 bg-gradient-to-r from-[#FF8ADC] via-[#8B7BFF] to-[#4CC2FF] text-white font-semibold rounded-[999px] shadow-[0_18px_42px_rgba(95,77,255,0.36)] hover:shadow-[0_22px_52px_rgba(95,77,255,0.45)] transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 min-h-[54px] flex items-center justify-center overflow-hidden ring-1 ring-white/40"
+                        data-analytics="click_start_learning"
+                        data-analytics-user-type="anonymous">
                         <span class="relative z-10 flex items-center gap-2">
                             Start Learning Free
                             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                             </svg>
                         </span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-white/25 via-white/10 to-white/25 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-screen"></div>
+                        <span class="hero-worm-edge hero-worm-edge-left"></span>
+                        <span class="hero-worm-edge hero-worm-edge-right"></span>
+                        <span class="hero-worm-edge hero-worm-edge-top"></span>
+                        <span class="hero-worm-edge hero-worm-edge-bottom"></span>
                     </a>
                 {% endif %}
                 
                 <button 
                     onclick="window.openDemoModal()"
-                    class="group px-8 py-4 bg-white/10 backdrop-blur-md text-white font-semibold rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:-translate-y-1 min-h-[56px] flex items-center justify-center"
+                    class="group relative px-8 py-4 rounded-[999px] text-slate-900 font-semibold border border-white/70 bg-white hover:bg-white/90 transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 min-h-[54px] flex items-center justify-center shadow-[0_18px_38px_rgba(30,41,59,0.25)]"
                     data-analytics="click_demo">
                     <span class="flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,6 +381,112 @@
 
 .animate-twinkle {
     animation: twinkle 2s ease-in-out infinite;
+}
+
+.hero-worm {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 9999px;
+    opacity: 0.55;
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.25));
+}
+
+.hero-worm-edge {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+    overflow: hidden;
+    mix-blend-mode: screen;
+}
+
+.hero-worm-edge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0) 80%);
+    background-size: 100% 220%;
+    animation: hero-worm-slide-y 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.45));
+}
+
+.hero-worm-edge-left,
+.hero-worm-edge-right {
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+}
+
+.hero-worm-edge-left {
+    left: 6px;
+}
+
+.hero-worm-edge-right {
+    right: 6px;
+    transform: rotate(180deg);
+}
+
+.hero-worm-edge-top,
+.hero-worm-edge-bottom {
+    left: 12px;
+    right: 12px;
+    height: 4px;
+}
+
+.hero-worm-edge-top {
+    top: 6px;
+}
+
+.hero-worm-edge-bottom {
+    bottom: 6px;
+    transform: rotate(180deg);
+}
+
+.hero-worm-edge-top::after,
+.hero-worm-edge-bottom::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0) 80%);
+    background-size: 220% 100%;
+    animation: hero-worm-slide-x 2.8s ease-in-out infinite;
+}
+
+@keyframes hero-worm-horizontal {
+    0% { transform: translateX(-18%); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateX(18%); opacity: 0; }
+}
+
+@keyframes hero-worm-horizontal-reverse {
+    0% { transform: translateX(18%); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateX(-18%); opacity: 0; }
+}
+
+@keyframes hero-worm-vertical {
+    0% { transform: translateY(-18%); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(18%); opacity: 0; }
+}
+
+@keyframes hero-worm-vertical-reverse {
+    0% { transform: translateY(18%); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(-18%); opacity: 0; }
+}
+
+@keyframes hero-worm-slide-y {
+    0% { background-position: 0% 100%; }
+    50% { background-position: 0% 0%; }
+    100% { background-position: 0% 100%; }
+}
+
+@keyframes hero-worm-slide-x {
+    0% { background-position: 100% 0%; }
+    50% { background-position: 0% 0%; }
+    100% { background-position: 100% 0%; }
 }
 
 /* Responsive: hide some elements on mobile */
