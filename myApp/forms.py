@@ -53,3 +53,21 @@ class CustomUserCreationForm(UserCreationForm):
             user.refresh_from_db()
         return user
 
+
+class AdminLoginForm(forms.Form):
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            "placeholder": "Username",
+            "autocomplete": "username",
+            "class": "w-full rounded-2xl border border-slate-200/80 bg-white/90 text-slate-900 placeholder:text-slate-400 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-300",
+        }),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Password",
+            "autocomplete": "current-password",
+            "class": "w-full rounded-2xl border border-slate-200/80 bg-white/90 text-slate-900 placeholder:text-slate-400 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-300",
+        }),
+    )
+
