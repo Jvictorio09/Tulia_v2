@@ -2,10 +2,13 @@ from functools import lru_cache
 from copy import deepcopy
 import base64
 import io
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -65,7 +68,7 @@ GUIDED_FLOW_FILES = {
 
 DEFAULT_MODULE_WEBHOOKS = {
     "A": "https://katalyst-crm.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
-    "B": "https://speak-pro-app.fly.dev/webhook/afe1a38e-ae3d-4d6c-b23a-14ac169aed7a",
+    "B": "https://speak-pro-app.fly.dev/webhook/2fa00c13-4787-47f0-a762-6ded826191c9",
     "C": "https://speak-pro-app.fly.dev/webhook/d4908fce-e029-4c09-8267-027516b0e6cf",
     "D": "https://speak-pro-app.fly.dev/webhook/b3bf6992-16b8-4512-8982-7573211fbd63",
 }
@@ -124,6 +127,7 @@ def _call_exercise_webhook(session, user, message: str) -> Tuple[Optional[str], 
     webhook_url = _get_module_webhook(module_code)
 
     if not webhook_url:
+        logger.debug(f"_call_exercise_webhook: No webhook URL for module {module_code}")
         return None, {}, {}
 
     request_payload = {
@@ -134,14 +138,17 @@ def _call_exercise_webhook(session, user, message: str) -> Tuple[Optional[str], 
     }
 
     try:
+        logger.debug(f"_call_exercise_webhook: Calling {webhook_url} for module {module_code}")
         response = requests.post(webhook_url, json=request_payload, timeout=10)
         response.raise_for_status()
     except requests.RequestException as exc:
-        raise WebhookError(str(exc)) from exc
+        logger.error(f"_call_exercise_webhook: Request failed for {webhook_url}: {exc}", exc_info=True)
+        raise WebhookError(f"Webhook request failed: {exc}") from exc
 
     try:
         response_payload = response.json()
     except ValueError as exc:
+        logger.error(f"_call_exercise_webhook: Invalid JSON response from {webhook_url}: {exc}")
         raise WebhookError("Exercise webhook returned invalid JSON.") from exc
 
     output = response_payload.get("module1_test_response", {}).get("output")
@@ -1256,6 +1263,7 @@ def lesson_start(request):
 def lesson_answer(request):
     data, error = _parse_request_json(request)
     if error:
+        logger.warning(f"lesson_answer: JSON parse error - {error}")
         return error
     session_id = data.get("session_id")
     step_id = data.get("step_id")
@@ -1263,6 +1271,7 @@ def lesson_answer(request):
     value = data.get("value")
 
     if not session_id or not step_id or not field_name:
+        logger.warning(f"lesson_answer: Missing required fields - session_id={session_id}, step_id={step_id}, field_name={field_name}")
         return _json_error("session_id, step_id, and field_name are required.", code='missing_fields')
 
     session = get_object_or_404(LessonSession, id=session_id, user=request.user)
@@ -1276,14 +1285,17 @@ def lesson_answer(request):
 
     current_step = index.get(step_id)
     if not current_step:
+        logger.warning(f"lesson_answer: Unknown step_id {step_id} for module {module.code}")
         return _json_error("Unknown step_id.", code='unknown_step')
 
     if session.current_step_id != step_id:
+        logger.warning(f"lesson_answer: Step order mismatch - expected {session.current_step_id}, got {step_id}")
         return _json_error("Step order mismatch; refresh to resume.", code='step_out_of_order')
 
     try:
         normalized_value = _normalize_input(current_step, value)
     except ValueError as exc:
+        logger.warning(f"lesson_answer: Validation error for step {step_id}: {exc}")
         return _json_error(str(exc), code='validation_error')
 
     LessonStepResponse.objects.create(
@@ -1309,7 +1321,8 @@ def lesson_answer(request):
     try:
         message_text = _coerce_message_text(normalized_value)
         webhook_output, webhook_payload, webhook_request = _call_exercise_webhook(session, request.user, message_text)
-    except WebhookError:
+    except WebhookError as exc:
+        logger.error(f"lesson_answer: WebhookError for session {session_id}, step {step_id}: {exc}", exc_info=True)
         session.state = "asking"
         session.save(update_fields=["state", "updated_at"])
         return _json_error(

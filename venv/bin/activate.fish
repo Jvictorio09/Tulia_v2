@@ -29,7 +29,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/clemence/Downloads/Tulia_v2/venv"
+set -gx VIRTUAL_ENV "/Users/julia/Downloads/Tulia/Tulia_v2/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
