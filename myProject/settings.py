@@ -22,13 +22,14 @@ SECRET_KEY = 'django-insecure-=9$ygum+yeod5)2q)2j4+xorfh%vm(&!idrg8r622nyzhrnqu#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['tuliav2-production.up.railway.app', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['tuliav2-production.up.railway.app', '127.0.0.1', 'localhost', 'www.speakproapp.com']
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
     'https://tuliav2-production.up.railway.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'https://www.speakproapp.com',
 ]
 
 # Application definition
